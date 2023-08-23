@@ -55,6 +55,15 @@ Quickstart
 Check out `cinnamon-examples <https://federicoruggeri.github.io/cinnamon_examples/>`_ for a quick overview on how to evaluate a SVM classifier on a binary classification task with cinnamon!
 
 
+===============================================
+Contact
+===============================================
+
+Don't hesitate to contact:
+- `Federico Ruggeri <federico.ruggeri6@unibo.it>`_
+
+for questions/doubts/issues!
+
 .. toctree::
    :maxdepth: 4
    :hidden:
