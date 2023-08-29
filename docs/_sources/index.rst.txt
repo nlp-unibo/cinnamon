@@ -41,15 +41,30 @@ Features
 Packages
 ===============================================
 
-Currently, the following ufficial packages are provided
+Currently, the following official packages are provided
 
 - `cinnamon-core <https://federicoruggeri.github.io/cinnamon_core/>`_: defines all functionalities of cinnamon.
 - `cinnamon-generic <https://federicoruggeri.github.io/cinnamon_generic/>`_: for general-purpose machine-learning.
 - `cinnamon-tf <https://federicoruggeri.github.io/cinnamon_tf/>`_: for tensorflow-specific implementations.
 
+===============================================
+Repos
+===============================================
+
+Feel free to check the source code of ``cinnamon`` packages!
+
+- `cinnamon-core <https://github.com/federicoruggeri/cinnamon_core>`_
+- `cinnamon-generic <https://github.com/federicoruggeri/cinnamon_generic>`_
+- `cinnamon-tf <https://github.com/federicoruggeri/cinnamon_tf>`_
 
 ===============================================
 Quickstart
+===============================================
+
+Check out :ref:`quickstart` for a quick introduction to how ``cinnamon`` works.
+
+===============================================
+Demos
 ===============================================
 
 Check out `cinnamon-examples <https://federicoruggeri.github.io/cinnamon_examples/>`_ for a quick overview on how to evaluate a SVM classifier on a binary classification task with cinnamon!
@@ -69,3 +84,5 @@ for questions/doubts/issues!
    :hidden:
    :caption: Contents:
    :titlesonly:
+
+   Quickstart <quickstart.rst>
