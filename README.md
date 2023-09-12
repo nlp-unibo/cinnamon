@@ -33,14 +33,14 @@ It was developed to offer two main functionalities:
 
 Currently, the following ufficial packages are provided
 
-- `cinnamon-core <https://federicoruggeri.github.io/cinnamon_core/>`_: defines all functionalities of cinnamon.
-- `cinnamon-generic <https://federicoruggeri.github.io/cinnamon_generic/>`_: for general-purpose machine-learning.
-- `cinnamon-tf <https://federicoruggeri.github.io/cinnamon_tf/>`_: for tensorflow-specific implementations.
+- [cinnamon-core](https://nlp-unibo.github.io/cinnamon_core/>): defines all functionalities of cinnamon.
+- [cinnamon-generic](https://nlp-unibo.github.io/cinnamon_generic/): for general-purpose machine-learning.
+- [cinnamon-tf](https://nlp-unibo.github.io/cinnamon_tf/>): for tensorflow-specific implementations.
 
 
 ## Quickstart
 
-Check out `cinnamon-examples <https://federicoruggeri.github.io/cinnamon_examples/>`_ for a quick overview on how to evaluate a SVM classifier on a binary classification task with cinnamon!
+Check out [cinnamon-examples](https://nlp-unibo.github.io/cinnamon_examples/>) for a quick overview on how to evaluate a SVM classifier on a binary classification task with cinnamon!
 
 
 ## Contact
