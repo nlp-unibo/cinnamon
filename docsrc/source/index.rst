@@ -46,6 +46,7 @@ Currently, the following official packages are provided
 - `cinnamon-core <https://nlp-unibo.github.io/cinnamon_core/>`_: defines all functionalities of cinnamon.
 - `cinnamon-generic <https://nlp-unibo.github.io/cinnamon_generic/>`_: for general-purpose machine-learning.
 - `cinnamon-tf <https://nlp-unibo.github.io/cinnamon_tf/>`_: for tensorflow-specific implementations.
+- `cinnamon-th <https://nlp-unibo.github.io/cinnamon_th/>`_: for pytorch-specific implementations.
 
 ===============================================
 Repos
@@ -53,9 +54,10 @@ Repos
 
 Feel free to check the source code of ``cinnamon`` packages!
 
-- `cinnamon-core <https://github.com/federicoruggeri/cinnamon_core>`_
-- `cinnamon-generic <https://github.com/federicoruggeri/cinnamon_generic>`_
-- `cinnamon-tf <https://github.com/federicoruggeri/cinnamon_tf>`_
+- `cinnamon-core <https://github.com/nlp-unibo/cinnamon_core>`_
+- `cinnamon-generic <https://github.com/nlp-unibo/cinnamon_generic>`_
+- `cinnamon-tf <https://github.com/nlp-unibo/cinnamon_tf>`_
+- `cinnamon-th <https://github.com/nlp-unibo/cinnamon_th>`_
 
 ===============================================
 Quickstart
