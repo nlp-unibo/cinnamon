@@ -1,0 +1,6 @@
+pytest
+setuptools
+typeguard
+networkx
+pandas
+gitpython
