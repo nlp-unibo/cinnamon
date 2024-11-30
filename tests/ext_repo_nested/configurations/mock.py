@@ -1,5 +1,5 @@
-from cinnamon_core.registry import Registry, register, RegistrationKey
-from cinnamon_core.configuration import Configuration, C
+from cinnamon.registry import Registry, register, RegistrationKey
+from cinnamon.configuration import Configuration, C
 from typing import Type
 
 

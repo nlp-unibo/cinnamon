@@ -10,9 +10,9 @@ from typing import Dict, Any, Callable, Optional, TypeVar, Sized, List, Set, Uni
 from pandas import json_normalize
 from typeguard import check_type, TypeCheckError
 
-import cinnamon_core.component
-import cinnamon_core.registry
-from cinnamon_core.utility.python_utility import get_dict_values_combinations
+import cinnamon.component
+import cinnamon.registry
+from cinnamon.utility.python_utility import get_dict_values_combinations
 
 C = TypeVar('C', bound='Configuration')
 P = TypeVar('P', bound='Param')
@@ -285,7 +285,7 @@ class Configuration:
             self
     ) -> Dict[str, P]:
         return {param_key: param for param_key, param in self.__dict__.items() if
-                type(param.value) == cinnamon_core.registry.RegistrationKey}
+                type(param.value) == cinnamon.registry.RegistrationKey}
 
     def get(
             self,
@@ -441,12 +441,12 @@ class Configuration:
             return copy
 
         for child_key, child in copy.children.items():
-            if isinstance(child.value, cinnamon_core.configuration.Configuration):
+            if isinstance(child.value, cinnamon.configuration.Configuration):
                 copy.get(child_key).value = child.value.delta_copy(**kwargs)
-            if isinstance(child.value, cinnamon_core.registry.RegistrationKey):
+            if isinstance(child.value, cinnamon.registry.RegistrationKey):
                 raise RuntimeWarning(f'Found {child.value} registration key. Cannot forward {kwargs} to child. '
                                      f'You should invoke Registry.build_configuration() to use this method correctly')
-            if isinstance(child.value, cinnamon_core.component.Component):
+            if isinstance(child.value, cinnamon.component.Component):
                 raise RuntimeWarning(f'Found {child.value} component. Cannot forward {kwargs} to child. '
                                      f'You should invoke Registry.build_configuration() to use this method correctly')
 
@@ -472,11 +472,11 @@ class Configuration:
     ) -> Dict[str, Any]:
         value_dict = {}
         for param_name, param in self.params.items():
-            if isinstance(param.value, cinnamon_core.configuration.Configuration):
+            if isinstance(param.value, cinnamon.configuration.Configuration):
                 value_dict.update(param.value.config.to_value_dict())
-            elif isinstance(param.value, cinnamon_core.registry.RegistrationKey):
-                if cinnamon_core.registry.Registry.expanded:
-                    value_dict.update(cinnamon_core.registry.Registry.retrieve_configuration(
+            elif isinstance(param.value, cinnamon.registry.RegistrationKey):
+                if cinnamon.registry.Registry.expanded:
+                    value_dict.update(cinnamon.registry.Registry.retrieve_configuration(
                         registration_key=param.value).to_value_dict())
             else:
                 value_dict[param_name] = param.value

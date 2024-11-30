@@ -1,11 +1,12 @@
 import ast
-from typing import List
 from copy import deepcopy
 from pathlib import Path
+from typing import List
 
 __all__ = [
     'NamespaceExtractor'
 ]
+
 
 class NamespaceExtractor(ast.NodeVisitor):
 

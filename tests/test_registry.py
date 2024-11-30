@@ -1,10 +1,8 @@
-from pathlib import Path
-
 import pytest
 
-from cinnamon_core.component import Component
-from cinnamon_core.configuration import Configuration
-from cinnamon_core.registry import (
+from cinnamon.component import Component
+from cinnamon.configuration import Configuration
+from cinnamon.registry import (
     Registry,
     RegistrationKey,
     NotRegisteredException,

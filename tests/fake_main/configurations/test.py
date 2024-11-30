@@ -1,4 +1,4 @@
-from cinnamon_core.registry import Registry, register
+from cinnamon.registry import Registry, register
 from tests.fixtures import ConfigWithExternalDependency, ComponentWithChild
 
 

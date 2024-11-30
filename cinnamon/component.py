@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from typing import Optional, TypeVar, Type
 
-import cinnamon_core.registry
-import cinnamon_core.configuration
+import cinnamon.registry
+import cinnamon.configuration
 
 C = TypeVar('C', bound='Component')
 
@@ -19,10 +19,10 @@ class Component:
     @classmethod
     def build_component(
             cls: Type[C],
-            registration_key: Optional[cinnamon_core.registry.Registration] = None,
+            registration_key: Optional[cinnamon.registry.Registration] = None,
             name: Optional[str] = None,
             namespace: Optional[str] = None,
-            tags: cinnamon_core.configuration.Tags = None,
+            tags: cinnamon.configuration.Tags = None,
     ) -> C:
         """
         Syntactic sugar for building a ``Component`` from a ``RegistrationKey`` in implicit format.
@@ -43,7 +43,7 @@ class Component:
 
             ``NotBoundException``: if the ``Configuration`` is not bound to any ``Component``.
         """
-        return cinnamon_core.registry.Registry.build_component(registration_key=registration_key,
-                                                               name=name,
-                                                               tags=tags,
-                                                               namespace=namespace)
+        return cinnamon.registry.Registry.build_component(registration_key=registration_key,
+                                                          name=name,
+                                                          tags=tags,
+                                                          namespace=namespace)

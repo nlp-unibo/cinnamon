@@ -1,6 +1,6 @@
-from cinnamon_core.component import Component
-from cinnamon_core.configuration import Configuration
-from cinnamon_core.registry import Registry, register
+from cinnamon.component import Component
+from cinnamon.configuration import Configuration
+from cinnamon.registry import Registry, register
 
 
 @register

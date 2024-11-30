@@ -11,13 +11,13 @@ from typing import Type, AnyStr, List, Dict, Any, Union, Optional, Callable, Tup
 import git
 import networkx as nx
 
-import cinnamon_core.component
-import cinnamon_core.configuration
-from cinnamon_core.utility.registration import NamespaceExtractor
+import cinnamon.component
+import cinnamon.configuration
+from cinnamon.utility.registration import NamespaceExtractor
 
 logger = getLogger(__name__)
 
-Constructor = Callable[[], cinnamon_core.configuration.Configuration]
+Constructor = Callable[[], cinnamon.configuration.Configuration]
 
 __all__ = [
     'RegistrationKey',
@@ -50,7 +50,7 @@ class RegistrationKey:
             self,
             name: str,
             namespace: str,
-            tags: cinnamon_core.configuration.Tags = None,
+            tags: cinnamon.configuration.Tags = None,
     ):
         """
 
@@ -201,7 +201,7 @@ class RegistrationKey:
             registration_key: Optional[Union[RegistrationKey, str]] = None,
             name: Optional[str] = None,
             namespace: Optional[str] = None,
-            tags: cinnamon_core.configuration.Tags = None,
+            tags: cinnamon.configuration.Tags = None,
     ) -> RegistrationKey:
         """
         Parses a given ``RegistrationKey`` instance.
@@ -360,9 +360,9 @@ class ConfigurationInfo:
             By default, the constructor is set to ``Configuration.get_default()`` method.
     """
 
-    class_type: Type[cinnamon_core.configuration.Configuration]
+    class_type: Type[cinnamon.configuration.Configuration]
     constructor: Constructor
-    component_class: Type[cinnamon_core.component.Component]
+    component_class: Type[cinnamon.component.Component]
 
 
 def register(
@@ -562,7 +562,7 @@ class Registry:
             registration_key: Optional[Registration] = None,
             name: Optional[str] = None,
             namespace: Optional[str] = None,
-            tags: cinnamon_core.configuration.Tags = None,
+            tags: cinnamon.configuration.Tags = None,
     ) -> bool:
         registration_key = RegistrationKey.parse(registration_key=registration_key,
                                                  name=name,
@@ -661,8 +661,8 @@ class Registry:
             registration_key: Optional[Registration] = None,
             name: Optional[str] = None,
             namespace: Optional[str] = None,
-            tags: cinnamon_core.configuration.Tags = None,
-    ) -> cinnamon_core.component.Component:
+            tags: cinnamon.configuration.Tags = None,
+    ) -> cinnamon.component.Component:
         """
         Builds a ``Component`` instance from its bounded ``Configuration`` via the implicit ``RegistrationKey``.
 
@@ -716,8 +716,8 @@ class Registry:
             registration_key: Optional[Registration] = None,
             name: Optional[str] = None,
             namespace: Optional[str] = None,
-            tags: cinnamon_core.configuration.Tags = None,
-    ) -> cinnamon_core.configuration.Configuration:
+            tags: cinnamon.configuration.Tags = None,
+    ) -> cinnamon.configuration.Configuration:
         """
             Retrieves a configuration instance given its implicit registration key.
 
@@ -754,12 +754,12 @@ class Registry:
     @classmethod
     def register_configuration(
             cls,
-            config_class: Type[cinnamon_core.configuration.Configuration],
+            config_class: Type[cinnamon.configuration.Configuration],
             name: str,
             namespace: str,
-            tags: cinnamon_core.configuration.Tags = None,
+            tags: cinnamon.configuration.Tags = None,
             config_constructor: Optional[Constructor] = None,
-            component_class: Optional[Type[cinnamon_core.component.Component]] = None
+            component_class: Optional[Type[cinnamon.component.Component]] = None
     ):
         """
         Registers a ``Configuration`` in the ``Registry`` via explicit ``RegistrationKey``.
@@ -819,13 +819,13 @@ class Registry:
     @classmethod
     def register_configuration_from_variant(
             cls,
-            config_class: Type[cinnamon_core.configuration.Configuration],
+            config_class: Type[cinnamon.configuration.Configuration],
             name: str,
             namespace: str,
             variant_kwargs: Dict[str, Any],
-            tags: cinnamon_core.configuration.Tags = None,
+            tags: cinnamon.configuration.Tags = None,
             config_constructor: Optional[Constructor] = None,
-            component_class: Optional[Type[cinnamon_core.component.Component]] = None,
+            component_class: Optional[Type[cinnamon.component.Component]] = None,
     ):
         config_constructor = config_constructor if config_constructor is not None else config_class.default
         return cls.register_configuration(config_class=config_class,
@@ -841,8 +841,8 @@ class Registry:
             registration_key: Optional[Registration] = None,
             name: Optional[str] = None,
             namespace: Optional[str] = None,
-            tags: cinnamon_core.configuration.Tags = None,
-    ) -> cinnamon_core.configuration.Configuration:
+            tags: cinnamon.configuration.Tags = None,
+    ) -> cinnamon.configuration.Configuration:
         """
             Retrieves a configuration instance given its implicit registration key.
 
@@ -874,7 +874,7 @@ class Registry:
             registration_key: Optional[RegistrationKey] = None,
             name: Optional[str] = None,
             namespace: Optional[str] = None,
-            tags: cinnamon_core.configuration.Tags = None,
+            tags: cinnamon.configuration.Tags = None,
     ) -> ConfigurationInfo:
         registration_key = RegistrationKey.parse(registration_key=registration_key,
                                                  name=name,

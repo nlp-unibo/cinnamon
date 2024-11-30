@@ -2,9 +2,9 @@ from typing import Type
 
 import pytest
 
-from cinnamon_core.component import Component
-from cinnamon_core.configuration import Configuration, C
-from cinnamon_core.registry import (
+from cinnamon.component import Component
+from cinnamon.configuration import Configuration, C
+from cinnamon.registry import (
     Registry,
     RegistrationKey
 )

@@ -1,5 +1,5 @@
-from cinnamon_core.registry import Registry, register
-from cinnamon_core.configuration import Configuration
+from cinnamon.registry import Registry, register
+from cinnamon.configuration import Configuration
 
 
 @register

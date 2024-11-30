@@ -3,8 +3,8 @@ from typing import List
 
 import pytest
 
-from cinnamon_core.registry import RegistrationKey
-from cinnamon_core.configuration import Configuration, ValidationFailureException, Param
+from cinnamon.registry import RegistrationKey
+from cinnamon.configuration import Configuration, ValidationFailureException, Param
 from tests.fixtures import define_configuration
 
 
