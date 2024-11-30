@@ -15,16 +15,16 @@ with requirements_path.open('r') as f:
     requirements = [req.split("\\")[0].split(":")[0].strip() for req in requirements]
 
 setup(
-    name='cinnamon_core',
-    version='0.2.2',
+    name='cinnamon',
+    version='1.0',
     author='Federico Ruggeri',
     author_email='federico.ruggeri6@unibo.it',
-    description='[Core Package] A simple high-level framework for research',
+    description='A simple high-level framework for research',
     long_description=long_description,
     long_description_content_type='text/markdown',
-    url='https://github.com/federicoruggeri/cinnamore_core',
+    url='https://github.com/nlp-unibo/cinnamon',
     project_urls={
-        'Bug Tracker': "https://github.com/federicoruggeri/cinnamore_core/issues"
+        'Bug Tracker': "https://github.com/cinnamon/issues"
     },
     classifiers=[
         "Programming Language :: Python :: 3",
@@ -32,10 +32,9 @@ setup(
     ],
     license='MIT',
     packages=[
-        'cinnamon_core',
-        'cinnamon_core.core',
-        'cinnamon_core.utility'
+        'cinnamon',
+        'cinnamon.utility',
     ],
     install_requires=requirements,
-    python_requires=">=3.6"
+    python_requires=">=3.8"
 )
