@@ -889,7 +889,9 @@ class Registry:
     # Views
 
     @classmethod
-    def show_dependencies_inline(
-            cls
+    def show_registrations(
+            cls,
+            keys: List[RegistrationKey]
     ):
-        nx.to_dict_of_dicts(cls._DEPENDENCY_DAG)
+        for key in keys:
+            logger.info(key)
