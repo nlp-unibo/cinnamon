@@ -12,7 +12,7 @@ from typeguard import check_type, TypeCheckError
 
 import cinnamon.component
 import cinnamon.registry
-from cinnamon.utility.python_utility import get_dict_values_combinations
+from cinnamon.utility.configuration import get_dict_values_combinations
 
 C = TypeVar('C', bound='Configuration')
 P = TypeVar('P', bound='Param')
