@@ -19,7 +19,7 @@ from cinnamon.utility.registration import NamespaceExtractor
 
 logger = getLogger(__name__)
 
-Constructor = Callable[[], cinnamon.configuration.Configuration]
+Constructor = Callable[[Any], cinnamon.configuration.Configuration]
 
 __all__ = [
     'RegistrationKey',
@@ -119,38 +119,6 @@ class RegistrationKey:
             and tags_condition(other) \
             and namespace_condition(other)
 
-    def partial_match(
-            self,
-            other: RegistrationKey
-    ) -> bool:
-        """
-        Partial identifier matching between two ``RegistrationKey`` instances.
-        The following conditions are evaluated:
-        - name: the two instances must have the same name
-        - namespace: the two instances must have the same namespace
-        - tags: the two instances do not have any tag (``tags=None``) or one's tags are a subset of the other's tags.
-
-        Args:
-            other: a ``RegistrationKey`` instance for which a partial match is issued.
-
-        Returns:
-            True if all the above conditions are True.
-        """
-
-        name_condition = lambda other: self.name == other.name
-
-        namespace_condition = lambda other: self.namespace == other.namespace
-
-        tags_non_null_condition = lambda other: (self.tags is not None and len(self.tags)
-                                                 and other.tags is not None and len(other.tags))
-        tags_intersection_condition = lambda other: self.tags.intersection(other.tags) == other.tags \
-                                                    or self.tags.intersection(other.tags) == self.tags
-        tags_null_condition = lambda other: self.tags is None and other.tags is None
-        tags_condition = lambda other: (tags_non_null_condition(other) and tags_intersection_condition(other)) \
-                                       or tags_null_condition(other)
-
-        return name_condition(other) and tags_condition(other) and namespace_condition(other)
-
     def from_variant(
             self,
             variant_kwargs: Dict[str, Any]
@@ -228,7 +196,7 @@ class RegistrationKey:
         else:
             assert name is not None, f'Expected at least a registration key name'
             registration_key = RegistrationKey(name=name,
-                                               tags=tags,
+                                               tags=set(tags),
                                                namespace=namespace)
 
         return registration_key
@@ -676,6 +644,8 @@ class Registry:
             name: Optional[str] = None,
             namespace: Optional[str] = None,
             tags: cinnamon.configuration.Tags = None,
+            build_recursively: bool = True,
+            **build_args
     ) -> cinnamon.component.Component:
         """
         Builds a ``Component`` instance from its bounded ``Configuration`` via the implicit ``RegistrationKey``.
@@ -685,6 +655,7 @@ class Registry:
             name: the ``name`` field of ``RegistrationKey``
             tags: the ``tags`` field of ``RegistrationKey``
             namespace: the ``namespace`` field of ``RegistrationKey``
+            build_recursively: TODO
 
         Returns:
             The built ``Component`` instance
@@ -708,17 +679,18 @@ class Registry:
             raise NotRegisteredException(registration_key=registration_key)
 
         registered_config_info = cls._REGISTRY[registration_key]
-        config = registered_config_info.constructor()
+        config = registered_config_info.constructor(**build_args)
 
-        for child_name, child in config.children.items():
-            child_key: RegistrationKey = child.value
-            if child_key is not None:
-                child.value = cls.build_component(registration_key=child_key)
+        if build_recursively:
+            for child_name, child in config.children.items():
+                child_key: RegistrationKey = child.value
+                if child_key is not None:
+                    child.value = cls.build_component(registration_key=child_key)
 
         if registered_config_info.component_class is None:
             raise NotBoundException(registration_key=registration_key)
 
-        component = registered_config_info.component_class(**config.values)
+        component = registered_config_info.component_class.__init__(**config.values)
 
         return component
 

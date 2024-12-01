@@ -7,7 +7,10 @@ import cinnamon.configuration
 
 C = TypeVar('C', bound='Component')
 
-__all__ = ['Component', 'C']
+__all__ = [
+    'Component',
+    'RunnableComponent'
+]
 
 
 class Component:
@@ -47,3 +50,11 @@ class Component:
                                                           name=name,
                                                           tags=tags,
                                                           namespace=namespace)
+
+
+class RunnableComponent(Component):
+
+    def run(
+            self
+    ):
+        pass

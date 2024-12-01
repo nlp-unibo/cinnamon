@@ -39,7 +39,8 @@ setup(
     python_requires=">=3.8",
     entry_points={
         'console_scripts': [
-            'cmn-setup=cinnamon.command_line:setup'
+            'cmn-setup=cinnamon.command_line:setup',
+            'cmn-run=cinnamon.command_line:run'
         ]
     }
 )
