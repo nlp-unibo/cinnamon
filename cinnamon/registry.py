@@ -3,6 +3,7 @@ from __future__ import annotations
 import ast
 import importlib.util
 import os
+import sys
 from dataclasses import dataclass
 from logging import getLogger
 from pathlib import Path
@@ -526,6 +527,9 @@ class Registry:
 
         if directory in cls._EXP_MODULES:
             return
+
+        # Add directory to PYTHONPATH
+        sys.path.insert(0, directory)
 
         cls._EXP_MODULES.append(directory)
 
