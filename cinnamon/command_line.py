@@ -1,12 +1,17 @@
 import argparse
 import json
+import logging
 from logging import getLogger
-from typing import Optional
+from typing import Optional, List
 
-from cinnamon.registry import Registry
+from cinnamon.registry import Registry, RegistrationKey
 from cinnamon.utility.sanity import check_directory, check_external_json_path
 import sys
 
+logging.basicConfig(
+    level=logging.INFO,
+    encoding='utf-8'
+)
 logger = getLogger(__name__)
 
 
@@ -27,6 +32,12 @@ def setup():
     if args.save_directory is not None:
         save_directory = check_directory(directory_path=args.save_directory)
 
+    logger.info(f"""Loading cinnamon registrations using:
+        Directory: {directory}
+        External dependencies: {external_directories}
+        Git save directory: {save_directory}
+    """)
+
     # add to PYTHONPATH
     sys.path.insert(0, directory.as_posix())
 
@@ -40,11 +51,11 @@ def setup():
     if not registration_path.exists():
         registration_path.mkdir(parents=True, exist_ok=True)
 
-    with registration_path.joinpath('valid_keys.json').open('r') as f:
-        json.dump(valid_keys, f)
+    with registration_path.joinpath('valid_keys.json').open('w') as f:
+        json.dump([key.toJSON() for key in valid_keys], f)
 
-    with registration_path.joinpath('invalid_keys.json').open('r') as f:
-        json.dump(invalid_keys, f)
+    with registration_path.joinpath('invalid_keys.json').open('w') as f:
+        json.dump([key.toJSON() for key in invalid_keys], f)
 
     logger.info('Valid registration keys:')
     Registry.show_registrations(keys=valid_keys)

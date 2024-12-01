@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import ast
 import importlib.util
+import json
 import os
 import sys
 from dataclasses import dataclass
@@ -231,6 +232,15 @@ class RegistrationKey:
                                                namespace=namespace)
 
         return registration_key
+
+    def toJSON(
+            self
+    ):
+        return json.dumps(
+            self.__str__(),
+            sort_keys=True,
+            indent=4
+        ).replace("\"", '').replace("\\", "")
 
 
 Registration = Union[RegistrationKey, str]

@@ -7,6 +7,7 @@ def check_directory(
         directory_path: Union[Path, str]
 ) -> Path:
     directory_path = Path(directory_path) if type(directory_path) != Path else directory_path
+    directory_path = directory_path.resolve()
     if not directory_path.exists():
         raise FileNotFoundError(f'Directory {directory_path} does not exist!')
 
@@ -20,6 +21,7 @@ def check_external_json_path(
         jsonpath: Union[Path, str]
 ) -> List[Path]:
     jsonpath = Path(jsonpath) if type(jsonpath) != Path else jsonpath
+    jsonpath = jsonpath.resolve()
 
     if not jsonpath.exists():
         raise FileNotFoundError(f'External directory JSON path {jsonpath} does not exist!')
