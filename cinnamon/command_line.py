@@ -1,9 +1,10 @@
 import argparse
 import json
+from logging import getLogger
+from typing import Optional
 
 from cinnamon.registry import Registry
 from cinnamon.utility.sanity import check_directory, check_external_json_path
-from logging import getLogger
 
 logger = getLogger(__name__)
 
@@ -11,13 +12,19 @@ logger = getLogger(__name__)
 def setup():
     parser = argparse.ArgumentParser()
     parser.add_argument('-dir', '--directory', type=str)
-    parser.add_argument('-ext', '--external-path', type=str)
-    parser.add_argument('-save', '--save-directory', type=str)
+    parser.add_argument('-ext', '--external-path', type=Optional[str], default=None)
+    parser.add_argument('-save', '--save-directory', type=Optional[str], default=None)
     args = parser.parse_args()
 
     directory = check_directory(directory_path=args.directory)
-    external_directories = check_external_json_path(jsonpath=args.external_path)
-    save_directory = check_directory(directory_path=args.save_directory)
+    external_directories = None
+    save_directory = None
+
+    if args.external_path is not None:
+        external_directories = check_external_json_path(jsonpath=args.external_path)
+
+    if args.save_directory is not None:
+        save_directory = check_directory(directory_path=args.save_directory)
 
     valid_keys, invalid_keys = Registry.setup(
         directory=directory,
