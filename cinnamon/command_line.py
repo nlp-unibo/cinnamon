@@ -5,6 +5,7 @@ from typing import Optional
 
 from cinnamon.registry import Registry
 from cinnamon.utility.sanity import check_directory, check_external_json_path
+import sys
 
 logger = getLogger(__name__)
 
@@ -26,6 +27,9 @@ def setup():
     if args.save_directory is not None:
         save_directory = check_directory(directory_path=args.save_directory)
 
+    # add to PYTHONPATH
+    sys.path.insert(0, directory.as_posix())
+
     valid_keys, invalid_keys = Registry.setup(
         directory=directory,
         external_directories=external_directories,
@@ -36,10 +40,10 @@ def setup():
     if not registration_path.exists():
         registration_path.mkdir(parents=True, exist_ok=True)
 
-    with registration_path.joinpath('valid_keys.json') as f:
+    with registration_path.joinpath('valid_keys.json').open('r') as f:
         json.dump(valid_keys, f)
 
-    with registration_path.joinpath('invalid_keys.json') as f:
+    with registration_path.joinpath('invalid_keys.json').open('r') as f:
         json.dump(invalid_keys, f)
 
     logger.info('Valid registration keys:')
