@@ -7,7 +7,7 @@ from cinnamon.registry import RegistrationKey
 def test_key_to_json():
     key = RegistrationKey(name='test', tags={'tag1', 'tag2'}, namespace='testing')
     json_key = key.toJSON()
-    assert json_key == 'name:test--tags:[tag1, tag2]--namespace:testing'
+    assert json_key == "name:test--tags:['tag1', 'tag2']--namespace:testing"
     assert RegistrationKey.parse(json_key) == key
 
 

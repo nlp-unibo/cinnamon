@@ -12,7 +12,7 @@ from cinnamon.utility.registration import NamespaceExtractor
 from tests.fixtures import reset_registry
 
 
-def test_parse_configuration_files():
+def test_parse_configuration_files_with_register():
     """
     Test NamespaceExtractor to retrieve 'external' namespace only from folder path
     """
@@ -20,6 +20,16 @@ def test_parse_configuration_files():
     filename = Path('.', 'external_test_repo', 'configurations', 'test.py').resolve()
     namespaces = extractor.process(filename=filename)
     assert namespaces == ['external']
+
+
+def test_parse_configuration_file_with_register_config():
+    """
+    Test NamespaceExtractor to retrieve 'external' namespace only from folder path when using @register_config
+    """
+    extractor = NamespaceExtractor()
+    filename = Path('.', 'ext_repo_nested', 'configurations', 'mock.py').resolve()
+    namespaces = extractor.process(filename=filename)
+    assert namespaces == ['mock']
 
 
 def test_resolve_external_directories_with_dir():

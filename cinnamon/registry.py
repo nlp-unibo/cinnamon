@@ -15,15 +15,16 @@ import networkx as nx
 
 import cinnamon.component
 import cinnamon.configuration
-from cinnamon.utility.registration import NamespaceExtractor
+from cinnamon.utility.registration import NamespaceExtractor, get_method_class
 
 logger = getLogger(__name__)
 
-Constructor = Callable[[Any], cinnamon.configuration.Configuration]
+Constructor = Callable[[], cinnamon.configuration.Configuration]
 
 __all__ = [
     'RegistrationKey',
     'register',
+    'register_method',
     'Registry',
     'Registration',
     'ConfigurationInfo',
@@ -196,7 +197,7 @@ class RegistrationKey:
         else:
             assert name is not None, f'Expected at least a registration key name'
             registration_key = RegistrationKey(name=name,
-                                               tags=set(tags),
+                                               tags=set(tags) if tags is not None else tags,
                                                namespace=namespace)
 
         return registration_key
@@ -339,9 +340,60 @@ class ConfigurationInfo:
             By default, the constructor is set to ``Configuration.get_default()`` method.
     """
 
-    class_type: Type[cinnamon.configuration.Configuration]
+    config_class: Type[cinnamon.configuration.Configuration]
     constructor: Constructor
     component_class: Type[cinnamon.component.Component]
+    build_recursively: bool
+
+
+class BufferedRegistration:
+
+    def __init__(
+            self,
+            func: Callable,
+            name: str,
+            namespace: str,
+            tags: cinnamon.configuration.Tags = None,
+            component_class: Optional[Type[cinnamon.component.Component]] = None,
+            build_recursively: bool = True
+    ):
+        self.func = func
+        self.name = name
+        self.namespace = namespace
+        self.tags = tags
+        self.component_class = component_class
+        self.build_recursively = build_recursively
+
+    def __call__(
+            self,
+    ):
+        pass
+
+
+def register_method(
+        name: str,
+        namespace: str,
+        tags: cinnamon.configuration.Tags = None,
+        component_class: Optional[Type[cinnamon.component.Component]] = None,
+        build_recursively: bool = True
+) -> Callable:
+    def register_wrapper(func):
+        filename = func.__code__.co_filename
+        qualifier_name = func.__qualname__
+        method_name = f'{filename}-{qualifier_name}'
+
+        if method_name not in Registry.REGISTRATION_METHODS:
+            Registry.REGISTRATION_METHODS[method_name] = BufferedRegistration(
+                func=func,
+                name=name,
+                tags=tags,
+                namespace=namespace,
+                component_class=component_class,
+                build_recursively=build_recursively
+            )
+        return func
+
+    return register_wrapper
 
 
 def register(
@@ -350,6 +402,7 @@ def register(
     filename = func.__code__.co_filename
     qualifier_name = func.__qualname__
     method_name = f'{filename}-{qualifier_name}'
+
     if method_name not in Registry.REGISTRATION_METHODS:
         Registry.REGISTRATION_METHODS[method_name] = func
     return func
@@ -522,7 +575,20 @@ class Registry:
                     spec.loader.exec_module(module)
                     new_keys = set(cls.REGISTRATION_METHODS.keys()).difference(current_keys)
                     for key in new_keys:
-                        cls.REGISTRATION_METHODS[key]()
+                        key_method = cls.REGISTRATION_METHODS[key]
+                        if isinstance(key_method, BufferedRegistration):
+                            class_method_name = key_method.func.__qualname__.split('.')[-2]
+                            method_name = key_method.func.__qualname__.split('.')[-1]
+                            class_method = module.__dict__[class_method_name]
+                            Registry.register_configuration(config_class=class_method,
+                                                            config_constructor=getattr(class_method, method_name),
+                                                            name=key_method.name,
+                                                            tags=key_method.tags,
+                                                            namespace=key_method.namespace,
+                                                            component_class=key_method.component_class,
+                                                            build_recursively=key_method.build_recursively)
+                        else:
+                            cls.REGISTRATION_METHODS[key]()
 
     @classmethod
     def in_registry(
@@ -539,7 +605,7 @@ class Registry:
         return registration_key.namespace in cls._EXP_NAMESPACES
 
     @classmethod
-    def is_in_graph(
+    def in_graph(
             cls,
             registration_key: Optional[Registration] = None,
             name: Optional[str] = None,
@@ -596,12 +662,12 @@ class Registry:
                 if variant_config == built_config:
                     continue
 
-                if not cls.is_in_graph(variant_key):
+                if not cls.in_graph(variant_key):
                     cls._DEPENDENCY_DAG.add_node(variant_key)
                 cls._DEPENDENCY_DAG.add_edge(key, variant_key, type='variant')
 
                 # Store variant in registry
-                cls.register_configuration_from_variant(config_class=config_info.class_type,
+                cls.register_configuration_from_variant(config_class=config_info.config_class,
                                                         name=variant_key.name,
                                                         tags=variant_key.tags,
                                                         namespace=variant_key.namespace,
@@ -644,7 +710,6 @@ class Registry:
             name: Optional[str] = None,
             namespace: Optional[str] = None,
             tags: cinnamon.configuration.Tags = None,
-            build_recursively: bool = True,
             **build_args
     ) -> cinnamon.component.Component:
         """
@@ -655,7 +720,7 @@ class Registry:
             name: the ``name`` field of ``RegistrationKey``
             tags: the ``tags`` field of ``RegistrationKey``
             namespace: the ``namespace`` field of ``RegistrationKey``
-            build_recursively: TODO
+            build_args: TODO
 
         Returns:
             The built ``Component`` instance
@@ -679,9 +744,9 @@ class Registry:
             raise NotRegisteredException(registration_key=registration_key)
 
         registered_config_info = cls._REGISTRY[registration_key]
-        config = registered_config_info.constructor(**build_args)
+        config = registered_config_info.constructor()
 
-        if build_recursively:
+        if registered_config_info.build_recursively:
             for child_name, child in config.children.items():
                 child_key: RegistrationKey = child.value
                 if child_key is not None:
@@ -690,7 +755,8 @@ class Registry:
         if registered_config_info.component_class is None:
             raise NotBoundException(registration_key=registration_key)
 
-        component = registered_config_info.component_class.__init__(**config.values)
+        component_args = {**config.values, **build_args}
+        component = registered_config_info.component_class(**component_args)
 
         return component
 
@@ -745,7 +811,8 @@ class Registry:
             namespace: str,
             tags: cinnamon.configuration.Tags = None,
             config_constructor: Optional[Constructor] = None,
-            component_class: Optional[Type[cinnamon.component.Component]] = None
+            component_class: Optional[Type[cinnamon.component.Component]] = None,
+            build_recursively: bool = True
     ):
         """
         Registers a ``Configuration`` in the ``Registry`` via explicit ``RegistrationKey``.
@@ -758,6 +825,7 @@ class Registry:
             tags: the ``tags`` field of ``RegistrationKey``
             config_constructor: the constructor method to build the ``Configuration`` instance from its class
             component_class: TODO
+            build_recursively: TODO
 
         Returns:
             The built ``RegistrationKey`` instance that can be used to retrieve the registered ``ConfigurationInfo``.
@@ -778,9 +846,10 @@ class Registry:
 
         # Store configuration in registry
         config_constructor = config_constructor if config_constructor is not None else config_class.default
-        cls._REGISTRY[registration_key] = ConfigurationInfo(class_type=config_class,
+        cls._REGISTRY[registration_key] = ConfigurationInfo(config_class=config_class,
                                                             constructor=config_constructor,
-                                                            component_class=component_class)
+                                                            component_class=component_class,
+                                                            build_recursively=build_recursively)
 
         # Add to dependency graph
         cls._DEPENDENCY_DAG.add_node(registration_key)
@@ -792,7 +861,7 @@ class Registry:
         # include children
         for child_name, child in built_config.children.items():
             child_key: RegistrationKey = child.value
-            if not cls.is_in_graph(child_key):
+            if not cls.in_graph(child_key):
                 cls._DEPENDENCY_DAG.add_node(child_key)
             cls._DEPENDENCY_DAG.add_edge(registration_key, child_key, type='child')
             if child_key.namespace != namespace:
@@ -812,6 +881,7 @@ class Registry:
             tags: cinnamon.configuration.Tags = None,
             config_constructor: Optional[Constructor] = None,
             component_class: Optional[Type[cinnamon.component.Component]] = None,
+            build_recursively: bool = True
     ):
         config_constructor = config_constructor if config_constructor is not None else config_class.default
         return cls.register_configuration(config_class=config_class,
@@ -819,7 +889,8 @@ class Registry:
                                           namespace=namespace,
                                           tags=tags,
                                           config_constructor=lambda: config_constructor().delta_copy(**variant_kwargs),
-                                          component_class=component_class)
+                                          component_class=component_class,
+                                          build_recursively=build_recursively)
 
     @classmethod
     def retrieve_configuration(

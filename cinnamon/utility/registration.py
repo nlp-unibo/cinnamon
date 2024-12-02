@@ -2,9 +2,12 @@ import ast
 from copy import deepcopy
 from pathlib import Path
 from typing import List
+import functools
+import inspect
 
 __all__ = [
-    'NamespaceExtractor'
+    'NamespaceExtractor',
+    'get_method_class'
 ]
 
 
@@ -28,10 +31,23 @@ class NamespaceExtractor(ast.NodeVisitor):
         return namespaces
 
     def visit_FunctionDef(self, node):
-        if 'register' in ast.unparse(node.decorator_list):
-            self.register_flag = True
-        else:
-            self.register_flag = False
+        self.register_flag = False
+        for item in node.decorator_list:
+            parsed_item = ast.unparse(item)
+
+            # For register_config only
+            if parsed_item.startswith('register_config('):
+                keywords = [ast.unparse(item) for item in item.keywords]
+                namespace = [item for item in keywords if item.startswith('namespace')][0].split('namespace=')[
+                    -1].strip()
+                namespace = namespace.replace('\'', '').replace("\"", '')
+                self.namespaces.append(namespace)
+                break
+
+            # For register only
+            if parsed_item.startswith('register'):
+                self.register_flag = True
+                break
 
         self.generic_visit(node)
 
@@ -42,3 +58,23 @@ class NamespaceExtractor(ast.NodeVisitor):
             namespace = namespace.replace('\'', '').replace("\"", '')
             self.namespaces.append(namespace)
         self.generic_visit(node)
+
+
+def get_method_class(meth):
+    if isinstance(meth, functools.partial):
+        return get_method_class(meth.func)
+    if inspect.ismethod(meth) or \
+            (inspect.isbuiltin(meth)
+             and getattr(meth, '__self__', None) is not None
+             and getattr(meth.__self__, '__class__', None)):
+        for cls in inspect.getmro(meth.__self__.__class__):
+            if meth.__name__ in cls.__dict__:
+                return cls
+        meth = getattr(meth, '__func__', meth)  # fallback to __qualname__ parsing
+    if inspect.isfunction(meth):
+        cls = getattr(inspect.getmodule(meth),
+                      meth.__qualname__.split('.<locals>', 1)[0].rsplit('.', 1)[0],
+                      None)
+        if isinstance(cls, type):
+            return cls
+    return getattr(meth, '__objclass__', None)

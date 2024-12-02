@@ -26,6 +26,7 @@ class Component:
             name: Optional[str] = None,
             namespace: Optional[str] = None,
             tags: cinnamon.configuration.Tags = None,
+            **build_args
     ) -> C:
         """
         Syntactic sugar for building a ``Component`` from a ``RegistrationKey`` in implicit format.
@@ -35,6 +36,7 @@ class Component:
             name: the ``name`` field of ``RegistrationKey``
             tags: the ``tags`` field of ``RegistrationKey``
             namespace: the ``namespace`` field of ``RegistrationKey``
+            build_args: TODO
 
         Returns:
             A ``Component`` instance
@@ -49,7 +51,8 @@ class Component:
         return cinnamon.registry.Registry.build_component(registration_key=registration_key,
                                                           name=name,
                                                           tags=tags,
-                                                          namespace=namespace)
+                                                          namespace=namespace,
+                                                          **build_args)
 
 
 class RunnableComponent(Component):
