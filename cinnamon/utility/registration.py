@@ -36,7 +36,7 @@ class NamespaceExtractor(ast.NodeVisitor):
             parsed_item = ast.unparse(item)
 
             # For register_config only
-            if parsed_item.startswith('register_config('):
+            if parsed_item.startswith('register_method('):
                 keywords = [ast.unparse(item) for item in item.keywords]
                 namespace = [item for item in keywords if item.startswith('namespace')][0].split('namespace=')[
                     -1].strip()

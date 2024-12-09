@@ -16,6 +16,7 @@ from tests.fixtures import (
     ChildConfig,
     VariantConfig,
     VariantConfigWithChild,
+    VariantConfigWithVariantChild,
     BaseConfig,
     InvalidConfig,
     InvalidVariantConfig,
@@ -396,3 +397,28 @@ def test_resolution_config_with_child_and_param_variants(
     assert parent_key.from_variant(variant_kwargs={'x': 3, 'c1': child_key}) in valid_keys
     assert child_key.from_variant(variant_kwargs={'y': False}) in valid_keys
     assert child_key.from_variant(variant_kwargs={'y': True}) in valid_keys
+
+
+def test_resolution_config_with_child_variants_pointing_to_variants(
+        reset_registry
+):
+    """
+    We test the case where a config has a child with some variants, one of which points to another child
+    DAG resolution should consider all combinations
+    """
+    parent_key = Registry.register_configuration(config_class=ConfigWithChild,
+                                                 name='config',
+                                                 namespace='testing')
+    first_child_key = Registry.register_configuration(config_class=VariantConfigWithVariantChild,
+                                                      name='test',
+                                                      tags={'t2'},
+                                                      namespace='testing')
+    second_child_key = Registry.register_configuration(config_class=VariantConfig,
+                                                       name='test',
+                                                       tags={'t3'},
+                                                       namespace='testing')
+    valid_keys, invalid_keys = Registry.dag_resolution()
+    assert Registry.in_registry(parent_key)
+    assert Registry.in_registry(first_child_key)
+    assert Registry.in_registry(second_child_key)
+    assert len(valid_keys) == 5

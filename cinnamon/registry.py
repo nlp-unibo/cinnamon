@@ -188,14 +188,17 @@ class RegistrationKey:
             The parsed ``RegistrationKey`` instance
         """
 
-        assert registration_key is not None or name is not None, f'Expected either a registration key or its arguments'
+        if registration_key is None and name is None:
+            raise AttributeError(f'Expected either a registration key or its arguments')
 
         if type(registration_key) == RegistrationKey:
             return registration_key
         elif type(registration_key) == str:
             registration_key = RegistrationKey.from_string(string_format=registration_key)
         else:
-            assert name is not None, f'Expected at least a registration key name'
+            if name is None:
+                raise AttributeError(f'Expected at least a registration key name')
+
             registration_key = RegistrationKey(name=name,
                                                tags=set(tags) if tags is not None else tags,
                                                namespace=namespace)
@@ -861,6 +864,22 @@ class Registry:
         # include children
         for child_name, child in built_config.children.items():
             child_key: RegistrationKey = child.value
+            if child_key is None:
+                if child.variants is None:
+                    continue
+
+                for variant in child.variants:
+                    if not cls.in_graph(variant):
+                        cls._DEPENDENCY_DAG.add_node(variant)
+                    cls._DEPENDENCY_DAG.add_edge(registration_key, variant, type='child')
+                    if variant.namespace != namespace:
+                        if not cls.is_namespace_covered(variant):
+                            raise NamespaceNotFoundException(registration_key=registration_key,
+                                                             namespaces=cls._EXP_NAMESPACES)
+                        cls.load_registrations(directory=cls._MODULE_MAPPING[variant.namespace])
+
+                continue
+
             if not cls.in_graph(child_key):
                 cls._DEPENDENCY_DAG.add_node(child_key)
             cls._DEPENDENCY_DAG.add_edge(registration_key, child_key, type='child')

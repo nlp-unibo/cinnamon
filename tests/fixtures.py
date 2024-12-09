@@ -143,6 +143,21 @@ class VariantConfigWithChild(Configuration):
         return config
 
 
+class VariantConfigWithVariantChild(Configuration):
+
+    @classmethod
+    def default(
+            cls: Type[C]
+    ) -> C:
+        config = super().default()
+        config.add(name='y', variants=['a', 'b'], is_required=True)
+        config.add(name='c1', type_hint=RegistrationKey, variants=[
+            RegistrationKey(name='test', tags={'t3'}, namespace='testing')
+        ],
+                   is_required=True)
+        return config
+
+
 class CliqueConfigA(Configuration):
 
     @classmethod

@@ -144,8 +144,8 @@ class Param:
             description: Optional[str] = None,
             tags: Tags = None,
             allowed_range: Optional[Callable[[Any], bool]] = None,
-            is_required: bool = False,
-            variants: Optional[Sized] = None,
+            is_required: bool = True,
+            variants: Optional[List] = None,
     ):
         """
         The ``Parameter`` constructor
@@ -176,7 +176,7 @@ class Param:
     def short_repr(
             self
     ) -> str:
-        return f'{self.name}: {self.value}'
+        return f'{self.value}'
 
     def long_repr(
             self
@@ -285,7 +285,8 @@ class Configuration:
             self
     ) -> Dict[str, P]:
         return {param_key: param for param_key, param in self.__dict__.items() if
-                type(param.value) == cinnamon.registry.RegistrationKey}
+                type(param.value) == cinnamon.registry.RegistrationKey
+                or param.type_hint == cinnamon.registry.RegistrationKey}
 
     def get(
             self,
@@ -305,7 +306,7 @@ class Configuration:
             description: Optional[str] = None,
             tags: Optional[Set[str]] = None,
             allowed_range: Optional[Callable[[Any], bool]] = None,
-            is_required: bool = False,
+            is_required: bool = True,
             variants: Optional[Sized] = None,
     ):
         """
@@ -377,7 +378,8 @@ class Configuration:
         self.add(name=name,
                  value=condition,
                  description=description,
-                 tags=tags)
+                 tags=tags,
+                 is_required=False)
 
     def validate(
             self,

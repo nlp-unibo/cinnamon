@@ -22,7 +22,7 @@ def test_parse_configuration_files_with_register():
     assert namespaces == ['external']
 
 
-def test_parse_configuration_file_with_register_config():
+def test_parse_configuration_file_with_register_method():
     """
     Test NamespaceExtractor to retrieve 'external' namespace only from folder path when using @register_config
     """
