@@ -338,11 +338,10 @@ def test_resolution_one_config_variants(
                                           namespace='testing')
     valid_keys, invalid_keys = Registry.dag_resolution()
     assert Registry.in_registry(key)
-    assert key in valid_keys
     assert key.from_variant(variant_kwargs={'x': 1}) in valid_keys
     assert key.from_variant(variant_kwargs={'x': 2}) in valid_keys
     assert key.from_variant(variant_kwargs={'x': 3}) in valid_keys
-    assert len(invalid_keys) == 0
+    assert key in invalid_keys
 
 
 def test_resolution_one_config_variants_some_invalid(
@@ -376,25 +375,23 @@ def test_resolution_config_with_child_and_param_variants(
                                                 tags={'t2'},
                                                 namespace='testing')
     valid_keys, invalid_keys = Registry.dag_resolution()
+    assert len(valid_keys) == 8
     assert Registry.in_registry(parent_key)
     assert Registry.in_registry(child_key)
-    assert parent_key in valid_keys
-    assert child_key in valid_keys
+    assert parent_key in invalid_keys
+    assert child_key in invalid_keys
     assert parent_key.from_variant(
         variant_kwargs={'x': 1, 'c1': child_key.from_variant(variant_kwargs={'y': False})}) in valid_keys
     assert parent_key.from_variant(
         variant_kwargs={'x': 1, 'c1': child_key.from_variant(variant_kwargs={'y': True})}) in valid_keys
-    assert parent_key.from_variant(variant_kwargs={'x': 1, 'c1': child_key}) in valid_keys
     assert parent_key.from_variant(
         variant_kwargs={'x': 2, 'c1': child_key.from_variant(variant_kwargs={'y': False})}) in valid_keys
     assert parent_key.from_variant(
         variant_kwargs={'x': 2, 'c1': child_key.from_variant(variant_kwargs={'y': True})}) in valid_keys
-    assert parent_key.from_variant(variant_kwargs={'x': 2, 'c1': child_key}) in valid_keys
     assert parent_key.from_variant(
         variant_kwargs={'x': 3, 'c1': child_key.from_variant(variant_kwargs={'y': False})}) in valid_keys
     assert parent_key.from_variant(
         variant_kwargs={'x': 3, 'c1': child_key.from_variant(variant_kwargs={'y': True})}) in valid_keys
-    assert parent_key.from_variant(variant_kwargs={'x': 3, 'c1': child_key}) in valid_keys
     assert child_key.from_variant(variant_kwargs={'y': False}) in valid_keys
     assert child_key.from_variant(variant_kwargs={'y': True}) in valid_keys
 
@@ -421,4 +418,4 @@ def test_resolution_config_with_child_variants_pointing_to_variants(
     assert Registry.in_registry(parent_key)
     assert Registry.in_registry(first_child_key)
     assert Registry.in_registry(second_child_key)
-    assert len(valid_keys) == 5
+    assert len(valid_keys) == 15

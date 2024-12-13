@@ -652,7 +652,14 @@ class Registry:
             built_config = cls.retrieve_configuration(registration_key=key)
             for child_name, child in built_config.children.items():
                 child_key = child.value
-                child_variants = list(set(_expand_node_variants(key=child_key, key_buffer=key_buffer)))
+                child_variants = []
+
+                if child_key is not None:
+                    child_variants = _expand_node_variants(key=child_key, key_buffer=key_buffer)
+                for key_variant in child.variants:
+                    if key_variant is not None:
+                        child_variants.extend(_expand_node_variants(key=key_variant, key_buffer=key_buffer))
+
                 child.variants = child.variants if child.variants is not None else []
                 built_config.get(child_name).variants = child_variants + child.variants
 

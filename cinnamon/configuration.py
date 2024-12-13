@@ -95,7 +95,7 @@ def is_required_cond(
         config: Configuration,
         name: str
 ) -> bool:
-    return config.get(name) is not None
+    return config.get(name).value is not None
 
 
 def value_typecheck_cond(
@@ -168,10 +168,16 @@ class Param:
         self.tags = set(tags) if tags is not None else set()
         self.allowed_range = allowed_range
         self.is_required = is_required
-        self.variants = variants
+        self.variants = variants if variants is not None else []
 
-        if is_required:
-            self.tags.add('required')
+    @property
+    def is_child(
+            self
+    ):
+        return (type(self.value) == cinnamon.registry.RegistrationKey
+                or self.type_hint == cinnamon.registry.RegistrationKey
+                or isinstance(self.value, Configuration)
+                or isinstance(self.value, cinnamon.component.Component))
 
     def short_repr(
             self
@@ -284,9 +290,7 @@ class Configuration:
     def children(
             self
     ) -> Dict[str, P]:
-        return {param_key: param for param_key, param in self.__dict__.items() if
-                type(param.value) == cinnamon.registry.RegistrationKey
-                or param.type_hint == cinnamon.registry.RegistrationKey}
+        return {param_key: param for param_key, param in self.__dict__.items() if param.is_child}
 
     def get(
             self,
@@ -298,6 +302,8 @@ class Configuration:
         except AttributeError:
             return default
 
+    # TODO: add check type condition to variants (if any)?
+    # TODO: add allowed range condition to variants (if any)?
     def add(
             self,
             name: str,
@@ -338,7 +344,7 @@ class Configuration:
         if is_required:
             self.add_condition(name=f'{name}_is_required', condition=partial(is_required_cond, name=name))
 
-        if type_hint is not None:
+        if not self.get(name).is_child and type_hint is not None:
             self.add_condition(name=f'{name}_typecheck',
                                condition=partial(value_typecheck_cond, name=name, type_hint=type_hint),
                                description=f'Checks if {name} if of type {type_hint}.',
@@ -400,7 +406,7 @@ class Configuration:
         """
 
         for child_name, child in self.children.items():
-            if type(child.value) == Configuration:
+            if isinstance(child.value, Configuration):
                 child_validation = child.value.validate(strict=strict)
                 if not child_validation.passed:
                     return child_validation
@@ -474,8 +480,8 @@ class Configuration:
     ) -> Dict[str, Any]:
         value_dict = {}
         for param_name, param in self.params.items():
-            if isinstance(param.value, cinnamon.configuration.Configuration):
-                value_dict.update(param.value.config.to_value_dict())
+            if isinstance(param.value, Configuration):
+                value_dict.update(param.value.to_value_dict())
             elif isinstance(param.value, cinnamon.registry.RegistrationKey):
                 if cinnamon.registry.Registry.expanded:
                     value_dict.update(cinnamon.registry.Registry.retrieve_configuration(
@@ -494,6 +500,8 @@ class Configuration:
                 return True
         return False
 
+    # TODO: we should call child.variants if a child is in config variants.
+    # This can only be performed if the Registry has been expanded!
     @property
     def variants(
             self,
@@ -518,6 +526,7 @@ class Configuration:
             # TODO: consider defining a special value (e.g., UNSET) to allow None as a normal value
             if has_variants and param.value is not None:
                 parameters.setdefault(param_key, [param.value])
+
             if param.variants is not None and len(param.variants):
                 parameters.setdefault(param_key, []).extend(param.variants)
         combinations = get_dict_values_combinations(params_dict=parameters)
