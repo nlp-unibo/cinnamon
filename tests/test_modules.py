@@ -2,6 +2,7 @@ from pathlib import Path
 
 import pytest
 
+from cinnamon.component import Component, RunnableComponent
 from cinnamon.registry import (
     Registry,
     InvalidDirectoryException,
@@ -82,3 +83,22 @@ def test_load_registrations_nested_exception(
     directory = Path('.', 'ext_repo_nested')
     with pytest.raises(NamespaceNotFoundException):
         Registry.load_registrations(directory=directory)
+
+
+def test_chained_register_decorator(
+        reset_registry
+):
+    directory = Path('.', 'ext_repo_nested_dec')
+    Registry.load_registrations(directory=directory)
+    key1 = RegistrationKey(name='config', tags={'nest1'}, namespace='testing')
+    key2 = RegistrationKey(name='config', tags={'nest2'}, namespace='testing')
+    assert Registry.in_registry(registration_key=key1)
+    assert Registry.in_registry(registration_key=key2)
+
+    Registry.dag_resolution()
+
+    c1 = Registry.build_component(registration_key=key1)
+    assert isinstance(c1, Component)
+
+    c2 = Registry.build_component(registration_key=key2)
+    assert isinstance(c2, RunnableComponent)

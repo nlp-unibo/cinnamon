@@ -1,4 +1,5 @@
 from copy import deepcopy
+from email.policy import strict
 from typing import List
 
 import pytest
@@ -288,3 +289,19 @@ def test_to_value_dict():
                )
     value_dict = config.to_value_dict()
     assert value_dict == {'x': 10}
+
+
+def test_validate_nested_config():
+    parent = Configuration()
+    child = Configuration()
+    child.add(name='y', value=5, allowed_range=lambda x: x < 3)
+
+    parent.validate()
+
+    parent.add(name='child', value=child)
+
+    with pytest.raises(ValidationFailureException):
+        child.validate(strict=True)
+
+    with pytest.raises(ValidationFailureException):
+        parent.validate(strict=True)

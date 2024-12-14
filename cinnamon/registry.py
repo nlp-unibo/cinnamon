@@ -381,12 +381,9 @@ def register_method(
         build_recursively: bool = True
 ) -> Callable:
     def register_wrapper(func):
-        filename = func.__code__.co_filename
-        qualifier_name = func.__qualname__
-        method_name = f'{filename}-{qualifier_name}'
-
-        if method_name not in Registry.REGISTRATION_METHODS:
-            Registry.REGISTRATION_METHODS[method_name] = BufferedRegistration(
+        key = RegistrationKey(name=name, tags=tags, namespace=namespace)
+        if key not in Registry.REGISTRATION_METHODS:
+            Registry.REGISTRATION_METHODS[str(key)] = BufferedRegistration(
                 func=func,
                 name=name,
                 tags=tags,
