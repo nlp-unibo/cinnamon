@@ -99,6 +99,16 @@ class ConfigWithChild(Configuration):
         config.add(name='c1', value=RegistrationKey(name='test', tags={'t2'}, namespace='testing'))
         return config
 
+class ConfigWithVariantChild(Configuration):
+
+    @classmethod
+    def default(
+            cls: Type[C]
+    ) -> C:
+        config = super().default()
+        config.add(name='c1', value=RegistrationKey(name='test', tags={'x=1'}, namespace='testing'))
+        return config
+
 
 class ComponentWithChild(Component):
 

@@ -658,7 +658,7 @@ class Registry:
                         child_variants.extend(_expand_node_variants(key=key_variant, key_buffer=key_buffer))
 
                 child.variants = child.variants if child.variants is not None else []
-                built_config.get(child_name).variants = child_variants + child.variants
+                built_config.get(child_name).variants = list(set(child_variants + child.variants))
 
             variant_keys = []
             for variant_kwargs in built_config.variants:
@@ -674,12 +674,13 @@ class Registry:
                 cls._DEPENDENCY_DAG.add_edge(key, variant_key, type='variant')
 
                 # Store variant in registry
-                cls.register_configuration_from_variant(config_class=config_info.config_class,
-                                                        name=variant_key.name,
-                                                        tags=variant_key.tags,
-                                                        namespace=variant_key.namespace,
-                                                        variant_kwargs=variant_kwargs,
-                                                        component_class=config_info.component_class)
+                if not Registry.in_registry(variant_key):
+                    cls.register_configuration_from_variant(config_class=config_info.config_class,
+                                                            name=variant_key.name,
+                                                            tags=variant_key.tags,
+                                                            namespace=variant_key.namespace,
+                                                            variant_kwargs=variant_kwargs,
+                                                            component_class=config_info.component_class)
 
                 variant_keys.append(variant_key)
 

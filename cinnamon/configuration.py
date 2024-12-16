@@ -264,6 +264,20 @@ class Configuration:
     ) -> str:
         return str(self.to_value_dict())
 
+    # TODO: should we consider conditions as well here?
+    def __eq__(
+            self,
+            other: C
+    ):
+        if self.params.keys() != other.params.keys():
+            return False
+
+        for param_name, param in self.params.items():
+            if param.value != other.get(param_name).value:
+                return False
+
+        return True
+
     @property
     def conditions(
             self

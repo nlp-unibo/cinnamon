@@ -13,6 +13,7 @@ from tests.fixtures import (
     reset_registry,
     expand_registry,
     ConfigWithChild,
+    ConfigWithVariantChild,
     ChildConfig,
     VariantConfig,
     VariantConfigWithChild,
@@ -419,3 +420,22 @@ def test_resolution_config_with_child_variants_pointing_to_variants(
     assert Registry.in_registry(first_child_key)
     assert Registry.in_registry(second_child_key)
     assert len(valid_keys) == 15
+
+
+def test_resolution_config_with_variant_dependency(
+        reset_registry
+):
+    """
+    We test the case where a config has a child which is a variant of another config
+    """
+    variant_key = Registry.register_configuration(config_class=VariantConfig,
+                                                  name='test',
+                                                  namespace='testing')
+    dep_key = Registry.register_configuration(config_class=ConfigWithVariantChild,
+                                              name='config',
+                                              namespace='testing')
+    valid_keys, invalid_keys = Registry.dag_resolution()
+
+    dep_config = Registry.build_configuration(name='config', namespace='testing')
+    assert dep_config.c1.x == 1
+
