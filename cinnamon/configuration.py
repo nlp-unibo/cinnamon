@@ -514,8 +514,6 @@ class Configuration:
                 return True
         return False
 
-    # TODO: we should call child.variants if a child is in config variants.
-    # This can only be performed if the Registry has been expanded!
     @property
     def variants(
             self,
@@ -535,6 +533,7 @@ class Configuration:
         has_variants = self.has_variants
 
         parameters = {}
+        params_with_variants = []
         for param_key, param in self.params.items():
             # Always add param.value to account for all possible combinations
             # TODO: consider defining a special value (e.g., UNSET) to allow None as a normal value
@@ -543,7 +542,9 @@ class Configuration:
 
             if param.variants is not None and len(param.variants):
                 parameters.setdefault(param_key, []).extend(param.variants)
-        combinations = get_dict_values_combinations(params_dict=parameters)
+                params_with_variants.append(param_key)
+        combinations = [{key:value for key, value in comb.items() if key in params_with_variants}
+                        for comb in get_dict_values_combinations(params_dict=parameters)]
         return combinations
 
     def show(

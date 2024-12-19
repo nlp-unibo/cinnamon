@@ -8,18 +8,18 @@ import sys
 from dataclasses import dataclass
 from logging import getLogger
 from pathlib import Path
-from typing import Type, AnyStr, List, Dict, Any, Union, Optional, Callable, Tuple
+from typing import Type, AnyStr, List, Dict, Any, Union, Optional, Callable, Tuple, Set
 
 import git
 import networkx as nx
 
 import cinnamon.component
 import cinnamon.configuration
-from cinnamon.utility.registration import NamespaceExtractor, get_method_class
+from cinnamon.utility.registration import NamespaceExtractor
 
 logger = getLogger(__name__)
 
-Constructor = Callable[[], cinnamon.configuration.Configuration]
+Constructor = Callable[[], 'cinnamon.configuration.Configuration']
 
 __all__ = [
     'RegistrationKey',
@@ -54,6 +54,8 @@ class RegistrationKey:
             name: str,
             namespace: str,
             tags: cinnamon.configuration.Tags = None,
+            description: Optional[str] = None,
+            metadata: Optional[str] = None
     ):
         """
 
@@ -75,6 +77,8 @@ class RegistrationKey:
         self.name = name
         self.namespace = namespace if namespace is not None else 'default'
         self.tags = tags if tags is not None else set()
+        self.description = description
+        self.metadata = metadata
 
     def __hash__(
             self
@@ -119,6 +123,12 @@ class RegistrationKey:
         return default_condition(other) \
             and tags_condition(other) \
             and namespace_condition(other)
+
+    @property
+    def compound_tags(
+            self
+    ):
+        return {tag for tag in self.tags if self.KEY_VALUE_SEPARATOR in tag}
 
     def from_variant(
             self,
@@ -213,6 +223,17 @@ class RegistrationKey:
             sort_keys=True,
             indent=4
         ).replace("\"", '').replace("\\", "")
+
+    def to_record(
+            self
+    ) -> Tuple[str, Optional[List[str]], str, Optional[str], Optional[str]]:
+        return (
+            self.name,
+            sorted(self.tags),
+            self.namespace,
+            self.description,
+            self.metadata
+        )
 
 
 Registration = Union[RegistrationKey, str]
@@ -565,7 +586,7 @@ class Registry:
         cls._EXP_MODULES.append(directory)
 
         for config_folder in directory.rglob('configurations'):
-            for python_script in config_folder.glob('*.py'):
+            for python_script in config_folder.rglob('*.py'):
                 spec = importlib.util.spec_from_file_location(name=python_script.name,
                                                               location=python_script)
                 # import module and run registration methods
@@ -644,7 +665,7 @@ class Registry:
     ) -> Tuple[List[RegistrationKey], List[RegistrationKey]]:
         cls.check_registration_graph()
 
-        def _expand_node_variants(key: RegistrationKey, key_buffer: List[RegistrationKey]):
+        def _expand_node_variants(key: RegistrationKey, key_buffer: Set[RegistrationKey]):
             config_info = cls.retrieve_configuration_info(registration_key=key)
             built_config = cls.retrieve_configuration(registration_key=key)
             for child_name, child in built_config.children.items():
@@ -684,12 +705,12 @@ class Registry:
 
                 variant_keys.append(variant_key)
 
-            key_buffer.append(key)
-            key_buffer.extend(variant_keys)
+            key_buffer.add(key)
+            key_buffer.update(set(variant_keys))
             return variant_keys
 
         # Variants expansion doesn't change the topology of the graph -> no need for a re-check
-        path_keys = []
+        path_keys: Set[RegistrationKey] = set()
         for key in cls._DEPENDENCY_DAG.successors(cls._ROOT_KEY):
             _expand_node_variants(key=key, key_buffer=path_keys)
 
@@ -700,9 +721,11 @@ class Registry:
         invalid_keys = []
         for key in path_keys:
             config = cls.build_configuration(registration_key=key)
-            if config.validate(strict=False).passed:
+            validation_result = config.validate(strict=False)
+            if validation_result.passed:
                 valid_keys.append(key)
             else:
+                key.metadata = validation_result.error_message
                 invalid_keys.append(key)
 
         return valid_keys, invalid_keys

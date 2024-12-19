@@ -305,3 +305,31 @@ def test_validate_nested_config():
 
     with pytest.raises(ValidationFailureException):
         parent.validate(strict=True)
+
+
+def test_configuration_variant_keys():
+    config = Configuration()
+    config.add(name='x', variants=[1, 2, 3])
+    config.add(name='y', value=5)
+    key = RegistrationKey(name='config', namespace='testing')
+
+    for variant_kwargs in config.variants:
+        variant_key = key.from_variant(variant_kwargs=variant_kwargs)
+        assert 'y=5' not in variant_key.tags
+        assert len(variant_key.tags) == 1
+        assert variant_key.tags == {f'x={variant_kwargs["x"]}'}
+
+
+def test_configuration_with_multiple_variant_keys():
+    config = Configuration()
+    config.add(name='x', variants=[1, 2, 3])
+    config.add(name='z', variants=['a', 'b'])
+    config.add(name='y', value=5)
+    key = RegistrationKey(name='config', namespace='testing')
+
+    for variant_kwargs in config.variants:
+        variant_key = key.from_variant(variant_kwargs=variant_kwargs)
+        assert 'y=5' not in variant_key.tags
+        assert len(variant_key.tags) == 2
+        assert f'x={variant_kwargs["x"]}' in variant_key.tags
+        assert f'z={variant_kwargs["z"]}' in variant_key.tags

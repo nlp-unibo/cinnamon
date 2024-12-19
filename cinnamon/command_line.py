@@ -1,9 +1,12 @@
 import argparse
 import json
 import logging
+import os
 import sys
 from logging import getLogger
 from typing import Optional
+
+import pandas as pd
 
 from cinnamon.component import RunnableComponent
 from cinnamon.registry import Registry, RegistrationKey
@@ -47,16 +50,20 @@ def setup():
         external_directories=external_directories,
         save_directory=save_directory
     )
+    valid_keys = sorted(valid_keys, key=lambda key: key.name)
+    invalid_keys = sorted(invalid_keys, key=lambda key: key.name)
 
     registration_path = directory.joinpath('registrations')
     if not registration_path.exists():
         registration_path.mkdir(parents=True, exist_ok=True)
 
-    with registration_path.joinpath('valid_keys.json').open('w') as f:
-        json.dump([key.toJSON() for key in valid_keys], f)
+    valid_df = pd.DataFrame([key.to_record() for key in valid_keys],
+                            columns=['Name', 'Tags', 'Namespace', 'Description', 'Metadata'])
+    invalid_df = pd.DataFrame([key.to_record() for key in invalid_keys],
+                              columns=['Name', 'Tags', 'Namespace', 'Description', 'Metadata'])
 
-    with registration_path.joinpath('invalid_keys.json').open('w') as f:
-        json.dump([key.toJSON() for key in invalid_keys], f)
+    valid_df.to_csv(path_or_buf=registration_path.joinpath('valid_keys.csv'), index=None)
+    invalid_df.to_csv(path_or_buf=registration_path.joinpath('invalid_keys.csv'), index=None)
 
     logger.info('Valid registration keys:')
     Registry.show_registrations(keys=valid_keys)

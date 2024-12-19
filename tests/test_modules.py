@@ -102,3 +102,12 @@ def test_chained_register_decorator(
 
     c2 = Registry.build_component(registration_key=key2)
     assert isinstance(c2, RunnableComponent)
+
+
+def test_deeply_nested_config(
+        reset_registry
+):
+    directory = Path('.', 'deeply_nested_repo')
+    Registry.load_registrations(directory=directory)
+    key = RegistrationKey(name='config', namespace='testing')
+    assert Registry.in_registry(key)

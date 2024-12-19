@@ -4,8 +4,9 @@ import json
 
 
 def check_directory(
-        directory_path: Union[Path, str]
+        directory_path: Union[Path, str] = None
 ) -> Path:
+    directory_path = directory_path if directory_path is not None else Path('.').resolve()
     directory_path = Path(directory_path) if type(directory_path) != Path else directory_path
     directory_path = directory_path.resolve()
     if not directory_path.exists():
