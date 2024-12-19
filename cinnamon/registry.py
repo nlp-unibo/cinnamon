@@ -403,7 +403,7 @@ def register_method(
 ) -> Callable:
     def register_wrapper(func):
         key = RegistrationKey(name=name, tags=tags, namespace=namespace)
-        if key not in Registry.REGISTRATION_METHODS:
+        if Registry.REGISTRY_MODE and key not in Registry.REGISTRATION_METHODS:
             Registry.REGISTRATION_METHODS[str(key)] = BufferedRegistration(
                 func=func,
                 name=name,
@@ -424,7 +424,7 @@ def register(
     qualifier_name = func.__qualname__
     method_name = f'{filename}-{qualifier_name}'
 
-    if method_name not in Registry.REGISTRATION_METHODS:
+    if Registry.REGISTRY_MODE and method_name not in Registry.REGISTRATION_METHODS:
         Registry.REGISTRATION_METHODS[method_name] = func
     return func
 
@@ -457,6 +457,7 @@ class Registry:
     _EXP_NAMESPACES: List[str]
 
     REGISTRATION_METHODS: Dict[str, Callable]
+    REGISTRY_MODE: bool = False
 
     @classmethod
     def initialize(
@@ -585,6 +586,7 @@ class Registry:
 
         cls._EXP_MODULES.append(directory)
 
+        cls.REGISTRY_MODE = True
         for config_folder in directory.rglob('configurations'):
             for python_script in config_folder.rglob('*.py'):
                 spec = importlib.util.spec_from_file_location(name=python_script.name,
@@ -610,6 +612,8 @@ class Registry:
                                                             build_recursively=key_method.build_recursively)
                         else:
                             cls.REGISTRATION_METHODS[key]()
+
+        cls.REGISTRY_MODE = False
 
     @classmethod
     def in_registry(
@@ -659,6 +663,10 @@ class Registry:
 
         return True
 
+    # TODO: variants of an explicit child key seems to be not considered
+    # There might be a problem in how key variants are propagated
+    # This might happen when different configs in a hierarchy share the same attributes -> key tags cannot discriminate
+    # If this is the case, we should add discriminators when we identify tag duplicates in .from_variant() method
     @classmethod
     def dag_resolution(
             cls

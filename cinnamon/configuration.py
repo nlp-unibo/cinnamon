@@ -175,7 +175,9 @@ class Param:
             self
     ):
         return (type(self.value) == cinnamon.registry.RegistrationKey
+                or type(self.value) == Optional[cinnamon.registry.RegistrationKey]
                 or self.type_hint == cinnamon.registry.RegistrationKey
+                or self.type_hint == Optional[cinnamon.registry.RegistrationKey]
                 or isinstance(self.value, Configuration)
                 or isinstance(self.value, cinnamon.component.Component))
 
@@ -503,7 +505,11 @@ class Configuration:
             else:
                 value_dict[param_name] = param.value
 
+        if not len(value_dict):
+            return value_dict
+
         return json_normalize(value_dict, sep='.').to_dict(orient='records')[0]
+
 
     @property
     def has_variants(
