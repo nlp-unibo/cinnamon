@@ -3,27 +3,34 @@ from __future__ import annotations
 import logging
 import os
 from copy import deepcopy
-from dataclasses import dataclass
 from functools import partial
 from typing import Dict, Any, Callable, Optional, TypeVar, Sized, List, Set, Union, Type
 
 from pandas import json_normalize
-from typeguard import check_type, TypeCheckError
 
 import cinnamon.component
 import cinnamon.registry
 from cinnamon.utility.configuration import get_dict_values_combinations
+from cinnamon.utility.exceptions import (
+    AlreadyExistingParameterException
+)
+from cinnamon.utility.sanity import (
+    ValidationResult,
+    ValidationFailureException,
+    is_required_cond,
+    allowed_range_cond,
+    valid_variants_cond
+)
 
 C = TypeVar('C', bound='Configuration')
 P = TypeVar('P', bound='Param')
 
 Constructor = Callable[[Any], C]
 Tags = Optional[Set[str]]
+Condition = Callable[["Configuration"], bool]
 
 __all__ = [
     'Configuration',
-    'ValidationFailureException',
-    'ValidationResult',
     'C',
     'P',
     'Tags',
@@ -31,101 +38,6 @@ __all__ = [
 ]
 
 logger = logging.getLogger(__name__)
-
-
-class OutOfRangeParameterValueException(Exception):
-
-    def __init__(self, value):
-        super().__init__(f'Parameter value {value} not in allowed range')
-
-
-class InconsistentTypeException(Exception):
-
-    def __init__(self, expected_type, given_type):
-        super().__init__(f'Expected parameter value with type {expected_type} but got {given_type}')
-
-
-class AlreadyExistingParameterException(Exception):
-
-    def __init__(
-            self,
-            param: Param
-    ):
-        super().__init__(f'Parameter {param.name} already exists! {os.linesep}'
-                         f'Parameter: {param}')
-
-
-class NonExistingParameterException(Exception):
-
-    def __init__(
-            self,
-            name: str
-    ):
-        super().__init__(f'Cannot find any parameter with name {name}.')
-
-
-@dataclass
-class ValidationResult:
-    """
-    Utility dataclass to store conditions evaluation result (see ``Configuration.validate()``).
-
-    Args:
-        passed: True if all conditions are True
-        error_message: a string message reporting which condition failed during the evaluation process.
-    """
-
-    passed: bool
-    source: str
-    error_message: Optional[str] = None
-
-
-class ValidationFailureException(Exception):
-
-    def __init__(
-            self,
-            validation_result: ValidationResult
-    ):
-        super().__init__(f'Source: {validation_result.source}{os.linesep}'
-                         f'The validation process has failed!{os.linesep}'
-                         f'Passed: {validation_result.passed}{os.linesep}'
-                         f'Error message: {validation_result.error_message}')
-
-
-def is_required_cond(
-        config: Configuration,
-        name: str
-) -> bool:
-    return config.get(name).value is not None
-
-
-def value_typecheck_cond(
-        config: Configuration,
-        name: str,
-        type_hint: Type
-) -> bool:
-    try:
-        check_type(value=config.get(name).value, expected_type=type_hint)
-        return True
-    except TypeCheckError:
-        return False
-
-
-def allowed_range_cond(
-        config: Configuration,
-        name: str,
-) -> bool:
-    found_param = config.get(name)
-
-    if found_param.value is not None and not found_param.allowed_range(found_param.value):
-        return False
-    return True
-
-
-def valid_variants_cond(
-        config: Configuration,
-        name: str
-):
-    return len(config.get(name).variants) > 0
 
 
 class Param:
@@ -283,21 +195,21 @@ class Configuration:
             self
     ) -> Dict[str, P]:
         return {key: param for key, param in self.__dict__.items() if
-                isinstance(param, Param) and 'condition' in param.tags}
+                isinstance(param, Param) and 'condition' in param.tags and 'pre-condition' in param.tags}
 
     @property
     def params(
             self
     ) -> Dict[str, P]:
         return {key: param for key, param in self.__dict__.items()
-                if isinstance(param, Param) and 'condition' not in param.tags}
+                if isinstance(param, Param) and param.tags.intersection({'condition', 'pre-condition'}) == set()}
 
     @property
     def values(
             self
     ) -> Dict[str, Any]:
         return {key: param.value for key, param in self.__dict__.items()
-                if isinstance(param, Param) and 'condition' not in param.tags}
+                if isinstance(param, Param) and param.tags.intersection({'condition', 'pre-condition'}) == set()}
 
     # Note: this property works only prior resolution
     @property
@@ -358,12 +270,6 @@ class Configuration:
         if is_required:
             self.add_condition(name=f'{name}_is_required', condition=partial(is_required_cond, name=name))
 
-        if not self.get(name).is_child and type_hint is not None:
-            self.add_condition(name=f'{name}_typecheck',
-                               condition=partial(value_typecheck_cond, name=name, type_hint=type_hint),
-                               description=f'Checks if {name} if of type {type_hint}.',
-                               tags={'typechecking', 'pre-built'})
-
         if allowed_range is not None:
             self.add_condition(name=f'{name}_allowed_range',
                                condition=partial(allowed_range_cond, name=name),
@@ -376,9 +282,23 @@ class Configuration:
                                description='Check if variants is not an empty set',
                                tags={'variants'})
 
+    def _add_condition(
+            self,
+            condition: Condition,
+            name: str,
+            description: Optional[str] = None,
+            tags: Tags = None,
+    ):
+        tags = set() if tags is None else tags
+        self.add(name=name,
+                 value=condition,
+                 description=description,
+                 tags=tags,
+                 is_required=False)
+
     def add_condition(
             self,
-            condition: Callable[[Configuration], bool],
+            condition: Condition,
             name: str,
             description: Optional[str] = None,
             tags: Tags = None,
@@ -395,11 +315,55 @@ class Configuration:
 
         tags = set() if tags is None else tags
         tags.add('condition')
-        self.add(name=name,
-                 value=condition,
-                 description=description,
-                 tags=tags,
-                 is_required=False)
+        self._add_condition(condition=condition,
+                            name=name,
+                            description=description,
+                            tags=tags)
+
+    def add_pre_condition(
+            self,
+            condition: Condition,
+            name: str,
+            description: Optional[str] = None,
+            tags: Tags = None,
+    ):
+        tags = set() if tags is None else tags
+        tags.add('pre-condition')
+        self._add_condition(condition=condition,
+                            name=name,
+                            description=description,
+                            tags=tags)
+
+    def _validate(
+            self,
+            conditions: List[Param],
+            strict: bool = True,
+    ) -> ValidationResult:
+        """
+        Calls all stage-related conditions to assess the correctness of the current ``Configuration``.
+
+        Args:
+            strict: if True, a failed validation process will raise ``InvalidConfigurationException``
+
+        Returns:
+            A ``ValidationResult`` object that stores the boolean result of the validation process along with
+            an error message if the result is ``False``.
+
+        Raises:
+            ``ValidationFailureException``: if ``strict = True`` and the validation process failed
+        """
+
+        for condition in conditions:
+            if not condition.value(self):
+                validation_result = ValidationResult(passed=False,
+                                                     error_message=f'Condition {condition.name} failed!',
+                                                     source=self.__class__.__name__)
+                if strict:
+                    raise ValidationFailureException(validation_result=validation_result)
+
+                return validation_result
+
+        return ValidationResult(passed=True, source=self.__class__.__name__)
 
     def validate(
             self,
@@ -425,17 +389,15 @@ class Configuration:
                 if not child_validation.passed:
                     return child_validation
 
-        for condition_name, condition in self.conditions.items():
-            if not condition.value(self):
-                validation_result = ValidationResult(passed=False,
-                                                     error_message=f'Condition {condition_name} failed!',
-                                                     source=self.__class__.__name__)
-                if strict:
-                    raise ValidationFailureException(validation_result=validation_result)
+        conditions = self.search_condition_by_tag(tags={'condition'})
+        return self._validate(conditions=conditions, strict=strict)
 
-                return validation_result
-
-        return ValidationResult(passed=True, source=self.__class__.__name__)
+    def pre_validate(
+            self,
+            strict: bool = True
+    ) -> ValidationResult:
+        conditions = self.search_condition_by_tag(tags={'pre-condition'})
+        return self._validate(conditions=conditions, strict=strict)
 
     def delta_copy(
             self: type[C],
@@ -543,7 +505,7 @@ class Configuration:
             if param.variants is not None and len(param.variants):
                 parameters.setdefault(param_key, []).extend(param.variants)
                 params_with_variants.append(param_key)
-        combinations = [{key:value for key, value in comb.items() if key in params_with_variants}
+        combinations = [{key: value for key, value in comb.items() if key in params_with_variants}
                         for comb in get_dict_values_combinations(params_dict=parameters)]
         return combinations
 
@@ -558,11 +520,18 @@ class Configuration:
             [f'{key}: {value}' for key, value in self.to_value_dict().items()])
         logger.info(parameters_repr)
 
+    def _search(
+            self,
+            conditions: List[Callable[[Any], bool]],
+            buffer: Dict[str, Any]
+    ) -> List[Any]:
+        return [value for key, value in buffer.items() if all([condition(value) for condition in conditions])]
+
     def search_param_by_tag(
             self,
             tags: Union[Tags, str],
             exact_match: bool = True
-    ) -> Dict[str, Any]:
+    ) -> List[Param]:
         """
         Searches for all ``Param`` that match specified tags set.
 
@@ -576,13 +545,16 @@ class Configuration:
         if not type(tags) == set:
             tags = {tags}
 
-        return {key: param.value for key, param in self.params.items()
-                if (exact_match and param.tags == tags) or (not exact_match and param.tags.intersection(tags) == tags)}
+        return self._search(buffer=self.params,
+                            conditions=[
+                                lambda p: (p.tags == tags and exact_match) or (
+                                        not exact_match and p.tags.difference(tags) == set())
+                            ])
 
     def search_param(
             self,
             conditions: List[Callable[[P], bool]]
-    ) -> Dict[str, Any]:
+    ) -> List[Param]:
         """
         Performs a custom ``Param`` search by given conditions.
 
@@ -592,5 +564,34 @@ class Configuration:
         Returns:
             A dictionary with ``Param.name`` as keys and ``Param`` as values
         """
-        return {key: param.value for key, param in self.params.items()
-                if all([condition(param) for condition in conditions])}
+        return self._search(conditions=conditions, buffer=self.params)
+
+    def search_condition_by_tag(
+            self,
+            tags: Union[Tags, str],
+            exact_match: bool = True
+    ) -> List[Param]:
+        """
+        Searches for all ``Param`` that match specified tags set.
+
+        Args:
+            tags: a set of string tags to look for
+            exact_match: if True, only the ``Param`` with ``Param.tags`` that exactly match ``tags`` will be returned
+
+        Returns:
+            A dictionary with ``Param.name`` as keys and ``Param`` as values
+        """
+        if not type(tags) == set:
+            tags = {tags}
+
+        return self._search(buffer=self.conditions,
+                            conditions=[
+                                lambda p: (p.tags == tags and exact_match) or (
+                                        not exact_match and p.tags.difference(tags) == set())
+                            ])
+
+    def search_condition(
+            self,
+            conditions: List[Callable[[Condition], bool]]
+    ) -> List[Param]:
+        return self._search(conditions=conditions, buffer=self.conditions)

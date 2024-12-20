@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from typing import Optional, TypeVar, Type
 
-import cinnamon.registry
 import cinnamon.configuration
+import cinnamon.registry
 
 C = TypeVar('C', bound='Component')
 

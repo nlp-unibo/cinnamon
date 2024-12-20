@@ -1,6 +1,10 @@
-from pathlib import Path
-from typing import Union, List
+from __future__ import annotations
+
 import json
+import os
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Union, List, Optional
 
 
 def check_directory(
@@ -34,3 +38,55 @@ def check_external_json_path(
         data = json.load(f)
 
     return data
+
+
+@dataclass
+class ValidationResult:
+    """
+    Utility dataclass to store conditions evaluation result (see ``Configuration.validate()``).
+
+    Args:
+        passed: True if all conditions are True
+        error_message: a string message reporting which condition failed during the evaluation process.
+    """
+
+    passed: bool
+    source: str
+    error_message: Optional[str] = None
+
+
+class ValidationFailureException(Exception):
+
+    def __init__(
+            self,
+            validation_result: ValidationResult
+    ):
+        super().__init__(f'Source: {validation_result.source}{os.linesep}'
+                         f'The validation process has failed!{os.linesep}'
+                         f'Passed: {validation_result.passed}{os.linesep}'
+                         f'Error message: {validation_result.error_message}')
+
+
+def is_required_cond(
+        config: "cinnamon.configuration.Configuration",
+        name: str
+) -> bool:
+    return config.get(name).value is not None
+
+
+def allowed_range_cond(
+        config: "cinnamon.configuration.Configuration",
+        name: str,
+) -> bool:
+    found_param = config.get(name)
+
+    if found_param.value is not None and not found_param.allowed_range(found_param.value):
+        return False
+    return True
+
+
+def valid_variants_cond(
+        config: "cinnamon.configuration.Configuration",
+        name: str
+):
+    return len(config.get(name).variants) > 0

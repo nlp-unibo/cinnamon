@@ -89,10 +89,9 @@ def test_search_by_tag():
                tags={'letter'})
 
     result = config.search_param_by_tag(tags='number')
-    assert 'x' in result
-    assert 'y' in result
-    assert type(result['x'] == int)
-    assert type(result['y'] == int)
+    assert any(p.name == 'y' for p in result)
+    assert any(p.name == 'x' for p in result)
+    assert all(type(p.value) == int for p in result)
 
 
 def test_search():
@@ -113,9 +112,8 @@ def test_search():
     result = config.search_param(conditions=[
         lambda param: 'number' in param.tags
     ])
-    assert 'y' in result
-    assert type(result['x'] == int)
-    assert type(result['y'] == int)
+    assert any(p.name == 'y' for p in result)
+    assert all(type(p.value) == int for p in result)
 
 
 def test_define_configuration(

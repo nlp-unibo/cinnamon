@@ -15,6 +15,17 @@ import networkx as nx
 
 import cinnamon.component
 import cinnamon.configuration
+from cinnamon.utility.exceptions import (
+    NotRegisteredException,
+    NotBoundException,
+    AlreadyRegisteredException,
+    AlreadyExpandedException,
+    NotExpandedException,
+    DisconnectedGraphException,
+    NotADAGException,
+    InvalidDirectoryException,
+    NamespaceNotFoundException
+)
 from cinnamon.utility.registration import NamespaceExtractor
 
 logger = getLogger(__name__)
@@ -28,16 +39,6 @@ __all__ = [
     'Registry',
     'Registration',
     'ConfigurationInfo',
-    'NotRegisteredException',
-    'NotBoundException',
-    'AlreadyRegisteredException',
-    'InvalidConfigurationTypeException',
-    'AlreadyExpandedException',
-    'NotExpandedException',
-    'DisconnectedGraphException',
-    'NotADAGException',
-    'InvalidDirectoryException',
-    'NamespaceNotFoundException'
 ]
 
 
@@ -138,7 +139,12 @@ class RegistrationKey:
         for param_name, variant_value in variant_kwargs.items():
             # TODO: what if the namespace of this child is different?
             if type(variant_value) == RegistrationKey:
-                variant_tags.extend(variant_value.tags)
+                for tag in variant_value.tags:
+                    # This is required to discriminate between duplicate attributes (among different keys)
+                    if tag in variant_tags:
+                        variant_tags.append(f'{param_name}.{tag}')
+                    else:
+                        variant_tags.append(tag)
             else:
                 variant_tags.append(f'{param_name}={variant_value}')
 
@@ -237,118 +243,6 @@ class RegistrationKey:
 
 
 Registration = Union[RegistrationKey, str]
-
-
-class AlreadyRegisteredException(Exception):
-
-    def __init__(
-            self,
-            registration_key: RegistrationKey
-    ):
-        super(AlreadyRegisteredException, self).__init__(
-            f'A configuration has already been registered with the same key!'
-            f'Got: {registration_key}')
-
-
-class NamespaceNotFoundException(Exception):
-
-    def __init__(
-            self,
-            registration_key: RegistrationKey,
-            namespaces: List[str]
-    ):
-        super(NamespaceNotFoundException, self).__init__(
-            f'The given registration key contains a namespace that cannot be found. {os.linesep}'
-            f'Key: {registration_key}{os.linesep}'
-            f'Namespaces: {namespaces}')
-
-
-class NotRegisteredException(Exception):
-
-    def __init__(
-            self,
-            registration_key: RegistrationKey
-    ):
-        super(NotRegisteredException, self).__init__(f"Could not find registered configuration {registration_key}."
-                                                     f" Did you register it?")
-
-
-class NotBoundException(Exception):
-
-    def __init__(
-            self,
-            registration_key: RegistrationKey
-    ):
-        super(NotBoundException, self).__init__(
-            f'Registered configuration {registration_key} is not bound to any component.'
-            f' Did you bind it?')
-
-
-class InvalidConfigurationTypeException(Exception):
-
-    def __init__(
-            self,
-            expected_type: Type,
-            actual_type: Type
-    ):
-        super(InvalidConfigurationTypeException, self).__init__(
-            f"Expected to build configuration of type {expected_type} but got {actual_type}")
-
-
-class DisconnectedGraphException(Exception):
-
-    def __init__(
-            self,
-            nodes
-    ):
-        super().__init__(f'Disconnected graph! Nodes {nodes} are not connected!')
-
-
-class NotADAGException(Exception):
-
-    def __init__(
-            self,
-            edges
-    ):
-        super().__init__(f'The built graph is not a DAG! {os.linesep}'
-                         f'Please find below the edge list: {os.linesep}'
-                         f'{self.build_edge_view(edges)}')
-
-    def build_edge_view(
-            self,
-            edges
-    ):
-        view = []
-        for edge in edges:
-            node_view = f'{edge[0]} -> {edge[1]}'
-            view.append(node_view)
-        return os.linesep.join(view)
-
-
-class AlreadyExpandedException(Exception):
-
-    def __init__(
-            self
-    ):
-        super().__init__(f'The registration graph has already been expanded! No further registrations are allowed.')
-
-
-class NotExpandedException(Exception):
-
-    def __init__(
-            self
-    ):
-        super().__init__(f'The registration graph has yet to be expanded! Configuration retrieval is not allowed.')
-
-
-class InvalidDirectoryException(Exception):
-
-    def __init__(
-            self,
-            directory: Union[AnyStr, Path]
-    ):
-        super().__init__(f'The provided directory path does not exist or is not a directory. {os.linesep}'
-                         f'Path: {directory}')
 
 
 @dataclass
@@ -720,13 +614,21 @@ class Registry:
         valid_keys = []
         invalid_keys = []
         for key in path_keys:
-            config = cls.build_configuration(registration_key=key)
-            validation_result = config.validate(strict=False)
-            if validation_result.passed:
-                valid_keys.append(key)
-            else:
+            config = cls.retrieve_configuration(registration_key=key)
+            validation_result = config.pre_validate(strict=False)
+            if not validation_result.passed:
                 key.metadata = validation_result.error_message
                 invalid_keys.append(key)
+                continue
+
+            built_config = cls.build_configuration(registration_key=key)
+            validation_result = built_config.validate(strict=False)
+            if not validation_result.passed:
+                key.metadata = validation_result.error_message
+                invalid_keys.append(key)
+                continue
+
+            valid_keys.append(key)
 
         return valid_keys, invalid_keys
 
