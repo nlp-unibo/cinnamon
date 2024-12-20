@@ -19,7 +19,6 @@ from cinnamon.utility.sanity import (
     ValidationFailureException,
     is_required_cond,
     allowed_range_cond,
-    valid_variants_cond
 )
 
 C = TypeVar('C', bound='Configuration')
@@ -74,7 +73,7 @@ class Param:
         """
 
         self.name = name
-        self.value = value
+        self._value = value
         self.type_hint = type_hint
         self.description = description
         self.tags = set(tags) if tags is not None else set()
@@ -82,11 +81,35 @@ class Param:
         self.is_required = is_required
         self.variants = variants if variants is not None else []
 
+        if self.is_dependency:
+            self.tags.add('dependency')
+
     @property
-    def is_child(
+    def value(
             self
+    ) -> Any:
+        return self._value
+
+    @value.getter
+    def value(
+            self
+    ) -> Any:
+        return self._value
+
+    @value.setter
+    def value(
+            self,
+            value: Any
     ):
-        return (type(self.value) == cinnamon.registry.RegistrationKey
+        if self.is_dependency:
+            self._value = value
+
+    @property
+    def is_dependency(
+            self
+    ) -> bool:
+        return ('dependency' in self.tags
+                or type(self.value) == cinnamon.registry.RegistrationKey
                 or type(self.value) == Optional[cinnamon.registry.RegistrationKey]
                 or self.type_hint == cinnamon.registry.RegistrationKey
                 or self.type_hint == Optional[cinnamon.registry.RegistrationKey]
@@ -149,20 +172,16 @@ class Configuration:
     A ``Configuration`` is a ``Data`` extension specific to ``Component``.
     """
 
-    def __init__(
-            self,
-            **kwargs
-    ):
-        if kwargs:
-            for k, v in kwargs.items():
-                self.add(name=k, value=v)
-
     def __setattr__(
             self,
             key,
             value
     ):
-        self.get(key).value = value
+        if key in self.flat_params:
+            raise AttributeError(f'Cannot modify configuration parameter {key}! '
+                                 f'Create a configuration delta copy instead.')
+        else:
+            super().__setattr__(key, value)
 
     def __getattribute__(
             self,
@@ -197,7 +216,7 @@ class Configuration:
             self
     ) -> Dict[str, P]:
         return {key: param for key, param in self.__dict__.items() if
-                isinstance(param, Param) and 'condition' in param.tags and 'pre-condition' in param.tags}
+                isinstance(param, Param) and 'condition' in param.tags or 'pre-condition' in param.tags}
 
     @property
     def params(
@@ -205,6 +224,12 @@ class Configuration:
     ) -> Dict[str, P]:
         return {key: param for key, param in self.__dict__.items()
                 if isinstance(param, Param) and param.tags.intersection({'condition', 'pre-condition'}) == set()}
+
+    @property
+    def flat_params(
+            self
+    ) -> Dict[str, P]:
+        return {key: param for key, param in self.params.items() if not param.is_dependency}
 
     @property
     def values(
@@ -215,10 +240,10 @@ class Configuration:
 
     # Note: this property works only prior resolution
     @property
-    def children(
+    def dependencies(
             self
     ) -> Dict[str, P]:
-        return {param_key: param for param_key, param in self.__dict__.items() if param.is_child}
+        return {param_key: param for param_key, param in self.__dict__.items() if param.is_dependency}
 
     def get(
             self,
@@ -270,33 +295,15 @@ class Configuration:
                                     variants=variants)
 
         if is_required:
-            self.add_condition(name=f'{name}_is_required', condition=partial(is_required_cond, name=name))
+            self.add_condition(name=f'{name}_is_required',
+                               condition=partial(is_required_cond, name=name))
 
         if allowed_range is not None:
             self.add_condition(name=f'{name}_allowed_range',
                                condition=partial(allowed_range_cond, name=name),
                                description=f'Checks if {name} is in allowed range.',
-                               tags={'allowed_range'})
+                               is_pre_condition=self.get(name).is_dependency)
 
-        if variants is not None:
-            self.add_condition(name=f'{name}_valid_variants',
-                               condition=partial(valid_variants_cond, name=name),
-                               description='Check if variants is not an empty set',
-                               tags={'variants'})
-
-    def _add_condition(
-            self,
-            condition: Condition,
-            name: str,
-            description: Optional[str] = None,
-            tags: Tags = None,
-    ):
-        tags = set() if tags is None else tags
-        self.add(name=name,
-                 value=condition,
-                 description=description,
-                 tags=tags,
-                 is_required=False)
 
     def add_condition(
             self,
@@ -304,6 +311,7 @@ class Configuration:
             name: str,
             description: Optional[str] = None,
             tags: Tags = None,
+            is_pre_condition: bool = False
     ):
         """
         Adds a condition to be validated.
@@ -313,28 +321,18 @@ class Configuration:
             name: unique identifier.
             description: a string description for readability purposes.
             tags: a set of string tags to mark the condition with metadata.
+            is_pre_condition: TODO
         """
 
         tags = set() if tags is None else tags
         tags.add('condition')
-        self._add_condition(condition=condition,
-                            name=name,
-                            description=description,
-                            tags=tags)
-
-    def add_pre_condition(
-            self,
-            condition: Condition,
-            name: str,
-            description: Optional[str] = None,
-            tags: Tags = None,
-    ):
-        tags = set() if tags is None else tags
-        tags.add('pre-condition')
-        self._add_condition(condition=condition,
-                            name=name,
-                            description=description,
-                            tags=tags)
+        if is_pre_condition:
+            tags.add('pre-condition')
+        self.add(name=name,
+                 value=condition,
+                 description=description,
+                 tags=tags,
+                 is_required=False)
 
     def _validate(
             self,
@@ -385,20 +383,20 @@ class Configuration:
             ``ValidationFailureException``: if ``strict = True`` and the validation process failed
         """
 
-        for child_name, child in self.children.items():
+        for child_name, child in self.dependencies.items():
             if isinstance(child.value, Configuration):
                 child_validation = child.value.validate(strict=strict)
                 if not child_validation.passed:
                     return child_validation
 
-        conditions = self.search_condition_by_tag(tags={'condition'})
+        conditions = self.search_condition_by_tag(tags={'condition'}, exact_match=False)
         return self._validate(conditions=conditions, strict=strict)
 
     def pre_validate(
             self,
             strict: bool = True
     ) -> ValidationResult:
-        conditions = self.search_condition_by_tag(tags={'pre-condition'})
+        conditions = self.search_condition_by_tag(tags={'pre-condition'}, exact_match=False)
         return self._validate(conditions=conditions, strict=strict)
 
     def delta_copy(
@@ -411,33 +409,33 @@ class Configuration:
         Returns:
             A delta copy of current ``Configuration``.
         """
-        copy = deepcopy(self)
+        copy: C = type(self)()
 
-        found_keys = []
-        for key, value in kwargs.items():
-            if key in self.params:
-                copy.get(key).value = deepcopy(value)
-                found_keys.append(key)
+        # Flat params
+        for param_name, param in self.params.items():
+            if param_name in kwargs:
+                value = deepcopy(kwargs[param_name])
+                kwargs.pop(param_name)
+            else:
+                value = deepcopy(param.value)
 
-        # Remove found keys
-        for key in found_keys:
-            kwargs.pop(key)
+            copy.add(name=param_name,
+                     value=deepcopy(value),
+                     type_hint=param.type_hint,
+                     description=param.description,
+                     is_required=param.is_required,
+                     tags=param.tags,
+                     variants=param.variants,
+                     allowed_range=param.allowed_range)
 
-        if not len(kwargs):
-            return copy
-
-        for child_key, child in copy.children.items():
-            if isinstance(child.value, cinnamon.configuration.Configuration):
-                copy.get(child_key).value = child.value.delta_copy(**kwargs)
-            if isinstance(child.value, cinnamon.registry.RegistrationKey):
-                raise RuntimeWarning(f'Found {child.value} registration key. Cannot forward {kwargs} to child. '
-                                     f'You should invoke Registry.build_configuration() to use this method correctly')
-            if isinstance(child.value, cinnamon.component.Component):
-                raise RuntimeWarning(f'Found {child.value} component. Cannot forward {kwargs} to child. '
-                                     f'You should invoke Registry.build_configuration() to use this method correctly')
-
-        if len(kwargs):
-            raise RuntimeError(f'Expected to not have remaining delta parameters, but got {kwargs}.')
+        # Custom conditions
+        for name, condition in self.conditions.items():
+            if name not in copy.conditions:
+                copy.add_condition(name=name,
+                                   condition=deepcopy(condition),
+                                   description=condition.description,
+                                   tags=condition.tags,
+                                   is_pre_condition='pre-condition' in condition.tags)
 
         return copy
 
@@ -471,7 +469,6 @@ class Configuration:
             return value_dict
 
         return json_normalize(value_dict, sep='.').to_dict(orient='records')[0]
-
 
     @property
     def has_variants(
@@ -554,7 +551,7 @@ class Configuration:
         return self._search(buffer=self.params,
                             conditions=[
                                 lambda p: (p.tags == tags and exact_match) or (
-                                        not exact_match and p.tags.difference(tags) == set())
+                                        not exact_match and p.tags.intersection(tags) == tags)
                             ])
 
     def search_param(
@@ -593,7 +590,7 @@ class Configuration:
         return self._search(buffer=self.conditions,
                             conditions=[
                                 lambda p: (p.tags == tags and exact_match) or (
-                                        not exact_match and p.tags.difference(tags) == set())
+                                        not exact_match and p.tags.intersection(tags) == tags)
                             ])
 
     def search_condition(

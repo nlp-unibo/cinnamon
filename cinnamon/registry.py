@@ -31,6 +31,7 @@ from cinnamon.utility.registration import NamespaceExtractor
 logger = getLogger(__name__)
 
 Constructor = Callable[[], 'cinnamon.configuration.Configuration']
+Registration = Union["RegistrationKey", str]
 
 __all__ = [
     'RegistrationKey',
@@ -242,9 +243,6 @@ class RegistrationKey:
         )
 
 
-Registration = Union[RegistrationKey, str]
-
-
 @dataclass
 class ConfigurationInfo:
     """
@@ -297,7 +295,7 @@ def register_method(
 ) -> Callable:
     def register_wrapper(func):
         key = RegistrationKey(name=name, tags=tags, namespace=namespace)
-        if Registry.REGISTRY_MODE and key not in Registry.REGISTRATION_METHODS:
+        if Registry.REGISTRATION_CONTEXT.is_registering and key not in Registry.REGISTRATION_METHODS:
             Registry.REGISTRATION_METHODS[str(key)] = BufferedRegistration(
                 func=func,
                 name=name,
@@ -318,9 +316,23 @@ def register(
     qualifier_name = func.__qualname__
     method_name = f'{filename}-{qualifier_name}'
 
-    if Registry.REGISTRY_MODE and method_name not in Registry.REGISTRATION_METHODS:
+    if Registry.REGISTRATION_CONTEXT.is_registering and method_name not in Registry.REGISTRATION_METHODS:
         Registry.REGISTRATION_METHODS[method_name] = func
     return func
+
+
+class RegistrationContext:
+
+    def __init__(
+            self
+    ):
+        self.is_registering: bool = False
+
+    def __enter__(self):
+        self.is_registering = True
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.is_registering = False
 
 
 class Registry:
@@ -351,7 +363,7 @@ class Registry:
     _EXP_NAMESPACES: List[str]
 
     REGISTRATION_METHODS: Dict[str, Callable]
-    REGISTRY_MODE: bool = False
+    REGISTRATION_CONTEXT: RegistrationContext
 
     @classmethod
     def initialize(
@@ -360,6 +372,7 @@ class Registry:
         cls._REGISTRY = {}
 
         cls.REGISTRATION_METHODS = {}
+        cls.REGISTRATION_CONTEXT = RegistrationContext()
         cls._EXP_MODULES = []
         cls._MODULE_MAPPING = {}
         cls._EXP_NAMESPACES = []
@@ -480,34 +493,33 @@ class Registry:
 
         cls._EXP_MODULES.append(directory)
 
-        cls.REGISTRY_MODE = True
-        for config_folder in directory.rglob('configurations'):
-            for python_script in config_folder.rglob('*.py'):
-                spec = importlib.util.spec_from_file_location(name=python_script.name,
-                                                              location=python_script)
-                # import module and run registration methods
-                if spec is not None:
-                    current_keys = set(cls.REGISTRATION_METHODS.keys())
-                    module = importlib.util.module_from_spec(spec=spec)
-                    spec.loader.exec_module(module)
-                    new_keys = set(cls.REGISTRATION_METHODS.keys()).difference(current_keys)
-                    for key in new_keys:
-                        key_method = cls.REGISTRATION_METHODS[key]
-                        if isinstance(key_method, BufferedRegistration):
-                            class_method_name = key_method.func.__qualname__.split('.')[-2]
-                            method_name = key_method.func.__qualname__.split('.')[-1]
-                            class_method = module.__dict__[class_method_name]
-                            Registry.register_configuration(config_class=class_method,
-                                                            config_constructor=getattr(class_method, method_name),
-                                                            name=key_method.name,
-                                                            tags=key_method.tags,
-                                                            namespace=key_method.namespace,
-                                                            component_class=key_method.component_class,
-                                                            build_recursively=key_method.build_recursively)
-                        else:
-                            cls.REGISTRATION_METHODS[key]()
+        with cls.REGISTRATION_CONTEXT:
+            for config_folder in directory.rglob('configurations'):
+                for python_script in config_folder.rglob('*.py'):
+                    spec = importlib.util.spec_from_file_location(name=python_script.name,
+                                                                  location=python_script)
+                    # import module and run registration methods
+                    if spec is not None:
+                        current_keys = set(cls.REGISTRATION_METHODS.keys())
+                        module = importlib.util.module_from_spec(spec=spec)
+                        spec.loader.exec_module(module)
+                        new_keys = set(cls.REGISTRATION_METHODS.keys()).difference(current_keys)
+                        for key in new_keys:
+                            key_method = cls.REGISTRATION_METHODS[key]
+                            if isinstance(key_method, BufferedRegistration):
+                                class_method_name = key_method.func.__qualname__.split('.')[-2]
+                                method_name = key_method.func.__qualname__.split('.')[-1]
+                                class_method = module.__dict__[class_method_name]
+                                Registry.register_configuration(config_class=class_method,
+                                                                config_constructor=getattr(class_method, method_name),
+                                                                name=key_method.name,
+                                                                tags=key_method.tags,
+                                                                namespace=key_method.namespace,
+                                                                component_class=key_method.component_class,
+                                                                build_recursively=key_method.build_recursively)
+                            else:
+                                cls.REGISTRATION_METHODS[key]()
 
-        cls.REGISTRY_MODE = False
 
     @classmethod
     def in_registry(
@@ -570,7 +582,7 @@ class Registry:
         def _expand_node_variants(key: RegistrationKey, key_buffer: Set[RegistrationKey]):
             config_info = cls.retrieve_configuration_info(registration_key=key)
             built_config = cls.retrieve_configuration(registration_key=key)
-            for child_name, child in built_config.children.items():
+            for child_name, child in built_config.dependencies.items():
                 child_key = child.value
                 child_variants = []
 
@@ -688,7 +700,7 @@ class Registry:
         config = registered_config_info.constructor()
 
         if registered_config_info.build_recursively:
-            for child_name, child in config.children.items():
+            for child_name, child in config.dependencies.items():
                 child_key: RegistrationKey = child.value
                 if child_key is not None:
                     child.value = cls.build_component(registration_key=child_key)
@@ -737,7 +749,7 @@ class Registry:
         config_info = cls._REGISTRY[registration_key]
         config = config_info.constructor()
 
-        for child_name, child in config.children.items():
+        for child_name, child in config.dependencies.items():
             child_key: RegistrationKey = child.value
             if child_key is not None:
                 child.value = cls.build_configuration(registration_key=child_key)
@@ -800,7 +812,7 @@ class Registry:
         built_config = config_constructor()
 
         # include children
-        for child_name, child in built_config.children.items():
+        for child_name, child in built_config.dependencies.items():
             child_key: RegistrationKey = child.value
             if child_key is None:
                 if child.variants is None:

@@ -84,9 +84,3 @@ def allowed_range_cond(
         return False
     return True
 
-
-def valid_variants_cond(
-        config: "cinnamon.configuration.Configuration",
-        name: str
-):
-    return len(config.get(name).variants) > 0

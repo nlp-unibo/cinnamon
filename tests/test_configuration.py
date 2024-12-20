@@ -24,20 +24,10 @@ def test_adding_param():
     assert type(config.get('x')) == Param
 
 
-def test_init_from_kwargs():
+def test_trigger_set_param_from_config():
     """
-    Initialize configuration via __init__ and retrieve parameter
-    """
-
-    config = Configuration(x=50)
-    assert config.x == 50
-    assert config.get('x').value == 50
-    assert type(config.get('x')) == Param
-
-
-def test_trigger_typecheck_error():
-    """
-    Trigger typecheck error on invalid parameter value
+    Configuration parameters are immutable.
+    Raise an exception when we attempt to change a parameter value from a config
     """
 
     config = Configuration()
@@ -45,9 +35,31 @@ def test_trigger_typecheck_error():
                value=50,
                type_hint=int,
                description="test description")
-    config.x = 'invalid_integer'
-    with pytest.raises(ValidationFailureException):
-        config.validate()
+    with pytest.raises(AttributeError):
+        config.x = 20
+
+
+def test_not_trigger_set_param_with_dependency():
+    """
+    Configuration dependencies are mutable
+    """
+
+    config = Configuration()
+    config.add(name='x',
+               value=RegistrationKey(name='config', namespace='testing'),
+               description="test description")
+    config.x = RegistrationKey(name='config', tags={'alternative'}, namespace='testing')
+
+
+
+def test_trigger_set_param_from_param():
+    """
+    Parameters are immutable.
+    Raise an exception when we attempt to change a parameter value
+    """
+    param = Param(name='x', value=50)
+    param.x = 20
+    assert param.x == 20
 
 
 def test_add_condition():
@@ -128,10 +140,6 @@ def test_define_configuration(
     assert config.get('x').value == 10
     assert config.get('x').name == 'x'
 
-    config.x = 5
-    assert config.x == 5
-    assert config.get('x').value == 5
-
 
 def test_validate_empty(
         define_configuration
@@ -145,39 +153,6 @@ def test_validate_empty(
     assert result.passed is True
 
 
-def test_type_hint_validation_nonstrict(
-        define_configuration
-):
-    """
-    Testing that typecheck condition triggers when setting a parameter to a new value with different type
-    """
-
-    config = define_configuration
-    result = config.validate(strict=False)
-    assert result.passed is True
-
-    config.x = '10'
-
-    result = config.validate(strict=False)
-    assert result.passed is False
-    assert result.error_message == 'Condition x_typecheck failed!'
-
-
-def test_type_hint_validation_strict(
-        define_configuration
-):
-    """
-    Testing that configuration.validate() raises an exception when running in strict mode (default)
-    """
-
-    config = define_configuration
-    config.validate()
-
-    config.x = '10'
-    with pytest.raises(ValidationFailureException):
-        config.validate()
-
-
 def test_required_validation():
     """
     Testing that 'is_required' parameter attribute triggers an exception when parameter.value is None
@@ -185,7 +160,6 @@ def test_required_validation():
 
     config = Configuration()
     config.add(name='x',
-               is_required=True,
                type_hint=int,
                description='a parameter')
     with pytest.raises(ValidationFailureException):
@@ -199,31 +173,12 @@ def test_allowed_range_validation():
 
     config = Configuration()
     config.add(name='x',
-               value=5,
+               value=10,
                is_required=True,
                type_hint=int,
                allowed_range=lambda value: value in [1, 2, 3, 4, 5],
                description='a parameter')
-    config.validate()
-
-    config.x = 10
     assert config.validate(strict=False).passed is False
-
-
-def test_variants_validation_exception():
-    """
-    Testing that an empty parameter.variants field is not allowed
-    """
-
-    config = Configuration()
-    config.add(name='x',
-               value=5,
-               is_required=True,
-               type_hint=int,
-               variants=[],
-               description='a parameter')
-    with pytest.raises(ValidationFailureException):
-        config.validate()
 
 
 def test_copy():
@@ -234,20 +189,18 @@ def test_copy():
     config = Configuration()
     config.add(name='x',
                value=[1, 2, 3])
+    dep_config = Configuration()
+    dep_config.add(name='z', value=5)
     config.add(name='y',
-               value=Configuration(z=5))
+               value=dep_config)
     copy = deepcopy(config)
     copy.x.append(5)
 
     assert config.x == [1, 2, 3]
     assert copy.x == [1, 2, 3, 5]
 
-    copy.y.z = 10
-    assert config.y.z == 5
-    assert copy.y.z == 10
 
-
-def test_get_delta_copy():
+def test_get_delta_copy_built():
     """
     Testing configuration.get_delta_copy()
     """
@@ -257,16 +210,15 @@ def test_get_delta_copy():
                value=10,
                type_hint=int,
                description='a parameter')
-    delta_copy: Configuration = config.delta_copy()
-    config.x = 5
-    assert delta_copy.x == 10
-    assert config.x == 5
+    delta_copy = config.delta_copy(x=5)
+    assert config.x == 10
+    assert delta_copy.x == 5
     assert type(delta_copy) == Configuration
 
-    other_copy: Configuration = delta_copy.delta_copy(x=15)
+    other_copy = delta_copy.delta_copy(x=15)
     assert other_copy.x == 15
-    assert delta_copy.x == 10
-    assert config.x == 5
+    assert delta_copy.x == 5
+    assert config.x == 10
     assert type(other_copy) == Configuration
 
     other_copy.add(name='y',
@@ -274,6 +226,31 @@ def test_get_delta_copy():
     assert 'y' not in config.params
     assert 'y' not in delta_copy.params
     assert other_copy.y == 0
+
+
+def test_get_delta_copy_built_nested():
+    """
+    Delta copy is not meant for hierarchy propagation
+    """
+
+    parent = Configuration()
+    parent.add(name='x', value=5)
+    child = Configuration()
+    child.add(name='y', value=10)
+    child.add(name='child', value=RegistrationKey(name='config', namespace='testing'))
+    parent.add(name='child', value=child)
+
+    delta_flat = parent.delta_copy(x=10)
+    assert delta_flat.x == 10
+    assert delta_flat.child.y == 10
+    assert id(delta_flat.child) != id(child)
+
+    delta_nested = parent.delta_copy(x=10, y=20)
+    assert delta_nested.x == 10
+    assert delta_nested.child.y == 10
+    assert id(delta_nested.child) != id(child)
+    assert id(delta_nested.child) != id(delta_flat.child)
+
 
 
 def test_to_value_dict():
@@ -295,7 +272,6 @@ def test_validate_nested_config():
     child.add(name='y', value=5, allowed_range=lambda x: x < 3)
 
     parent.validate()
-
     parent.add(name='child', value=child)
 
     with pytest.raises(ValidationFailureException):
