@@ -48,7 +48,7 @@ class RegistrationKey:
     Compound key used for registration.
     """
 
-    KEY_VALUE_SEPARATOR: str = ':'
+    KEY_VALUE_SEPARATOR: str = '='
     ATTRIBUTE_SEPARATOR: str = '--'
 
     def __init__(
@@ -132,6 +132,12 @@ class RegistrationKey:
     ):
         return {tag for tag in self.tags if self.KEY_VALUE_SEPARATOR in tag}
 
+
+    def parse_key_value_tags(
+            self
+    ):
+        return [tag.split('=')[0] if '=' in tag else tag for tag in self.tags]
+
     def from_variant(
             self,
             variant_kwargs: Dict[str, Any]
@@ -141,13 +147,19 @@ class RegistrationKey:
             # TODO: what if the namespace of this child is different?
             if type(variant_value) == RegistrationKey:
                 for tag in variant_value.tags:
+                    if self.KEY_VALUE_SEPARATOR not in tag:
+                        variant_tags.append(tag)
+                        continue
+
                     # This is required to discriminate between duplicate attributes (among different keys)
-                    if tag in variant_tags:
-                        variant_tags.append(f'{param_name}.{tag}')
+                    tag_key, tag_value = tag.split(self.KEY_VALUE_SEPARATOR)
+                    if tag_key in variant_kwargs:
+                        variant_tags.append(f'{param_name}.{tag_key}{self.KEY_VALUE_SEPARATOR}{tag_value}')
                     else:
                         variant_tags.append(tag)
+
             else:
-                variant_tags.append(f'{param_name}={variant_value}')
+                variant_tags.append(f'{param_name}{self.KEY_VALUE_SEPARATOR}{variant_value}')
 
         return RegistrationKey(name=self.name,
                                tags=self.tags.union(set(variant_tags)),

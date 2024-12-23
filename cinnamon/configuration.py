@@ -73,7 +73,7 @@ class Param:
         """
 
         self.name = name
-        self._value = value
+        self.value = value
         self.type_hint = type_hint
         self.description = description
         self.tags = set(tags) if tags is not None else set()
@@ -83,26 +83,6 @@ class Param:
 
         if self.is_dependency:
             self.tags.add('dependency')
-
-    @property
-    def value(
-            self
-    ) -> Any:
-        return self._value
-
-    @value.getter
-    def value(
-            self
-    ) -> Any:
-        return self._value
-
-    @value.setter
-    def value(
-            self,
-            value: Any
-    ):
-        if self.is_dependency:
-            self._value = value
 
     @property
     def is_dependency(
@@ -177,9 +157,8 @@ class Configuration:
             key,
             value
     ):
-        if key in self.flat_params:
-            raise AttributeError(f'Cannot modify configuration parameter {key}! '
-                                 f'Create a configuration delta copy instead.')
+        if key in self.params:
+            self.params.get(key).value = value
         else:
             super().__setattr__(key, value)
 
@@ -224,12 +203,6 @@ class Configuration:
     ) -> Dict[str, P]:
         return {key: param for key, param in self.__dict__.items()
                 if isinstance(param, Param) and param.tags.intersection({'condition', 'pre-condition'}) == set()}
-
-    @property
-    def flat_params(
-            self
-    ) -> Dict[str, P]:
-        return {key: param for key, param in self.params.items() if not param.is_dependency}
 
     @property
     def values(

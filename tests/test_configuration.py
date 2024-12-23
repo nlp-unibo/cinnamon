@@ -1,11 +1,10 @@
 from copy import deepcopy
-from email.policy import strict
 from typing import List
 
 import pytest
 
-from cinnamon.registry import RegistrationKey
 from cinnamon.configuration import Configuration, ValidationFailureException, Param
+from cinnamon.registry import RegistrationKey, Registry
 from tests.fixtures import define_configuration
 
 
@@ -24,10 +23,10 @@ def test_adding_param():
     assert type(config.get('x')) == Param
 
 
-def test_trigger_set_param_from_config():
+def test_set_param_from_config():
     """
-    Configuration parameters are immutable.
-    Raise an exception when we attempt to change a parameter value from a config
+    Configuration parameters are mutable
+    We attempt to change a parameter value from a config
     """
 
     config = Configuration()
@@ -35,24 +34,12 @@ def test_trigger_set_param_from_config():
                value=50,
                type_hint=int,
                description="test description")
-    with pytest.raises(AttributeError):
-        config.x = 20
+    config.x = 20
+    assert config.x == 20
+    assert config.get('x').value == 20
 
 
-def test_not_trigger_set_param_with_dependency():
-    """
-    Configuration dependencies are mutable
-    """
-
-    config = Configuration()
-    config.add(name='x',
-               value=RegistrationKey(name='config', namespace='testing'),
-               description="test description")
-    config.x = RegistrationKey(name='config', tags={'alternative'}, namespace='testing')
-
-
-
-def test_trigger_set_param_from_param():
+def test_set_param_from_param():
     """
     Parameters are immutable.
     Raise an exception when we attempt to change a parameter value
@@ -139,6 +126,19 @@ def test_define_configuration(
     assert config.x == 10
     assert config.get('x').value == 10
     assert config.get('x').name == 'x'
+
+
+def test_modify_existing_configuration(
+        define_configuration
+):
+    """
+    A simple way to define new configurations is to modify existing ones
+    """
+
+    config = define_configuration
+    config.x = 20
+    assert config.x == 20
+    assert config.get('x').value == 20
 
 
 def test_validate_empty(
@@ -252,7 +252,6 @@ def test_get_delta_copy_built_nested():
     assert id(delta_nested.child) != id(delta_flat.child)
 
 
-
 def test_to_value_dict():
     config = Configuration()
     config.add(name='x',
@@ -307,3 +306,4 @@ def test_configuration_with_multiple_variant_keys():
         assert len(variant_key.tags) == 2
         assert f'x={variant_kwargs["x"]}' in variant_key.tags
         assert f'z={variant_kwargs["z"]}' in variant_key.tags
+

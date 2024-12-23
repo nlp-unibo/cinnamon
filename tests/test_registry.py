@@ -22,7 +22,10 @@ from tests.fixtures import (
     InvalidConfig,
     InvalidVariantConfig,
     CliqueConfigA,
-    CliqueConfigB
+    CliqueConfigB,
+    ParentWithVariantsAndChild,
+    IntermediateWithChild,
+    LeafWithVariants
 )
 
 
@@ -439,3 +442,18 @@ def test_resolution_config_with_variant_dependency(
     dep_config = Registry.build_configuration(name='config', namespace='testing')
     assert dep_config.c1.x == 1
 
+
+def test_hierarchy_with_conflicting_parameters(
+        reset_registry
+):
+    parent_key = Registry.register_configuration(config_class=ParentWithVariantsAndChild,
+                                                 name='parent',
+                                                 namespace='testing')
+    intermediate_key = Registry.register_configuration(config_class=IntermediateWithChild,
+                                                       name='intermediate',
+                                                       namespace='testing')
+    leaf_key = Registry.register_configuration(config_class=LeafWithVariants,
+                                               name='leaf',
+                                               namespace='testing')
+    valid_keys, invalid_keys = Registry.dag_resolution()
+    assert len(valid_keys) == 8

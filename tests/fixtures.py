@@ -199,3 +199,42 @@ class ConfigWithExternalDependency(Configuration):
         config = super().default()
         config.add(name='c1', value=RegistrationKey(name='test', namespace='external'))
         return config
+
+
+class ParentWithVariantsAndChild(Configuration):
+
+    @classmethod
+    def default(
+            cls: Type[C]
+    ) -> C:
+        config = super().default()
+        config.add(name='x', variants=[1, 2])
+        config.add(name='child', value=RegistrationKey(name='intermediate', namespace='testing'))
+
+        return config
+
+
+class IntermediateWithChild(Configuration):
+
+    @classmethod
+    def default(
+            cls: Type[C]
+    ) -> C:
+        config = super().default()
+
+        config.add(name='child', value=RegistrationKey(name='leaf', namespace='testing'))
+
+        return config
+
+
+class LeafWithVariants(Configuration):
+
+    @classmethod
+    def default(
+            cls: Type[C]
+    ) -> C:
+        config = super().default()
+
+        config.add(name='x', variants=[1, 2])
+
+        return config
