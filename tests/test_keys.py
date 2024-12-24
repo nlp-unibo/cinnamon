@@ -1,9 +1,8 @@
 import json
 from pathlib import Path
-import pytest
 
 from cinnamon.registry import RegistrationKey
-from cinnamon.utility.exceptions import TagConflictException
+from cinnamon.configuration import Configuration
 
 
 def test_key_to_json():
@@ -29,6 +28,17 @@ def test_key_json_serialization():
     json_file.unlink()
 
 
+def test_from_variant():
+    base_key = RegistrationKey(name='config', namespace='testing')
+    variant_kwargs = {
+        'x': 1
+    }
+    variant_key = base_key.from_variant(variant_kwargs=variant_kwargs)
+    assert variant_key == RegistrationKey(name='config',
+                                          tags={'x=1'},
+                                          namespace='testing')
+
+
 def test_from_variant_with_key_and_conflicting_param():
     base_key = RegistrationKey(name='config', namespace='testing')
     key = RegistrationKey(name='config', tags={'x=1'}, namespace='testing')
@@ -42,17 +52,49 @@ def test_from_variant_with_key_and_conflicting_param():
                                           namespace='testing')
 
 
-def test_trigger_tag_conflict_with_flat_param_and_key():
-    base_key = RegistrationKey(name='config', tags={'x=1'}, namespace='testing')
+def test_from_variant_with_multiple_keys():
+    base_key = RegistrationKey(name='config', namespace='testing')
     key = RegistrationKey(name='config', tags={'x=1'}, namespace='testing')
+    other_key = RegistrationKey(name='config', tags={'x=2', 'y=1'}, namespace='testing')
     variant_kwargs = {
         'key': key,
+        'other_key': other_key,
         'x': 2
     }
-    with pytest.raises(TagConflictException):
-        variant_key = base_key.from_variant(variant_kwargs=variant_kwargs)
+    variant_key = base_key.from_variant(variant_kwargs=variant_kwargs)
+    assert variant_key == RegistrationKey(name='config',
+                                          tags={'x=2', 'key.x=1', 'other_key.x=2', 'other_key.y=1'},
+                                          namespace='testing')
 
 
-# TODO: test when we have two keys that might lead to tag conflict
-def test_from_variant_with_multiple_conflicts():
-    pass
+def test_from_config_variants_with_taggable_params():
+    config = Configuration()
+    config.add(name='x', value=5, variants=[1])
+    config_key = RegistrationKey(name='config', namespace='testing')
+
+    for variant_kwargs, variant_indexes in zip(*config.variants):
+        variant_key = config_key.from_variant(variant_kwargs=variant_kwargs,
+                                              variant_indexes=variant_indexes)
+        variant_config = config.delta_copy(**variant_kwargs)
+
+        if variant_config == config:
+            continue
+
+        assert variant_key.tags == {f'x{config_key.KEY_VALUE_SEPARATOR}1'}
+
+
+def test_from_config_variants_with_non_taggable_params():
+    config = Configuration()
+    config.add(name='x', value=[1, 2, 3], variants=[[2, 2]])
+    config_key = RegistrationKey(name='config', namespace='testing')
+
+    for variant_kwargs, variant_indexes in zip(*config.variants):
+        variant_key = config_key.from_variant(variant_kwargs=variant_kwargs,
+                                              variant_indexes=variant_indexes)
+        variant_config = config.delta_copy(**variant_kwargs)
+
+        if variant_config == config:
+            assert variant_key.tags == {f'x{config_key.KEY_VALUE_SEPARATOR}default-value'}
+            continue
+
+        assert variant_key.tags == {f'x{config_key.KEY_VALUE_SEPARATOR}variant-1'}

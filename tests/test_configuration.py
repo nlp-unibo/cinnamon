@@ -286,11 +286,12 @@ def test_configuration_variant_keys():
     config.add(name='y', value=5)
     key = RegistrationKey(name='config', namespace='testing')
 
-    for variant_kwargs in config.variants:
-        variant_key = key.from_variant(variant_kwargs=variant_kwargs)
-        assert 'y=5' not in variant_key.tags
+    for variant_kwargs, variant_indexes in zip(*config.variants):
+        variant_key = key.from_variant(variant_kwargs=variant_kwargs,
+                                       variant_indexes=variant_indexes)
+        assert f'y{key.KEY_VALUE_SEPARATOR}5' not in variant_key.tags
         assert len(variant_key.tags) == 1
-        assert variant_key.tags == {f'x={variant_kwargs["x"]}'}
+        assert variant_key.tags == {f'x{key.KEY_VALUE_SEPARATOR}{variant_kwargs["x"]}'}
 
 
 def test_configuration_with_multiple_variant_keys():
@@ -300,10 +301,11 @@ def test_configuration_with_multiple_variant_keys():
     config.add(name='y', value=5)
     key = RegistrationKey(name='config', namespace='testing')
 
-    for variant_kwargs in config.variants:
-        variant_key = key.from_variant(variant_kwargs=variant_kwargs)
-        assert 'y=5' not in variant_key.tags
+    for variant_kwargs, variant_indexes in zip(*config.variants):
+        variant_key = key.from_variant(variant_kwargs=variant_kwargs,
+                                       variant_indexes=variant_indexes)
+        assert f'y{key.KEY_VALUE_SEPARATOR}5' not in variant_key.tags
         assert len(variant_key.tags) == 2
-        assert f'x={variant_kwargs["x"]}' in variant_key.tags
-        assert f'z={variant_kwargs["z"]}' in variant_key.tags
+        assert f'x{key.KEY_VALUE_SEPARATOR}{variant_kwargs["x"]}' in variant_key.tags
+        assert f'z{key.KEY_VALUE_SEPARATOR}{variant_kwargs["z"]}' in variant_key.tags
 

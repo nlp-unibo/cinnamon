@@ -24,10 +24,9 @@ from cinnamon.utility.exceptions import (
     DisconnectedGraphException,
     NotADAGException,
     InvalidDirectoryException,
-    NamespaceNotFoundException,
-    TagConflictException
+    NamespaceNotFoundException
 )
-from cinnamon.utility.registration import NamespaceExtractor
+from cinnamon.utility.registration import NamespaceExtractor, Tags, TAGGABLE_TYPES
 
 logger = getLogger(__name__)
 
@@ -51,12 +50,13 @@ class RegistrationKey:
 
     KEY_VALUE_SEPARATOR: str = '='
     ATTRIBUTE_SEPARATOR: str = '--'
+    HIERARCHY_SEPARATOR: str = '.'
 
     def __init__(
             self,
             name: str,
             namespace: str,
-            tags: cinnamon.configuration.Tags = None,
+            tags: Tags = None,
             description: Optional[str] = None,
             metadata: Optional[str] = None
     ):
@@ -133,37 +133,36 @@ class RegistrationKey:
     ):
         return {tag for tag in self.tags if self.KEY_VALUE_SEPARATOR in tag}
 
+    # TODO: consider adding a maximum length constraint to sanitized_tag
+    def sanitize_variant_tag(
+            self,
+            param_name: str,
+            param_index: int,
+            param_value: Any
+    ) -> str:
+        if type(param_value) in TAGGABLE_TYPES:
+            sanitized_tag = f'{param_name}{self.KEY_VALUE_SEPARATOR}{param_value}'
+        else:
+            variant_value = f'variant-{param_index}' if param_index > 0 else 'default-value'
+            sanitized_tag = f'{param_name}{self.KEY_VALUE_SEPARATOR}{variant_value}'
 
-    def parse_key_value_tags(
-            self
-    ):
-        return [tag.split('=')[0] if '=' in tag else tag for tag in self.tags]
+        return sanitized_tag
 
     def from_variant(
             self,
-            variant_kwargs: Dict[str, Any]
-    ):
+            variant_kwargs: Dict[str, Any],
+            variant_indexes: Dict[str, int] = None
+    ) -> RegistrationKey:
         variant_tags = []
         for param_name, variant_value in variant_kwargs.items():
             if type(variant_value) != RegistrationKey:
-                # TODO: we have to split tags to find the same param_name
-                if param_name in self.tags:
-                    raise TagConflictException(existing_tags=self.tags, new_tag=param_name)
-                variant_tags.append(f'{param_name}{self.KEY_VALUE_SEPARATOR}{variant_value}')
-                continue
-
-            # TODO: what if the namespace of this child is different?
-            for tag in variant_value.tags:
-                if self.KEY_VALUE_SEPARATOR not in tag:
-                    variant_tags.append(tag)
-                    continue
-
-                # This is required to discriminate between duplicate attributes (among different keys)
-                tag_key, tag_value = tag.split(self.KEY_VALUE_SEPARATOR)
-                if tag_key in variant_kwargs:
-                    variant_tags.append(f'{param_name}.{tag_key}{self.KEY_VALUE_SEPARATOR}{tag_value}')
-                else:
-                    variant_tags.append(tag)
+                variant_tags.append(self.sanitize_variant_tag(param_name=param_name,
+                                                              param_index=variant_indexes[param_name] if variant_indexes is not None else 1,
+                                                              param_value=variant_value))
+            else:
+                # The recursive approach of dag resolution ensures tag hierarchy
+                for tag in variant_value.tags:
+                    variant_tags.append(f'{param_name}{self.HIERARCHY_SEPARATOR}{tag}')
 
         return RegistrationKey(name=self.name,
                                tags=self.tags.union(set(variant_tags)),
@@ -205,7 +204,7 @@ class RegistrationKey:
             registration_key: Optional[Union[RegistrationKey, str]] = None,
             name: Optional[str] = None,
             namespace: Optional[str] = None,
-            tags: cinnamon.configuration.Tags = None,
+            tags: Tags = None,
     ) -> RegistrationKey:
         """
         Parses a given ``RegistrationKey`` instance.
@@ -237,6 +236,13 @@ class RegistrationKey:
                                                namespace=namespace)
 
         return registration_key
+
+    def match(
+            self,
+            key: RegistrationKey,
+            tags: Tags
+    ) -> bool:
+        return self.tags.intersection(key.tags) == tags
 
     def toJSON(
             self
@@ -285,7 +291,7 @@ class BufferedRegistration:
             func: Callable,
             name: str,
             namespace: str,
-            tags: cinnamon.configuration.Tags = None,
+            tags: Tags = None,
             component_class: Optional[Type[cinnamon.component.Component]] = None,
             build_recursively: bool = True
     ):
@@ -305,7 +311,7 @@ class BufferedRegistration:
 def register_method(
         name: str,
         namespace: str,
-        tags: cinnamon.configuration.Tags = None,
+        tags: Tags = None,
         component_class: Optional[Type[cinnamon.component.Component]] = None,
         build_recursively: bool = True
 ) -> Callable:
@@ -536,7 +542,6 @@ class Registry:
                             else:
                                 cls.REGISTRATION_METHODS[key]()
 
-
     @classmethod
     def in_registry(
             cls,
@@ -557,7 +562,7 @@ class Registry:
             registration_key: Optional[Registration] = None,
             name: Optional[str] = None,
             namespace: Optional[str] = None,
-            tags: cinnamon.configuration.Tags = None,
+            tags: Tags = None,
     ) -> bool:
         registration_key = RegistrationKey.parse(registration_key=registration_key,
                                                  name=name,
@@ -612,8 +617,9 @@ class Registry:
                 built_config.get(child_name).variants = list(set(child_variants + child.variants))
 
             variant_keys = []
-            for variant_kwargs in built_config.variants:
-                variant_key = key.from_variant(variant_kwargs=variant_kwargs)
+            for variant_kwargs, variant_indexes in zip(*built_config.variants):
+                variant_key = key.from_variant(variant_kwargs=variant_kwargs,
+                                               variant_indexes=variant_indexes)
                 variant_config = built_config.delta_copy(**variant_kwargs)
 
                 # Skip existing config
@@ -625,13 +631,12 @@ class Registry:
                 cls._DEPENDENCY_DAG.add_edge(key, variant_key, type='variant')
 
                 # Store variant in registry
-                if not Registry.in_registry(variant_key):
-                    cls.register_configuration_from_variant(config_class=config_info.config_class,
-                                                            name=variant_key.name,
-                                                            tags=variant_key.tags,
-                                                            namespace=variant_key.namespace,
-                                                            variant_kwargs=variant_kwargs,
-                                                            component_class=config_info.component_class)
+                cls.register_configuration_from_variant(config_class=config_info.config_class,
+                                                        name=variant_key.name,
+                                                        tags=variant_key.tags,
+                                                        namespace=variant_key.namespace,
+                                                        variant_kwargs=variant_kwargs,
+                                                        component_class=config_info.component_class)
 
                 variant_keys.append(variant_key)
 
@@ -678,7 +683,7 @@ class Registry:
             registration_key: Optional[Registration] = None,
             name: Optional[str] = None,
             namespace: Optional[str] = None,
-            tags: cinnamon.configuration.Tags = None,
+            tags: Tags = None,
             **build_args
     ) -> cinnamon.component.Component:
         """
@@ -737,7 +742,7 @@ class Registry:
             registration_key: Optional[Registration] = None,
             name: Optional[str] = None,
             namespace: Optional[str] = None,
-            tags: cinnamon.configuration.Tags = None,
+            tags: Tags = None,
     ) -> cinnamon.configuration.Configuration:
         """
             Retrieves a configuration instance given its implicit registration key.
@@ -778,7 +783,7 @@ class Registry:
             config_class: Type[cinnamon.configuration.Configuration],
             name: str,
             namespace: str,
-            tags: cinnamon.configuration.Tags = None,
+            tags: Tags = None,
             config_constructor: Optional[Constructor] = None,
             component_class: Optional[Type[cinnamon.component.Component]] = None,
             build_recursively: bool = True
@@ -863,7 +868,7 @@ class Registry:
             name: str,
             namespace: str,
             variant_kwargs: Dict[str, Any],
-            tags: cinnamon.configuration.Tags = None,
+            tags: Tags = None,
             config_constructor: Optional[Constructor] = None,
             component_class: Optional[Type[cinnamon.component.Component]] = None,
             build_recursively: bool = True
@@ -883,7 +888,7 @@ class Registry:
             registration_key: Optional[Registration] = None,
             name: Optional[str] = None,
             namespace: Optional[str] = None,
-            tags: cinnamon.configuration.Tags = None,
+            tags: Tags = None,
     ) -> cinnamon.configuration.Configuration:
         """
             Retrieves a configuration instance given its implicit registration key.
@@ -916,7 +921,7 @@ class Registry:
             registration_key: Optional[RegistrationKey] = None,
             name: Optional[str] = None,
             namespace: Optional[str] = None,
-            tags: cinnamon.configuration.Tags = None,
+            tags: Tags = None,
     ) -> ConfigurationInfo:
         registration_key = RegistrationKey.parse(registration_key=registration_key,
                                                  name=name,

@@ -1,13 +1,26 @@
 import ast
 from copy import deepcopy
 from pathlib import Path
-from typing import List
+from typing import List, Optional, Set
 import functools
 import inspect
+import types
 
 __all__ = [
     'NamespaceExtractor',
-    'get_method_class'
+    'get_method_class',
+    'Tags',
+    'TAGGABLE_TYPES'
+]
+
+Tags = Optional[Set[str]]
+
+TAGGABLE_TYPES = [
+    str,
+    int,
+    float,
+    bool,
+    types.NoneType
 ]
 
 

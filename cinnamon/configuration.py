@@ -4,7 +4,7 @@ import logging
 import os
 from copy import deepcopy
 from functools import partial
-from typing import Dict, Any, Callable, Optional, TypeVar, Sized, List, Set, Union, Type
+from typing import Dict, Any, Callable, Optional, TypeVar, Sized, List, Set, Union, Type, Tuple
 
 from pandas import json_normalize
 
@@ -20,19 +20,18 @@ from cinnamon.utility.sanity import (
     is_required_cond,
     allowed_range_cond,
 )
+from cinnamon.utility.registration import Tags
 
 C = TypeVar('C', bound='Configuration')
 P = TypeVar('P', bound='Param')
 
 Constructor = Callable[[Any], C]
-Tags = Optional[Set[str]]
 Condition = Callable[["Configuration"], bool]
 
 __all__ = [
     'Configuration',
     'C',
     'P',
-    'Tags',
     'Param'
 ]
 
@@ -277,7 +276,6 @@ class Configuration:
                                description=f'Checks if {name} is in allowed range.',
                                is_pre_condition=self.get(name).is_dependency)
 
-
     def add_condition(
             self,
             condition: Condition,
@@ -448,14 +446,14 @@ class Configuration:
             self
     ) -> bool:
         for param_key, param in self.params.items():
-            if param.variants is not None and len(param.variants):
+            if len(param.variants):
                 return True
         return False
 
     @property
     def variants(
             self,
-    ) -> List[Dict[str, Any]]:
+    ) -> Tuple[List[Dict[str, Any]], List[Dict[str, int]]]:
         """
         Gets all possible ``Configuration`` variant combinations of current ``Configuration``
         instance based on specified variants.
@@ -470,20 +468,27 @@ class Configuration:
 
         has_variants = self.has_variants
 
+        if not has_variants:
+            return [], []
+
         parameters = {}
         params_with_variants = []
         for param_key, param in self.params.items():
             # Always add param.value to account for all possible combinations
             # TODO: consider defining a special value (e.g., UNSET) to allow None as a normal value
-            if has_variants and param.value is not None:
+            if has_variants:
                 parameters.setdefault(param_key, [param.value])
 
             if param.variants is not None and len(param.variants):
                 parameters.setdefault(param_key, []).extend(param.variants)
                 params_with_variants.append(param_key)
-        combinations = [{key: value for key, value in comb.items() if key in params_with_variants}
-                        for comb in get_dict_values_combinations(params_dict=parameters)]
-        return combinations
+
+        value_combinations, index_combinations = get_dict_values_combinations(params_dict=parameters)
+        value_combinations = [{key: value for key, value in comb.items() if key in params_with_variants}
+                              for comb in value_combinations]
+        index_combinations = [{key: value for key, value in comb.items() if key in params_with_variants}
+                              for comb in index_combinations]
+        return value_combinations, index_combinations
 
     def show(
             self,
