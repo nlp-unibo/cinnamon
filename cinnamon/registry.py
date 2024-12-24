@@ -24,7 +24,8 @@ from cinnamon.utility.exceptions import (
     DisconnectedGraphException,
     NotADAGException,
     InvalidDirectoryException,
-    NamespaceNotFoundException
+    NamespaceNotFoundException,
+    TagConflictException
 )
 from cinnamon.utility.registration import NamespaceExtractor
 
@@ -144,22 +145,25 @@ class RegistrationKey:
     ):
         variant_tags = []
         for param_name, variant_value in variant_kwargs.items():
-            # TODO: what if the namespace of this child is different?
-            if type(variant_value) == RegistrationKey:
-                for tag in variant_value.tags:
-                    if self.KEY_VALUE_SEPARATOR not in tag:
-                        variant_tags.append(tag)
-                        continue
-
-                    # This is required to discriminate between duplicate attributes (among different keys)
-                    tag_key, tag_value = tag.split(self.KEY_VALUE_SEPARATOR)
-                    if tag_key in variant_kwargs:
-                        variant_tags.append(f'{param_name}.{tag_key}{self.KEY_VALUE_SEPARATOR}{tag_value}')
-                    else:
-                        variant_tags.append(tag)
-
-            else:
+            if type(variant_value) != RegistrationKey:
+                # TODO: we have to split tags to find the same param_name
+                if param_name in self.tags:
+                    raise TagConflictException(existing_tags=self.tags, new_tag=param_name)
                 variant_tags.append(f'{param_name}{self.KEY_VALUE_SEPARATOR}{variant_value}')
+                continue
+
+            # TODO: what if the namespace of this child is different?
+            for tag in variant_value.tags:
+                if self.KEY_VALUE_SEPARATOR not in tag:
+                    variant_tags.append(tag)
+                    continue
+
+                # This is required to discriminate between duplicate attributes (among different keys)
+                tag_key, tag_value = tag.split(self.KEY_VALUE_SEPARATOR)
+                if tag_key in variant_kwargs:
+                    variant_tags.append(f'{param_name}.{tag_key}{self.KEY_VALUE_SEPARATOR}{tag_value}')
+                else:
+                    variant_tags.append(tag)
 
         return RegistrationKey(name=self.name,
                                tags=self.tags.union(set(variant_tags)),

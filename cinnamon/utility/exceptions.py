@@ -111,3 +111,15 @@ class InvalidDirectoryException(Exception):
     ):
         super().__init__(f'The provided directory path does not exist or is not a directory. {os.linesep}'
                          f'Path: {directory}')
+
+
+class TagConflictException(Exception):
+
+    def __init__(
+            self,
+            existing_tags,
+            new_tag
+    ):
+        super().__init__(f"""Found tag conflict!"""
+                         f"""Attempting to add {new_tag} but tag already exists"""
+                         f"""Got: {existing_tags}""")
