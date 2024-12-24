@@ -443,17 +443,59 @@ def test_resolution_config_with_variant_dependency(
     assert dep_config.c1.x == 1
 
 
+def test_resolution_where_key_is_shared_in_more_than_one_path(
+        reset_registry
+):
+    first_key = Registry.register_configuration(config_class=ParentWithVariantsAndChild,
+                                                name='config',
+                                                tags={'a'},
+                                                namespace='testing')
+    second_key = Registry.register_configuration(config_class=ParentWithVariantsAndChild,
+                                                 name='config',
+                                                 tags={'b'},
+                                                 namespace='testing')
+    shared_key = Registry.register_configuration(config_class=Configuration,
+                                                 name='intermediate',
+                                                 namespace='testing')
+    valid_keys, invalid_keys = Registry.dag_resolution()
+    assert len(valid_keys) == 5
+    assert len(invalid_keys) == 2
+
+
+def test_resolution_where_key_with_variants_is_shared_in_more_than_one_path(
+        reset_registry
+):
+    first_key = Registry.register_configuration(config_class=ConfigWithChild,
+                                                name='config',
+                                                tags={'a'},
+                                                namespace='testing')
+    second_key = Registry.register_configuration(config_class=ConfigWithChild,
+                                                 name='config',
+                                                 tags={'b'},
+                                                 namespace='testing')
+    shared_key = Registry.register_configuration(config_class=VariantConfig,
+                                                 name='test',
+                                                 tags={'t2'},
+                                                 namespace='testing')
+    valid_keys, invalid_keys = Registry.dag_resolution()
+    assert len(valid_keys) == 9
+    assert len(invalid_keys) == 3
+
+
 def test_hierarchy_with_conflicting_parameters(
         reset_registry
 ):
-    parent_key = Registry.register_configuration(config_class=ParentWithVariantsAndChild,
-                                                 name='parent',
-                                                 namespace='testing')
-    intermediate_key = Registry.register_configuration(config_class=IntermediateWithChild,
-                                                       name='intermediate',
-                                                       namespace='testing')
-    leaf_key = Registry.register_configuration(config_class=LeafWithVariants,
-                                               name='leaf',
-                                               namespace='testing')
+    Registry.register_configuration(config_class=ParentWithVariantsAndChild,
+                                    name='parent',
+                                    namespace='testing')
+    Registry.register_configuration(config_class=IntermediateWithChild,
+                                    name='intermediate',
+                                    namespace='testing')
+    Registry.register_configuration(config_class=LeafWithVariants,
+                                    name='leaf',
+                                    namespace='testing')
     valid_keys, invalid_keys = Registry.dag_resolution()
     assert len(valid_keys) == 8
+
+
+

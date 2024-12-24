@@ -631,12 +631,14 @@ class Registry:
                 cls._DEPENDENCY_DAG.add_edge(key, variant_key, type='variant')
 
                 # Store variant in registry
-                cls.register_configuration_from_variant(config_class=config_info.config_class,
-                                                        name=variant_key.name,
-                                                        tags=variant_key.tags,
-                                                        namespace=variant_key.namespace,
-                                                        variant_kwargs=variant_kwargs,
-                                                        component_class=config_info.component_class)
+                # This is required since a key might share multiple key paths
+                if not cls.in_registry(variant_key):
+                    cls.register_configuration_from_variant(config_class=config_info.config_class,
+                                                            name=variant_key.name,
+                                                            tags=variant_key.tags,
+                                                            namespace=variant_key.namespace,
+                                                            variant_kwargs=variant_kwargs,
+                                                            component_class=config_info.component_class)
 
                 variant_keys.append(variant_key)
 

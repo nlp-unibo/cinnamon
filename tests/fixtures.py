@@ -99,6 +99,7 @@ class ConfigWithChild(Configuration):
         config.add(name='c1', value=RegistrationKey(name='test', tags={'t2'}, namespace='testing'))
         return config
 
+
 class ConfigWithVariantChild(Configuration):
 
     @classmethod
