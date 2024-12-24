@@ -140,7 +140,8 @@ class RegistrationKey:
             param_index: int,
             param_value: Any
     ) -> str:
-        if type(param_value) in TAGGABLE_TYPES:
+        if type(param_value) in TAGGABLE_TYPES \
+                or any([isinstance(param_value, taggable_type) for taggable_type in TAGGABLE_TYPES]):
             sanitized_tag = f'{param_name}{self.KEY_VALUE_SEPARATOR}{param_value}'
         else:
             variant_value = f'variant-{param_index}' if param_index > 0 else 'default-value'

@@ -5,6 +5,7 @@ from typing import List, Optional, Set
 import functools
 import inspect
 import types
+from enum import Enum
 
 __all__ = [
     'NamespaceExtractor',
@@ -20,7 +21,8 @@ TAGGABLE_TYPES = [
     int,
     float,
     bool,
-    types.NoneType
+    types.NoneType,
+    Enum
 ]
 
 
