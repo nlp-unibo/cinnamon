@@ -40,6 +40,7 @@ __all__ = [
     'Registry',
     'Registration',
     'ConfigurationInfo',
+    'ResolutionInfo'
 ]
 
 
@@ -158,7 +159,8 @@ class RegistrationKey:
         for param_name, variant_value in variant_kwargs.items():
             if type(variant_value) != RegistrationKey:
                 variant_tags.append(self.sanitize_variant_tag(param_name=param_name,
-                                                              param_index=variant_indexes[param_name] if variant_indexes is not None else 1,
+                                                              param_index=variant_indexes[
+                                                                  param_name] if variant_indexes is not None else 1,
                                                               param_value=variant_value))
             else:
                 # The recursive approach of dag resolution ensures tag hierarchy
@@ -283,6 +285,35 @@ class ConfigurationInfo:
     constructor: Constructor
     component_class: Type[cinnamon.component.Component]
     build_recursively: bool
+
+
+class ResolutionInfo:
+
+    def __init__(
+            self
+    ):
+        self.keys: List[RegistrationKey] = []
+        self.configs: List[Dict[str, Any]] = []
+
+    def add(
+            self,
+            key: RegistrationKey,
+            config: Dict[str, Any]
+    ):
+        self.keys.append(key)
+        self.configs.append(config)
+
+    def __contains__(
+            self,
+            key: RegistrationKey
+    ):
+        assert isinstance(key, RegistrationKey)
+        return key in self.keys
+
+    def __len__(
+            self
+    ):
+        return len(self.keys)
 
 
 class BufferedRegistration:
@@ -411,7 +442,7 @@ class Registry:
             directory: Union[Path, AnyStr] = None,
             external_directories: List[Union[AnyStr, Path]] = None,
             save_directory: Union[Path, AnyStr] = None
-    ) -> Tuple[List[RegistrationKey], List[RegistrationKey]]:
+    ) -> Tuple[ResolutionInfo, ResolutionInfo]:
         directory = Path(directory).resolve() if type(directory) != Path else directory
         if save_directory is not None:
             save_directory = Path(save_directory).resolve() if type(
@@ -598,7 +629,7 @@ class Registry:
     @classmethod
     def dag_resolution(
             cls
-    ) -> Tuple[List[RegistrationKey], List[RegistrationKey]]:
+    ) -> Tuple[ResolutionInfo, ResolutionInfo]:
         cls.check_registration_graph()
 
         def _expand_node_variants(key: RegistrationKey, key_buffer: Set[RegistrationKey]):
@@ -624,6 +655,7 @@ class Registry:
                 variant_config = built_config.delta_copy(**variant_kwargs)
 
                 # Skip existing config
+                # TODO: replace this with hash comparison (see TODO below)
                 if variant_config == built_config:
                     continue
 
@@ -633,6 +665,9 @@ class Registry:
 
                 # Store variant in registry
                 # This is required since a key might share multiple key paths
+                # TODO: this might be a little risky since we might overlook registration errors
+                # in_registry should compare between unique hashes built from RegistrationKey instances
+                # so that we are sure about equality in all fields.
                 if not cls.in_registry(variant_key):
                     cls.register_configuration_from_variant(config_class=config_info.config_class,
                                                             name=variant_key.name,
@@ -655,24 +690,26 @@ class Registry:
         cls.expanded = True
 
         # Validate paths
-        valid_keys = []
-        invalid_keys = []
+        valid_keys = ResolutionInfo()
+        invalid_keys = ResolutionInfo()
         for key in path_keys:
             config = cls.retrieve_configuration(registration_key=key)
+            config_values = config.to_value_dict()
             validation_result = config.pre_validate(strict=False)
             if not validation_result.passed:
-                key.metadata = validation_result.error_message
-                invalid_keys.append(key)
+                key.metadata = validation_result.stack_trace
+                invalid_keys.add(key=key, config=config_values)
                 continue
 
             built_config = cls.build_configuration(registration_key=key)
+            config_values = built_config.to_value_dict()
             validation_result = built_config.validate(strict=False)
             if not validation_result.passed:
-                key.metadata = validation_result.error_message
-                invalid_keys.append(key)
+                key.metadata = validation_result.stack_trace
+                invalid_keys.add(key=key, config=config_values)
                 continue
 
-            valid_keys.append(key)
+            valid_keys.add(key=key, config=config_values)
 
         return valid_keys, invalid_keys
 
@@ -935,13 +972,3 @@ class Registry:
             return cls._REGISTRY[registration_key]
         else:
             raise NotRegisteredException(registration_key=registration_key)
-
-    # Views
-
-    @classmethod
-    def show_registrations(
-            cls,
-            keys: List[RegistrationKey]
-    ):
-        for key in keys:
-            logger.info(key)

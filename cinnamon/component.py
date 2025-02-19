@@ -8,8 +8,7 @@ import cinnamon.registry
 C = TypeVar('C', bound='Component')
 
 __all__ = [
-    'Component',
-    'RunnableComponent'
+    'Component'
 ]
 
 
@@ -54,10 +53,7 @@ class Component:
                                                           namespace=namespace,
                                                           **build_args)
 
-
-class RunnableComponent(Component):
-
     def run(
             self
     ):
-        pass
+        raise NotImplementedError()

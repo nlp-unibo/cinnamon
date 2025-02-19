@@ -262,7 +262,10 @@ def test_to_value_dict():
                value=RegistrationKey(name='component', namespace='testing')
                )
     value_dict = config.to_value_dict()
-    assert value_dict == {'x': 10}
+    assert value_dict == {
+        'x': 10,
+        'child': config.child
+    }
 
 
 def test_validate_nested_config():

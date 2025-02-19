@@ -54,6 +54,15 @@ class ValidationResult:
     source: str
     error_message: Optional[str] = None
 
+    @property
+    def stack_trace(
+            self
+    ):
+        return f"""
+            Source: {self.source}. 
+            Message: {self.error_message}
+        """
+
 
 class ValidationFailureException(Exception):
 

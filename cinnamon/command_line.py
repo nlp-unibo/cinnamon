@@ -6,7 +6,7 @@ from typing import Optional
 
 import pandas as pd
 
-from cinnamon.component import RunnableComponent
+from cinnamon.component import Component
 from cinnamon.registry import Registry, RegistrationKey
 from cinnamon.utility.sanity import check_directory, check_external_json_path
 
@@ -48,30 +48,30 @@ def setup():
         external_directories=external_directories,
         save_directory=save_directory
     )
-    valid_keys = sorted(valid_keys, key=lambda key: key.name)
-    invalid_keys = sorted(invalid_keys, key=lambda key: key.name)
 
     registration_path = directory.joinpath('registrations')
     if not registration_path.exists():
         registration_path.mkdir(parents=True, exist_ok=True)
 
-    valid_df = pd.DataFrame([key.to_record() for key in valid_keys],
+    valid_df = pd.DataFrame([key.to_record() for key in valid_keys.keys],
                             columns=['Name', 'Tags', 'Namespace', 'Description', 'Metadata'])
-    invalid_df = pd.DataFrame([key.to_record() for key in invalid_keys],
+    invalid_df = pd.DataFrame([key.to_record() for key in invalid_keys.keys],
                               columns=['Name', 'Tags', 'Namespace', 'Description', 'Metadata'])
 
     valid_df.to_csv(path_or_buf=registration_path.joinpath('valid_keys.csv'), index=None)
     invalid_df.to_csv(path_or_buf=registration_path.joinpath('invalid_keys.csv'), index=None)
 
     logger.info('Valid registration keys:')
-    Registry.show_registrations(keys=valid_keys)
+    for key in valid_keys.keys:
+        logger.info(key)
 
     logger.info('\n')
     logger.info('*' * 50)
     logger.info('\n')
 
     logger.info('Invalid registration keys:')
-    Registry.show_registrations(keys=invalid_keys)
+    for key in invalid_keys.keys:
+        logger.info(key)
 
 
 def run():
@@ -110,5 +110,5 @@ def run():
     )
 
     key = RegistrationKey.parse(name=args.name, tags=args.tags, namespace=args.namespace)
-    component = RunnableComponent.build_component(registration_key=key)
+    component = Component.build_component(registration_key=key)
     component.run()

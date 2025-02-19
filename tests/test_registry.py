@@ -382,8 +382,8 @@ def test_resolution_config_with_child_and_param_variants(
     assert len(valid_keys) == 8
     assert Registry.in_registry(parent_key)
     assert Registry.in_registry(child_key)
-    assert parent_key in invalid_keys
-    assert child_key in invalid_keys
+    assert parent_key in invalid_keys.keys
+    assert child_key in invalid_keys.keys
     assert parent_key.from_variant(
         variant_kwargs={'x': 1, 'c1': child_key.from_variant(variant_kwargs={'y': False})}) in valid_keys
     assert parent_key.from_variant(
@@ -431,13 +431,13 @@ def test_resolution_config_with_variant_dependency(
     """
     We test the case where a config has a child which is a variant of another config
     """
-    variant_key = Registry.register_configuration(config_class=VariantConfig,
-                                                  name='test',
-                                                  namespace='testing')
-    dep_key = Registry.register_configuration(config_class=ConfigWithVariantChild,
-                                              name='config',
-                                              namespace='testing')
-    valid_keys, invalid_keys = Registry.dag_resolution()
+    Registry.register_configuration(config_class=VariantConfig,
+                                    name='test',
+                                    namespace='testing')
+    Registry.register_configuration(config_class=ConfigWithVariantChild,
+                                    name='config',
+                                    namespace='testing')
+    Registry.dag_resolution()
 
     dep_config = Registry.build_configuration(name='config', namespace='testing')
     assert dep_config.c1.x == 1
@@ -496,6 +496,3 @@ def test_hierarchy_with_conflicting_parameters(
                                     namespace='testing')
     valid_keys, invalid_keys = Registry.dag_resolution()
     assert len(valid_keys) == 8
-
-
-

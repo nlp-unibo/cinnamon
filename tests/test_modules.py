@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from cinnamon.component import Component, RunnableComponent
+from cinnamon.component import Component
 from cinnamon.registry import (
     Registry,
     InvalidDirectoryException,
@@ -101,7 +101,7 @@ def test_chained_register_decorator(
     assert isinstance(c1, Component)
 
     c2 = Registry.build_component(registration_key=key2)
-    assert isinstance(c2, RunnableComponent)
+    assert isinstance(c2, Component)
 
 
 def test_deeply_nested_config(

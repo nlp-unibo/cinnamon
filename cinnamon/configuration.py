@@ -429,10 +429,6 @@ class Configuration:
         for param_name, param in self.params.items():
             if isinstance(param.value, Configuration):
                 value_dict.update(param.value.to_value_dict())
-            elif isinstance(param.value, cinnamon.registry.RegistrationKey):
-                if cinnamon.registry.Registry.expanded:
-                    value_dict.update(cinnamon.registry.Registry.retrieve_configuration(
-                        registration_key=param.value).to_value_dict())
             else:
                 value_dict[param_name] = param.value
 
