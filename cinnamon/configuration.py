@@ -32,7 +32,8 @@ __all__ = [
     'Configuration',
     'C',
     'P',
-    'Param'
+    'Param',
+    'ValidationFailureException'
 ]
 
 logger = logging.getLogger(__name__)

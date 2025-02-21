@@ -4,7 +4,7 @@ from typing import List
 import pytest
 
 from cinnamon.configuration import Configuration, ValidationFailureException, Param
-from cinnamon.registry import RegistrationKey, Registry
+from cinnamon.registry import RegistrationKey
 from tests.fixtures import define_configuration
 
 

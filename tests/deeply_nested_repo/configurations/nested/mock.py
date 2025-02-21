@@ -3,6 +3,7 @@ from typing import Type
 from cinnamon.configuration import C, Configuration
 from cinnamon.registry import register_method
 
+
 class MockConfig(Configuration):
 
     @classmethod

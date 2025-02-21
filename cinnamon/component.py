@@ -8,7 +8,8 @@ import cinnamon.registry
 C = TypeVar('C', bound='Component')
 
 __all__ = [
-    'Component'
+    'Component',
+    'RunnableComponent'
 ]
 
 
@@ -53,7 +54,16 @@ class Component:
                                                           namespace=namespace,
                                                           **build_args)
 
+
+class RunnableComponent(Component):
+    """
+    A simple extension of Component that can be executed as standalone
+    """
+
     def run(
             self
     ):
-        raise NotImplementedError()
+        """
+        TODO
+        """
+        raise NotImplementedError(f"A {RunnableComponent} instance must implement the `run` method.")

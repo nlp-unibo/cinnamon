@@ -15,6 +15,7 @@ import networkx as nx
 
 import cinnamon.component
 import cinnamon.configuration
+import component
 from cinnamon.utility.exceptions import (
     NotRegisteredException,
     NotBoundException,
@@ -40,7 +41,12 @@ __all__ = [
     'Registry',
     'Registration',
     'ConfigurationInfo',
-    'ResolutionInfo'
+    'ResolutionInfo',
+    'NotADAGException',
+    'NotRegisteredException',
+    'AlreadyRegisteredException',
+    'InvalidDirectoryException',
+    'NamespaceNotFoundException'
 ]
 
 
@@ -857,6 +863,9 @@ class Registry:
         # Check if already registered
         if cls.in_registry(registration_key=registration_key):
             raise AlreadyRegisteredException(registration_key=registration_key)
+
+        if component_class is not None and isinstance(component_class, component.RunnableComponent):
+            registration_key.tags.add('runnable')
 
         # Store configuration in registry
         config_constructor = config_constructor if config_constructor is not None else config_class.default

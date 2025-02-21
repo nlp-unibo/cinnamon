@@ -6,7 +6,7 @@ from typing import Optional
 
 import pandas as pd
 
-from cinnamon.component import Component
+from cinnamon.component import RunnableComponent
 from cinnamon.registry import Registry, RegistrationKey
 from cinnamon.utility.sanity import check_directory, check_external_json_path
 
@@ -110,5 +110,10 @@ def run():
     )
 
     key = RegistrationKey.parse(name=args.name, tags=args.tags, namespace=args.namespace)
-    component = Component.build_component(registration_key=key)
+    component = RunnableComponent.build_component(registration_key=key)
+
+    if not isinstance(component, RunnableComponent):
+        raise RuntimeError(f'Attempting to run a Component that is not a runnable one. '
+                           f'Make sure your component inherits from {RunnableComponent} and implement the `run` method')
+
     component.run()
