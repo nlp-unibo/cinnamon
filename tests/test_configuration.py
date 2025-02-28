@@ -312,3 +312,4 @@ def test_configuration_with_multiple_variant_keys():
         assert f'x{key.KEY_VALUE_SEPARATOR}{variant_kwargs["x"]}' in variant_key.tags
         assert f'z{key.KEY_VALUE_SEPARATOR}{variant_kwargs["z"]}' in variant_key.tags
 
+# TODO: test delta copy with custom condition to see if values are properly copied

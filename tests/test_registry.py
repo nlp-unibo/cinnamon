@@ -496,3 +496,6 @@ def test_hierarchy_with_conflicting_parameters(
                                     namespace='testing')
     valid_keys, invalid_keys = Registry.dag_resolution()
     assert len(valid_keys) == 8
+
+
+# TODO: same test as above but with costum constructor
