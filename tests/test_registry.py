@@ -458,7 +458,7 @@ def test_resolution_where_key_is_shared_in_more_than_one_path(
                                                  name='intermediate',
                                                  namespace='testing')
     valid_keys, invalid_keys = Registry.dag_resolution()
-    assert len(valid_keys) == 5
+    assert len(valid_keys) == 9
     assert len(invalid_keys) == 2
 
 
@@ -478,7 +478,7 @@ def test_resolution_where_key_with_variants_is_shared_in_more_than_one_path(
                                                  tags={'t2'},
                                                  namespace='testing')
     valid_keys, invalid_keys = Registry.dag_resolution()
-    assert len(valid_keys) == 9
+    assert len(valid_keys) == 5
     assert len(invalid_keys) == 3
 
 

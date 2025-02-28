@@ -300,6 +300,8 @@ class Configuration:
         tags.add('condition')
         if is_pre_condition:
             tags.add('pre-condition')
+
+        # TODO: define special name for conditions to avoid conflict with params
         self.add(name=name,
                  value=condition,
                  description=description,

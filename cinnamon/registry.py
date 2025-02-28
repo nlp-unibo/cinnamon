@@ -15,7 +15,6 @@ import networkx as nx
 
 import cinnamon.component
 import cinnamon.configuration
-import component
 from cinnamon.utility.exceptions import (
     NotRegisteredException,
     NotBoundException,
@@ -355,7 +354,9 @@ def register_method(
 ) -> Callable:
     def register_wrapper(func):
         key = RegistrationKey(name=name, tags=tags, namespace=namespace)
-        if Registry.REGISTRATION_CONTEXT.is_registering and key not in Registry.REGISTRATION_METHODS:
+        if hasattr(Registry, 'REGISTRATION_CONTEXT') \
+                and Registry.REGISTRATION_CONTEXT.is_registering \
+                and key not in Registry.REGISTRATION_METHODS:
             Registry.REGISTRATION_METHODS[str(key)] = BufferedRegistration(
                 func=func,
                 name=name,
@@ -376,7 +377,9 @@ def register(
     qualifier_name = func.__qualname__
     method_name = f'{filename}-{qualifier_name}'
 
-    if Registry.REGISTRATION_CONTEXT.is_registering and method_name not in Registry.REGISTRATION_METHODS:
+    if hasattr(Registry, 'REGISTRATION_CONTEXT') \
+            and Registry.REGISTRATION_CONTEXT.is_registering \
+            and method_name not in Registry.REGISTRATION_METHODS:
         Registry.REGISTRATION_METHODS[method_name] = func
     return func
 
@@ -676,6 +679,7 @@ class Registry:
                 # so that we are sure about equality in all fields.
                 if not cls.in_registry(variant_key):
                     cls.register_configuration_from_variant(config_class=config_info.config_class,
+                                                            config_constructor=config_info.constructor,
                                                             name=variant_key.name,
                                                             tags=variant_key.tags,
                                                             namespace=variant_key.namespace,
@@ -864,7 +868,7 @@ class Registry:
         if cls.in_registry(registration_key=registration_key):
             raise AlreadyRegisteredException(registration_key=registration_key)
 
-        if component_class is not None and isinstance(component_class, component.RunnableComponent):
+        if component_class is not None and isinstance(component_class, cinnamon.component.RunnableComponent):
             registration_key.tags.add('runnable')
 
         # Store configuration in registry

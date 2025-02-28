@@ -55,11 +55,13 @@ def setup():
 
     valid_df = pd.DataFrame([key.to_record() for key in valid_keys.keys],
                             columns=['Name', 'Tags', 'Namespace', 'Description', 'Metadata'])
+    valid_df = valid_df.sort_values(by=['Name'])
     invalid_df = pd.DataFrame([key.to_record() for key in invalid_keys.keys],
                               columns=['Name', 'Tags', 'Namespace', 'Description', 'Metadata'])
+    invalid_df = invalid_df.sort_values(by=['Name'])
 
-    valid_df.to_csv(path_or_buf=registration_path.joinpath('valid_keys.csv'), index=None)
-    invalid_df.to_csv(path_or_buf=registration_path.joinpath('invalid_keys.csv'), index=None)
+    valid_df.to_csv(registration_path.joinpath('valid_keys.csv'), index=None)
+    invalid_df.to_csv(registration_path.joinpath('invalid_keys.csv'), index=None)
 
     logger.info('Valid registration keys:')
     for key in valid_keys.keys:
