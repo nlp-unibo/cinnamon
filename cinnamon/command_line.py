@@ -9,7 +9,7 @@ import pandas as pd
 from InquirerPy import inquirer
 
 from cinnamon.component import RunnableComponent
-from cinnamon.registry import Registry, RegistrationKey
+from cinnamon.registry import Registry
 from cinnamon.utility.inquirer import filter_keys
 from cinnamon.utility.sanity import check_directory, check_external_json_path
 
@@ -80,51 +80,6 @@ def setup():
 
 
 def run():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-dir', '--directory', type=str)
-    parser.add_argument('-ext', '--external-path', type=Optional[str], default=None)
-    parser.add_argument('-save', '--save-directory', type=Optional[str], default=None)
-    parser.add_argument('-n', '--name', type=str)
-    parser.add_argument('-t', '--tags', nargs='+', default=[])
-    parser.add_argument('-ns', '--namespace', type=str)
-    args = parser.parse_args()
-
-    directory = check_directory(directory_path=args.directory)
-    external_directories = None
-    save_directory = None
-
-    if args.external_path is not None:
-        external_directories = check_external_json_path(jsonpath=args.external_path)
-
-    if args.save_directory is not None:
-        save_directory = check_directory(directory_path=args.save_directory)
-
-    logger.info(f"""Loading cinnamon registrations using:
-            Directory: {directory}
-            External dependencies: {external_directories}
-            Git save directory: {save_directory}
-        """)
-
-    # add to PYTHONPATH
-    sys.path.insert(0, directory.as_posix())
-
-    Registry.setup(
-        directory=directory,
-        external_directories=external_directories,
-        save_directory=save_directory
-    )
-
-    key = RegistrationKey.parse(name=args.name, tags=args.tags, namespace=args.namespace)
-    component = RunnableComponent.build_component(registration_key=key)
-
-    if not isinstance(component, RunnableComponent):
-        raise RuntimeError(f'Attempting to run a Component that is not a runnable one. '
-                           f'Make sure your component inherits from {RunnableComponent} and implement the `run` method')
-
-    component.run()
-
-
-def run_inquirer():
     parser = argparse.ArgumentParser()
     parser.add_argument('-dir', '--directory', type=str)
     parser.add_argument('-ext', '--external-path', type=Optional[str], default=None)

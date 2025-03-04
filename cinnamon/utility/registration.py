@@ -134,7 +134,10 @@ def match_tags(
     if not len(a_tags) and None in b_tags:
         return True
 
-    if len(a_tags.intersection(b_tags)):
+    if len(a_tags) and None in b_tags:
+        b_tags.pop(None)
+
+    if not len(b_tags.difference(a_tags)):
         return True
 
     return False

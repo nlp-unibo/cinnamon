@@ -999,7 +999,6 @@ class Registry:
         else:
             raise NotRegisteredException(registration_key=registration_key)
 
-    # TODO: add test units
     @classmethod
     def retrieve_keys(
             cls,

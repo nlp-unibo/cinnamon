@@ -42,8 +42,8 @@ def select_namespace(
     # Namespace
     if len(namespaces) > 1:
         selected_namespace = inquirer.select(
-            message='Select a namespace',
-            choices=list(namespaces),
+            message=f'Select a namespace (total = {len(namespaces)})',
+            choices=sorted(list(namespaces)),
             mandatory=True
         ).execute()
     else:
@@ -62,8 +62,8 @@ def select_name(
     names = set([key.name for key in keys])
 
     selected_name = inquirer.select(
-        message='Select a name',
-        choices=[Choice(value=None, name='Cancel'), Separator()] + list(names),
+        message=f'Select a name (total = {len(names)})',
+        choices=[Choice(value=None, name='Cancel'), Separator()] + sorted(list(names)),
         mandatory=True
     ).execute()
 
@@ -84,18 +84,20 @@ def select_tags(
     for key in keys:
         tags = tags.union(key.tags)
 
-    selected_tags = inquirer.select(
-        message='Select one or more tags',
-        choices=[Choice(value=None, name='No Tags'), Choice(value=None, name='Cancel'), Separator()] + list(tags),
+    selected_tags = inquirer.checkbox(
+        message=f'Select one or more tags (total = {len(tags)})',
+        choices=[Choice(value=None, name='No Tags'), Choice(value=None, name='Cancel'), Separator()] + sorted(list(tags)),
         default=None,
-        multiselect=True,
-        mandatory=True
+        mandatory=True,
+        validate=lambda result: len(result) >= 1,
+        instruction='(select at least one key)'
     ).execute()
+    selected_tags = set(selected_tags)
 
-    if selected_tags == 'Cancel':
+    if 'Cancel' in selected_tags:
         return None, []
 
-    if selected_tags == 'No Tags':
+    if 'No Tags' in selected_tags:
         selected_tags = {None}
 
     keys = cinnamon.registry.Registry.retrieve_keys(tags=selected_tags,
@@ -104,12 +106,13 @@ def select_tags(
     return selected_tags, keys
 
 
+# TODO: we may want to remove previously selected tags from keys to ease reading
 def select_keys(
         keys: List[cinnamon.registry.RegistrationKey]
 ):
     selected_keys = inquirer.checkbox(
-        message='Select one or more keys to execute',
-        choices=keys,
+        message=f'Select one or more keys to execute (total = {len(keys)})',
+        choices=sorted(keys, key=lambda item: item.name),
         validate=lambda result: len(result) >= 1,
         transformer=lambda result: f'{len(result)} selected.',
         instruction='(select at least one key)',
