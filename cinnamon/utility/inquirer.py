@@ -76,6 +76,9 @@ def select_name(
     return selected_name, keys
 
 
+# TODO: rather than a checkbox, this should be a while loop until satisfaction of selection
+# After each selection we filter keys to find remaining compatible keys
+# This avoids selecting combination of keys that lead to an empty set of runnable keys
 def select_tags(
         keys: List[cinnamon.registry.RegistrationKey]
 ):
