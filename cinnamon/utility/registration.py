@@ -1,17 +1,22 @@
+from __future__ import annotations
+
 import ast
-from copy import deepcopy
-from pathlib import Path
-from typing import List, Optional, Set
 import functools
 import inspect
 import types
+from copy import deepcopy
 from enum import Enum
+from pathlib import Path
+from typing import List, Optional, Set, Union
 
 __all__ = [
     'NamespaceExtractor',
     'get_method_class',
     'Tags',
-    'TAGGABLE_TYPES'
+    'TAGGABLE_TYPES',
+    'match_name',
+    'match_namespace',
+    'match_tags'
 ]
 
 Tags = Optional[Set[str]]
@@ -93,3 +98,43 @@ def get_method_class(meth):
         if isinstance(cls, type):
             return cls
     return getattr(meth, '__objclass__', None)
+
+
+def match_name(
+        name: str,
+        names: Optional[Union[List[str], str]] = None
+):
+    if names is None:
+        return True
+
+    names = names if type(names) == list else [names]
+
+    return name in names
+
+
+def match_namespace(
+        namespace: str,
+        namespaces: Optional[Union[List[str], str]] = None
+):
+    if namespaces is None:
+        return True
+
+    namespaces = namespaces if type(namespaces) == list else [namespaces]
+
+    return namespace in namespaces
+
+
+def match_tags(
+        a_tags: "cinnamon.registry.Tags",
+        b_tags: "cinnamon.registry.Tags"
+):
+    if b_tags is None:
+        return True
+
+    if not len(a_tags) and None in b_tags:
+        return True
+
+    if len(a_tags.intersection(b_tags)):
+        return True
+
+    return False

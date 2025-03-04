@@ -26,7 +26,14 @@ from cinnamon.utility.exceptions import (
     InvalidDirectoryException,
     NamespaceNotFoundException
 )
-from cinnamon.utility.registration import NamespaceExtractor, Tags, TAGGABLE_TYPES
+from cinnamon.utility.registration import (
+    NamespaceExtractor,
+    Tags,
+    TAGGABLE_TYPES,
+    match_tags,
+    match_name,
+    match_namespace
+)
 
 logger = getLogger(__name__)
 
@@ -138,6 +145,12 @@ class RegistrationKey:
             self
     ):
         return {tag for tag in self.tags if self.KEY_VALUE_SEPARATOR in tag}
+
+    @property
+    def hierarchy_tags(
+            self
+    ):
+        return {tag for tag in self.tags if self.HIERARCHY_SEPARATOR in tag}
 
     # TODO: consider adding a maximum length constraint to sanitized_tag
     def sanitize_variant_tag(
@@ -744,7 +757,7 @@ class Registry:
             name: the ``name`` field of ``RegistrationKey``
             tags: the ``tags`` field of ``RegistrationKey``
             namespace: the ``namespace`` field of ``RegistrationKey``
-            build_args: TODO
+            build_args: additional custom component constructor args
 
         Returns:
             The built ``Component`` instance
@@ -848,8 +861,8 @@ class Registry:
             namespace: the ``namespace`` field of ``RegistrationKey``
             tags: the ``tags`` field of ``RegistrationKey``
             config_constructor: the constructor method to build the ``Configuration`` instance from its class
-            component_class: TODO
-            build_recursively: TODO
+            component_class: component class to perform binding, if any
+            build_recursively: if True, children are automatically built iteratively.
 
         Returns:
             The built ``RegistrationKey`` instance that can be used to retrieve the registered ``ConfigurationInfo``.
@@ -985,3 +998,22 @@ class Registry:
             return cls._REGISTRY[registration_key]
         else:
             raise NotRegisteredException(registration_key=registration_key)
+
+    # TODO: add test units
+    @classmethod
+    def retrieve_keys(
+            cls,
+            names: Optional[Union[List[str], str]] = None,
+            namespaces: Optional[Union[List[str], str]] = None,
+            tags: Tags = None,
+            keys: List[RegistrationKey] = None
+    ) -> List[RegistrationKey]:
+
+        keys = keys if keys is not None else cls._REGISTRY.keys()
+
+        return [
+            key for key in keys
+            if match_name(name=key.name, names=names)
+               and match_namespace(namespace=key.namespace, namespaces=namespaces)
+               and match_tags(a_tags=key.tags, b_tags=tags)
+        ]

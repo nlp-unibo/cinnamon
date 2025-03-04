@@ -516,3 +516,75 @@ def test_hierarchy_with_conflicting_parameters_and_custom_constructor(
 
     parent = Registry.build_configuration(name='parent', namespace='testing', tags={'x=1', 'child.child.x=1'})
     assert parent.child.canarin == 10
+
+
+def test_retrieve_keys(
+        reset_registry
+):
+    key = Registry.register_configuration(config_class=Configuration,
+                                          name='config',
+                                          namespace='testing')
+    keys = Registry.retrieve_keys(names='config')
+    assert len(keys) == 1
+    assert keys == [key]
+
+
+def test_retrieve_multiple_keys(
+        reset_registry
+):
+    a_key = Registry.register_configuration(config_class=Configuration,
+                                            name='config',
+                                            namespace='testing')
+    b_key = Registry.register_configuration(config_class=Configuration,
+                                            name='config',
+                                            tags={'another'},
+                                            namespace='testing')
+
+    keys = Registry.retrieve_keys(names='config')
+    assert len(keys) == 2
+    assert a_key in keys
+    assert b_key in keys
+
+    keys = Registry.retrieve_keys(namespaces='testing')
+    assert len(keys) == 2
+    assert a_key in keys
+    assert b_key in keys
+
+    keys = Registry.retrieve_keys()
+    assert len(keys) == 2
+    assert a_key in keys
+    assert b_key in keys
+
+    keys = Registry.retrieve_keys(tags={'another'})
+    assert len(keys) == 1
+    assert a_key not in keys
+    assert b_key in keys
+
+
+def test_retrieve_keys_with_no_tags(
+        reset_registry
+):
+    key = Registry.register_configuration(config_class=Configuration,
+                                          name='config',
+                                          namespace='testing')
+
+    keys = Registry.retrieve_keys(tags={None})
+    assert len(keys) == 1
+    assert key in keys
+
+
+def test_retrieve_keys_with_all_conditions(
+        reset_registry
+):
+    key = Registry.register_configuration(config_class=Configuration,
+                                          name='config',
+                                          tags={'a-tag'},
+                                          namespace='testing')
+    other_key = Registry.register_configuration(config_class=Configuration,
+                                                name='other-config',
+                                                namespace='other-testing')
+    keys = Registry.retrieve_keys(names='config',
+                                  namespaces='testing')
+    assert len(keys) == 1
+    assert key in keys
+    assert other_key not in keys

@@ -36,7 +36,7 @@ class Component:
             name: the ``name`` field of ``RegistrationKey``
             tags: the ``tags`` field of ``RegistrationKey``
             namespace: the ``namespace`` field of ``RegistrationKey``
-            build_args: TODO
+            build_args: additional custom component constructor args
 
         Returns:
             A ``Component`` instance
@@ -64,6 +64,6 @@ class RunnableComponent(Component):
             self
     ):
         """
-        TODO
+        Run interface to execute components.
         """
         raise NotImplementedError(f"A {RunnableComponent} instance must implement the `run` method.")

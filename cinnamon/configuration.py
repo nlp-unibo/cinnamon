@@ -228,8 +228,6 @@ class Configuration:
         except AttributeError:
             return default
 
-    # TODO: add check type condition to variants (if any)?
-    # TODO: add allowed range condition to variants (if any)?
     def add(
             self,
             name: str,
@@ -293,7 +291,7 @@ class Configuration:
             name: unique identifier.
             description: a string description for readability purposes.
             tags: a set of string tags to mark the condition with metadata.
-            is_pre_condition: TODO
+            is_pre_condition: True if the condition concerns configuration parameters before build (i.e., flat parameters)
         """
 
         tags = set() if tags is None else tags
