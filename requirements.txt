@@ -1,6 +1,7 @@
-pytest
-setuptools
+pytest~=8.3.3
+setuptools~=75.6.0
 typeguard
-networkx
-pandas
+networkx~=3.4.2
+pandas~=2.2.3
 gitpython
+inquirerpy~=0.3.4
