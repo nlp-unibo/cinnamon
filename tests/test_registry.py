@@ -25,7 +25,8 @@ from tests.fixtures import (
     CliqueConfigB,
     ParentWithVariantsAndChild,
     IntermediateWithChild,
-    LeafWithVariants
+    LeafWithVariants,
+    CustomRunnableComponent
 )
 
 
@@ -160,6 +161,17 @@ def test_register_and_bind_runnable_config(
 ):
     key = Registry.register_configuration(config_class=Configuration,
                                           component_class=RunnableComponent,
+                                          name='test',
+                                          tags={'tag'},
+                                          namespace='testing')
+    assert 'runnable' in key.tags
+
+
+def test_register_and_bind_custom_runnable_config(
+        reset_registry
+):
+    key = Registry.register_configuration(config_class=Configuration,
+                                          component_class=CustomRunnableComponent,
                                           name='test',
                                           tags={'tag'},
                                           namespace='testing')
@@ -599,3 +611,20 @@ def test_retrieve_keys_with_all_conditions(
     assert len(keys) == 1
     assert key in keys
     assert other_key not in keys
+
+
+def test_key_tags_after_resolution(
+        reset_registry
+):
+    Registry.register_configuration(config_class=Configuration,
+                                    component_class=RunnableComponent,
+                                    name='test',
+                                    namespace='testing')
+    Registry.register_configuration(config_class=Configuration,
+                                    component_class=RunnableComponent,
+                                    name='test2',
+                                    namespace='testing')
+    valid_keys, invalid_keys = Registry.dag_resolution()
+
+    for key in valid_keys.keys:
+        assert 'runnable' in key.tags

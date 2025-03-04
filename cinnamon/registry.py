@@ -881,7 +881,7 @@ class Registry:
         if cls.in_registry(registration_key=registration_key):
             raise AlreadyRegisteredException(registration_key=registration_key)
 
-        if component_class is not None and component_class == cinnamon.component.RunnableComponent:
+        if component_class is not None and issubclass(component_class, cinnamon.component.RunnableComponent):
             registration_key.tags.add('runnable')
 
         # Store configuration in registry
