@@ -82,7 +82,7 @@ def select_tags(
     # Tags
     tags = set()
     for key in keys:
-        tags.union(key.tags.difference(key.hierarchy_tags))
+        tags = tags.union(key.tags)
 
     selected_tags = inquirer.select(
         message='Select one or more tags',
