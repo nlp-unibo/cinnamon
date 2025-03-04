@@ -1,6 +1,6 @@
 import pytest
 
-from cinnamon.component import Component
+from cinnamon.component import Component, RunnableComponent
 from cinnamon.configuration import Configuration
 from cinnamon.registry import (
     Registry,
@@ -153,6 +153,17 @@ def test_register_and_bind_config(
                                           namespace='testing')
     info = Registry.retrieve_configuration_info(key)
     assert info.component_class is not None
+
+
+def test_register_and_bind_runnable_config(
+        reset_registry
+):
+    key = Registry.register_configuration(config_class=Configuration,
+                                          component_class=RunnableComponent,
+                                          name='test',
+                                          tags={'tag'},
+                                          namespace='testing')
+    assert 'runnable' in key.tags
 
 
 def test_trigger_registered_config_with_binding_error(
