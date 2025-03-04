@@ -301,8 +301,9 @@ class Configuration:
         if is_pre_condition:
             tags.add('pre-condition')
 
-        # TODO: define special name for conditions to avoid conflict with params
-        self.add(name=name,
+        condition_name = f'cond_{name}' if not name.startswith('cond_') else name
+
+        self.add(name=condition_name,
                  value=condition,
                  description=description,
                  tags=tags,
@@ -406,7 +407,7 @@ class Configuration:
         for name, condition in self.conditions.items():
             if name not in copy.conditions:
                 copy.add_condition(name=name,
-                                   condition=deepcopy(condition),
+                                   condition=deepcopy(condition.value),
                                    description=condition.description,
                                    tags=condition.tags,
                                    is_pre_condition='pre-condition' in condition.tags)

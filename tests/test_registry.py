@@ -458,7 +458,7 @@ def test_resolution_where_key_is_shared_in_more_than_one_path(
                                                  name='intermediate',
                                                  namespace='testing')
     valid_keys, invalid_keys = Registry.dag_resolution()
-    assert len(valid_keys) == 9
+    assert len(valid_keys) == 5
     assert len(invalid_keys) == 2
 
 
@@ -478,7 +478,7 @@ def test_resolution_where_key_with_variants_is_shared_in_more_than_one_path(
                                                  tags={'t2'},
                                                  namespace='testing')
     valid_keys, invalid_keys = Registry.dag_resolution()
-    assert len(valid_keys) == 5
+    assert len(valid_keys) == 9
     assert len(invalid_keys) == 3
 
 
@@ -498,4 +498,21 @@ def test_hierarchy_with_conflicting_parameters(
     assert len(valid_keys) == 8
 
 
-# TODO: same test as above but with costum constructor
+def test_hierarchy_with_conflicting_parameters_and_custom_constructor(
+        reset_registry
+):
+    Registry.register_configuration(config_class=ParentWithVariantsAndChild,
+                                    name='parent',
+                                    namespace='testing')
+    Registry.register_configuration(config_class=IntermediateWithChild,
+                                    config_constructor=IntermediateWithChild.custom_method,
+                                    name='intermediate',
+                                    namespace='testing')
+    Registry.register_configuration(config_class=LeafWithVariants,
+                                    name='leaf',
+                                    namespace='testing')
+    valid_keys, invalid_keys = Registry.dag_resolution()
+    assert len(valid_keys) == 8
+
+    parent = Registry.build_configuration(name='parent', namespace='testing', tags={'x=1', 'child.child.x=1'})
+    assert parent.child.canarin == 10

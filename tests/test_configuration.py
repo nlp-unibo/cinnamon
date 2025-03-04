@@ -1,5 +1,5 @@
 from copy import deepcopy
-from typing import List
+from typing import List, Callable
 
 import pytest
 
@@ -69,6 +69,13 @@ def test_add_condition():
     with pytest.raises(ValidationFailureException):
         config.x.append(5)
         config.validate()
+
+
+def test_add_condition_conflicting_name():
+    config = Configuration()
+    config.add(name='x', value=[1, 2, 3])
+
+    config.add_condition(name='x', condition=lambda c: len(c.x) > 1)
 
 
 def test_search_by_tag():
@@ -200,6 +207,17 @@ def test_copy():
     assert copy.x == [1, 2, 3, 5]
 
 
+def test_copy_with_custom_condition():
+    config = Configuration()
+    config.add(name='x', value=[1, 2, 3])
+
+    config.add_condition(name='test_condition', condition=lambda c: len(c.x) == 3)
+
+    copy_config = deepcopy(config)
+    assert isinstance(copy_config.cond_test_condition, Callable)
+    assert isinstance(config.cond_test_condition, Callable)
+
+
 def test_get_delta_copy_built():
     """
     Testing configuration.get_delta_copy()
@@ -250,6 +268,17 @@ def test_get_delta_copy_built_nested():
     assert delta_nested.child.y == 10
     assert id(delta_nested.child) != id(child)
     assert id(delta_nested.child) != id(delta_flat.child)
+
+
+def test_get_delta_copy_with_condition():
+    config = Configuration()
+    config.add(name='x', value=[1, 2, 3])
+
+    config.add_condition(name='x_length', condition=lambda c: len(c.x) == 3)
+
+    copy_config = config.delta_copy(x=[2, 2, 2])
+    assert copy_config.x == [2, 2, 2]
+    assert isinstance(copy_config.cond_x_length, Callable)
 
 
 def test_to_value_dict():
@@ -311,5 +340,3 @@ def test_configuration_with_multiple_variant_keys():
         assert len(variant_key.tags) == 2
         assert f'x{key.KEY_VALUE_SEPARATOR}{variant_kwargs["x"]}' in variant_key.tags
         assert f'z{key.KEY_VALUE_SEPARATOR}{variant_kwargs["z"]}' in variant_key.tags
-
-# TODO: test delta copy with custom condition to see if values are properly copied

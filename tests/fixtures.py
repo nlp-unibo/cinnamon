@@ -223,7 +223,18 @@ class IntermediateWithChild(Configuration):
     ) -> C:
         config = super().default()
 
+        config.add(name='canarin', value=4)
         config.add(name='child', value=RegistrationKey(name='leaf', namespace='testing'))
+
+        return config
+
+    @classmethod
+    def custom_method(
+            cls
+    ) -> C:
+        config = cls.default()
+
+        config.canarin = 10
 
         return config
 
