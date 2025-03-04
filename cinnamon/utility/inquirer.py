@@ -95,6 +95,9 @@ def select_tags(
     if selected_tags == 'Cancel':
         return None, []
 
+    if selected_tags == 'No Tags':
+        selected_tags = {None}
+
     keys = cinnamon.registry.Registry.retrieve_keys(tags=selected_tags,
                                                     keys=keys)
 
