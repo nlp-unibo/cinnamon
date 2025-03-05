@@ -12,6 +12,7 @@ from typing import Type, AnyStr, List, Dict, Any, Union, Optional, Callable, Tup
 
 import git
 import networkx as nx
+import numpy as np
 
 import cinnamon.component
 import cinnamon.configuration
@@ -64,6 +65,7 @@ class RegistrationKey:
     KEY_VALUE_SEPARATOR: str = '='
     ATTRIBUTE_SEPARATOR: str = '--'
     HIERARCHY_SEPARATOR: str = '.'
+    MAX_TAGS_PER_LINE: int = 4
 
     def __init__(
             self,
@@ -189,6 +191,16 @@ class RegistrationKey:
                                tags=self.tags.union(set(variant_tags)),
                                namespace=self.namespace)
 
+    # TODO: add unit tests
+    def from_tags_simplification(
+            self,
+            tags: Tags
+    ):
+        remaining_tags = self.tags.difference(tags)
+        return RegistrationKey(name=self.name,
+                               tags=remaining_tags,
+                               namespace=self.namespace)
+
     @classmethod
     def from_string(
             cls,
@@ -273,6 +285,21 @@ class RegistrationKey:
             sort_keys=True,
             indent=4
         ).replace("\"", '').replace("\\", "")
+
+    def to_pretty_string(
+            self
+    ):
+        tags = list(sorted(list(self.tags)))
+        intervals = list(range(0, len(tags), RegistrationKey.MAX_TAGS_PER_LINE))
+        splits = np.split(np.array(tags), intervals)[1:]
+        tags = '\n'.join([', '.join(item.tolist()) for item in splits])
+
+        return f"""[
+                name: {self.name}
+                tags: {tags}
+                namespace: {self.namespace}
+            ]
+        """
 
     def to_record(
             self

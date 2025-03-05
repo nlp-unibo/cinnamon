@@ -3,6 +3,7 @@ from typing import List
 from InquirerPy import inquirer
 from InquirerPy.base.control import Choice
 from InquirerPy.separator import Separator
+from copy import deepcopy
 
 import cinnamon.registry
 
@@ -29,7 +30,7 @@ def filter_keys(
         return keys
 
     # Final selection
-    keys = select_keys(keys=keys)
+    keys = select_keys(keys=keys, selected_tags=selected_tags)
 
     return keys
 
@@ -76,50 +77,75 @@ def select_name(
     return selected_name, keys
 
 
-# TODO: rather than a checkbox, this should be a while loop until satisfaction of selection
-# After each selection we filter keys to find remaining compatible keys
-# This avoids selecting combination of keys that lead to an empty set of runnable keys
 def select_tags(
         keys: List[cinnamon.registry.RegistrationKey]
 ):
-    # Tags
-    tags = set()
-    for key in keys:
-        tags = tags.union(key.tags)
+    selected_tags = []
+    current_tag = None
+    current_keys = deepcopy(keys)
+    while current_tag != "Proceed":
+        tags = set()
+        for key in current_keys:
+            tags = tags.union(key.tags)
+        tags = tags.difference(set(selected_tags))
 
-    selected_tags = inquirer.checkbox(
-        message=f'Select one or more tags (total = {len(tags)})',
-        choices=[Choice(value=None, name='No Tags'), Choice(value=None, name='Cancel'), Separator()] + sorted(list(tags)),
-        default=None,
-        mandatory=True,
-        validate=lambda result: len(result) >= 1,
-        instruction='(select at least one key)'
-    ).execute()
-    selected_tags = set(selected_tags)
+        add_no_tag = None in selected_tags
+        add_go_back = len(selected_tags) > 0
 
-    if 'Cancel' in selected_tags:
-        return None, []
+        choices = [Choice(value='Cancel', name='Cancel')]
+        if add_no_tag:
+            choices.insert(0, Choice(value=None, name='No Tags'))
+        if add_go_back:
+            choices.insert(0, Choice(value='Go back', name='Go back'))
 
-    if 'No Tags' in selected_tags:
-        selected_tags = {None}
+        if len(selected_tags):
+            choices.insert(0, Choice(value='Proceed', name='Proceed'))
 
-    keys = cinnamon.registry.Registry.retrieve_keys(tags=selected_tags,
-                                                    keys=keys)
+        choices.append(Separator())
 
-    return selected_tags, keys
+        choices += sorted(list(tags))
+
+        current_tag = inquirer.select(
+            message=f'Select a tag (total = {len(tags)}) \nCurrent selection: {selected_tags}',
+            choices=choices,
+            default=None,
+            mandatory=True
+        ).execute()
+
+        if current_tag == 'Cancel':
+            return None, []
+
+        if current_tag == 'Go back':
+            selected_tags.pop(-1)
+            continue
+
+        if current_tag == 'Proceed':
+            break
+
+        selected_tags.append(current_tag)
+        current_keys = cinnamon.registry.Registry.retrieve_keys(tags=set(selected_tags),
+                                                                keys=keys)
+
+    return selected_tags, current_keys
 
 
-# TODO: we may want to remove previously selected tags from keys to ease reading
 def select_keys(
-        keys: List[cinnamon.registry.RegistrationKey]
+        keys: List[cinnamon.registry.RegistrationKey],
+        selected_tags: cinnamon.registry.Tags = None
 ):
-    selected_keys = inquirer.checkbox(
-        message=f'Select one or more keys to execute (total = {len(keys)})',
-        choices=sorted(keys, key=lambda item: item.name),
+    selected_tags = selected_tags if selected_tags is not None else {}
+
+    selected_indexes = inquirer.checkbox(
+        message=f'Select one or more keys to execute (total = {len(keys)}) \nSelected tags: {selected_tags}',
+        choices=[Choice(name=f"{idx + 1}. {key.from_tags_simplification(tags=selected_tags).to_pretty_string()}",
+                        value=idx)
+                 for idx, key in enumerate(sorted(keys, key=lambda item: item.name))],
         validate=lambda result: len(result) >= 1,
         transformer=lambda result: f'{len(result)} selected.',
         instruction='(select at least one key)',
         mandatory=True
     ).execute()
+
+    selected_keys = [key for idx, key in enumerate(keys) if idx in selected_indexes]
 
     return selected_keys
