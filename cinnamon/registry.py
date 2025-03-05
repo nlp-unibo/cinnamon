@@ -557,12 +557,16 @@ class Registry:
         for directory in external_directories:
             directory = Path(directory) if type(directory) != Path else directory
             if not directory.exists() or not directory.is_dir():
+                # TODO: move to utility function, we can directly check if directory is a github repo
+                # We need a control flow to avoid re-cloning a repo if it exists
+                # We should warn about cinnamon non-automatic resolution of cloned repo requirements
+                # This has to be done manually
                 try:
                     # attempt loading Git repo considering `directory` as a git URL
                     directory = git.Repo.clone_from(directory, save_directory.joinpath(directory.stem)).git_dir
                     directory = Path(directory).parent
-                    logger.info(f'Detected Git repository! Cloned to {os.linesep}'
-                                f'Dest: {save_directory}')
+                    logger.warning(f'Detected Git repository! Cloned to {os.linesep}'
+                                   f'Dest: {save_directory} {os.linesep}')
                 except (git.exc.InvalidGitRepositoryError, git.exc.GitCommandError):
                     raise InvalidDirectoryException(directory=directory)
             resolved_directories.append(directory)
@@ -671,10 +675,10 @@ class Registry:
 
         return True
 
-    # TODO: variants of an explicit child key seems to be not considered
-    # There might be a problem in how key variants are propagated
-    # This might happen when different configs in a hierarchy share the same attributes -> key tags cannot discriminate
-    # If this is the case, we should add discriminators when we identify tag duplicates in .from_variant() method
+    # TODO: check runtime execution and DAG traversal
+    # This function needs to be efficient since cinnamon cannot be a bottleneck here
+    # Possibly, add option to store DAG to avoid re-execution and --force option to re-compute it
+    # It is up to the user, right now, to determine when a DAG should be computed based on their code changes
     @classmethod
     def dag_resolution(
             cls
