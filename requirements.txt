@@ -1,7 +1,6 @@
+InquirerPy~=0.3.4
+networkx~=3.4.2
+numpy~=2.2.3
+pandas~=2.2.3
 pytest~=8.3.3
 setuptools~=75.6.0
-typeguard
-networkx~=3.4.2
-pandas~=2.2.3
-gitpython
-inquirerpy~=0.3.4

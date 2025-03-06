@@ -664,6 +664,7 @@ class Registry:
     # This function needs to be efficient since cinnamon cannot be a bottleneck here
     # Possibly, add option to store DAG to avoid re-execution and --force option to re-compute it
     # It is up to the user, right now, to determine when a DAG should be computed based on their code changes
+    # TODO: avoid re-expanding already traversed keys -> we might use a special tag to retrieve variants edges from DAG
     @classmethod
     def dag_resolution(
             cls

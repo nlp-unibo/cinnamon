@@ -21,6 +21,7 @@ logger = getLogger(__name__)
 
 
 # TODO: add option to filter namespaces? -> directly in dag_resolution
+# TODO: make interactive
 def setup():
     parser = argparse.ArgumentParser()
     parser.add_argument('-dir', '--directory', type=str)
