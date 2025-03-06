@@ -25,39 +25,12 @@ Features
 **Simple**
    ``cinnamon`` is a small library that acts as a **high-level wrapper** for your projects.
 
-**Modular**
-   ``cinnamon`` is shipped in **several small packages** to meet different requirements.
-
 **Community-based**
-   the ``Component`` and ``Configuration`` you define can be **imported from/exported to** other users and project!
+   ``cinnamon`` components and configurations can be imported from project!
 
 **Flexible**
-   ``cinnamon`` imposes **minimal APIs** for a quick learning curve.
+   ``cinnamon`` imposes **minimal APIs** for a quick learning curve and keeps freedom of coding.
 
-**You are still free to code as you like!**
-
-
-===============================================
-Packages
-===============================================
-
-Currently, the following official packages are provided
-
-- `cinnamon-core <https://nlp-unibo.github.io/cinnamon_core/>`_: defines all functionalities of cinnamon.
-- `cinnamon-generic <https://nlp-unibo.github.io/cinnamon_generic/>`_: for general-purpose machine-learning.
-- `cinnamon-tf <https://nlp-unibo.github.io/cinnamon_tf/>`_: for tensorflow-specific implementations.
-- `cinnamon-th <https://nlp-unibo.github.io/cinnamon_th/>`_: for pytorch-specific implementations.
-
-===============================================
-Repos
-===============================================
-
-Feel free to check the source code of ``cinnamon`` packages!
-
-- `cinnamon-core <https://github.com/nlp-unibo/cinnamon_core>`_
-- `cinnamon-generic <https://github.com/nlp-unibo/cinnamon_generic>`_
-- `cinnamon-tf <https://github.com/nlp-unibo/cinnamon_tf>`_
-- `cinnamon-th <https://github.com/nlp-unibo/cinnamon_th>`_
 
 ===============================================
 Quickstart

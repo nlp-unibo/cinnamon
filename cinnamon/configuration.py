@@ -455,13 +455,9 @@ class Configuration:
         """
         Gets all possible ``Configuration`` variant combinations of current ``Configuration``
         instance based on specified variants.
-        There exist two different methods to specify variants
-        - ``Parameter``-based: via ``variants`` attribute of ``Parameter``
-        - ``Configuration``-based: via ``@supports_variants`` and ``@add_variant`` decorators
 
         Returns:
-            List of variant combinations.
-            Each variant combination is a dictionary with ``Parameter.name`` as keys and ``Parameter.value`` as values
+            TODO:
         """
 
         has_variants = self.has_variants
