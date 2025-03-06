@@ -41,8 +41,7 @@ def test_resolve_external_directories_with_dir():
     external_directories = [
         Path('.', 'external_test_repo')
     ]
-    resolved = Registry.resolve_external_directories(external_directories=external_directories,
-                                                     save_directory=Path('.'))
+    resolved = Registry.resolve_external_directories(external_directories=external_directories)
     assert resolved == external_directories
 
 
@@ -55,8 +54,7 @@ def test_resolve_external_directories_exception():
         Path('.', 'fake_repo')
     ]
     with pytest.raises(InvalidDirectoryException):
-        Registry.resolve_external_directories(external_directories=external_directories,
-                                              save_directory=Path('.'))
+        Registry.resolve_external_directories(external_directories=external_directories)
 
 
 def test_load_registrations(

@@ -3,14 +3,12 @@ from __future__ import annotations
 import ast
 import importlib.util
 import json
-import os
 import sys
 from dataclasses import dataclass
 from logging import getLogger
 from pathlib import Path
 from typing import Type, AnyStr, List, Dict, Any, Union, Optional, Callable, Tuple, Set
 
-import git
 import networkx as nx
 import numpy as np
 
@@ -505,8 +503,7 @@ class Registry:
         cls.update_namespaces(namespaces=local_namespaces, module_mapping=local_module_mapping)
 
         if external_directories is not None:
-            external_directories = cls.resolve_external_directories(external_directories=external_directories,
-                                                                    save_directory=save_directory)
+            external_directories = cls.resolve_external_directories(external_directories=external_directories)
             cls._MODULES = external_directories
             ext_namespaces, ext_module_mapping = cls.parse_configuration_files(directories=external_directories)
             cls.update_namespaces(namespaces=ext_namespaces, module_mapping=ext_module_mapping)
@@ -551,24 +548,12 @@ class Registry:
     def resolve_external_directories(
             cls,
             external_directories: List[Union[AnyStr, Path]],
-            save_directory: Path
     ) -> List[Path]:
         resolved_directories = []
         for directory in external_directories:
             directory = Path(directory) if type(directory) != Path else directory
             if not directory.exists() or not directory.is_dir():
-                # TODO: move to utility function, we can directly check if directory is a github repo
-                # We need a control flow to avoid re-cloning a repo if it exists
-                # We should warn about cinnamon non-automatic resolution of cloned repo requirements
-                # This has to be done manually
-                try:
-                    # attempt loading Git repo considering `directory` as a git URL
-                    directory = git.Repo.clone_from(directory, save_directory.joinpath(directory.stem)).git_dir
-                    directory = Path(directory).parent
-                    logger.warning(f'Detected Git repository! Cloned to {os.linesep}'
-                                   f'Dest: {save_directory} {os.linesep}')
-                except (git.exc.InvalidGitRepositoryError, git.exc.GitCommandError):
-                    raise InvalidDirectoryException(directory=directory)
+                raise InvalidDirectoryException(directory=directory)
             resolved_directories.append(directory)
 
         return resolved_directories
