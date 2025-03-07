@@ -63,7 +63,7 @@ class RegistrationKey:
     KEY_VALUE_SEPARATOR: str = '='
     ATTRIBUTE_SEPARATOR: str = '--'
     HIERARCHY_SEPARATOR: str = '.'
-    MAX_TAGS_PER_LINE: int = 4
+    MAX_TAGS_PER_LINE: int = 6
 
     def __init__(
             self,
@@ -71,7 +71,8 @@ class RegistrationKey:
             namespace: str,
             tags: Tags = None,
             description: Optional[str] = None,
-            metadata: Optional[str] = None
+            metadata: Optional[str] = None,
+            special_tags: Tags = None
     ):
         """
 
@@ -89,12 +90,16 @@ class RegistrationKey:
             tags: tags are metadata information that allows quick inspection of a registered ``Configuration`` details.
                 In the case of ``Configuration`` with the same name and namespace (e.g., multiple models implemented by
                 the same user), tags are used to distinguish among them.
+            description: TODO
+            metadata: TODO
+            special_tags: TODO
         """
         self.name = name
         self.namespace = namespace if namespace is not None else 'default'
         self.tags = tags if tags is not None else set()
         self.description = description
         self.metadata = metadata
+        self.special_tags = special_tags if special_tags is not None else set()
 
     def __hash__(
             self
@@ -187,7 +192,10 @@ class RegistrationKey:
 
         return RegistrationKey(name=self.name,
                                tags=self.tags.union(set(variant_tags)),
-                               namespace=self.namespace)
+                               namespace=self.namespace,
+                               special_tags=self.special_tags,
+                               description=self.description,
+                               metadata=self.metadata)
 
     # TODO: add unit tests
     def from_tags_simplification(
@@ -899,7 +907,7 @@ class Registry:
             raise AlreadyRegisteredException(registration_key=registration_key)
 
         if component_class is not None and issubclass(component_class, cinnamon.component.RunnableComponent):
-            registration_key.tags.add('runnable')
+            registration_key.special_tags.add('runnable')
 
         # Store configuration in registry
         config_constructor = config_constructor if config_constructor is not None else config_class.default

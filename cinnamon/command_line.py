@@ -113,7 +113,7 @@ def run():
         save_directory=save_directory
     )
 
-    keys = [key for key in valid_keys.keys if 'runnable' in key.tags]
+    keys = [key for key in valid_keys.keys if 'runnable' in key.special_tags]
 
     if not len(keys):
         logger.info(f'Could not find any registered runnable component out of {len(valid_keys.keys)}. Aborting...')
