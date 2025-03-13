@@ -338,6 +338,8 @@ class Configuration:
 
         return ValidationResult(passed=True, source=self.__class__.__name__)
 
+    # TODO: what if we have a pre-condition on dependencies (e.g., on tags) which are built before validate()?
+    # We should not execute pre-condition here
     def validate(
             self,
             strict: bool = True

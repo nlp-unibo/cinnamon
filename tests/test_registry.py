@@ -164,7 +164,8 @@ def test_register_and_bind_runnable_config(
                                           name='test',
                                           tags={'tag'},
                                           namespace='testing')
-    assert 'runnable' in key.tags
+    assert 'tag' in key.tags
+    assert 'runnable' in key.special_tags
 
 
 def test_register_and_bind_custom_runnable_config(
@@ -175,7 +176,8 @@ def test_register_and_bind_custom_runnable_config(
                                           name='test',
                                           tags={'tag'},
                                           namespace='testing')
-    assert 'runnable' in key.tags
+    assert 'tag' in key.tags
+    assert 'runnable' in key.special_tags
 
 
 def test_trigger_registered_config_with_binding_error(
@@ -627,4 +629,4 @@ def test_key_tags_after_resolution(
     valid_keys, invalid_keys = Registry.dag_resolution()
 
     for key in valid_keys.keys:
-        assert 'runnable' in key.tags
+        assert 'runnable' in key.special_tags

@@ -722,7 +722,8 @@ class Registry:
                                                             tags=variant_key.tags,
                                                             namespace=variant_key.namespace,
                                                             variant_kwargs=variant_kwargs,
-                                                            component_class=config_info.component_class)
+                                                            component_class=config_info.component_class,
+                                                            build_recursively=config_info.build_recursively)
 
                 variant_keys.append(variant_key)
 
@@ -858,10 +859,11 @@ class Registry:
         config_info = cls._REGISTRY[registration_key]
         config = config_info.constructor()
 
-        for child_name, child in config.dependencies.items():
-            child_key: RegistrationKey = child.value
-            if child_key is not None:
-                child.value = cls.build_configuration(registration_key=child_key)
+        if config_info.build_recursively:
+            for child_name, child in config.dependencies.items():
+                child_key: RegistrationKey = child.value
+                if child_key is not None:
+                    child.value = cls.build_configuration(registration_key=child_key)
 
         return config
 
