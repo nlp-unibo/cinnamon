@@ -3,4 +3,4 @@ networkx>=3.4.2
 numpy>=2.0
 pandas>=2.2.3
 pytest>=8.3.3
-setuptools>=75.6.0
+setuptools~=75.6.0
