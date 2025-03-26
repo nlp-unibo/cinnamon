@@ -148,9 +148,12 @@ class Configuration:
     Generic Configuration class.
     A Configuration specifies the parameters of a Component.
     Configurations store parameters and allow flow control via conditions.
-
-    A ``Configuration`` is a ``Data`` extension specific to ``Component``.
     """
+
+    def __init__(
+            self
+    ):
+        self.__add_state = False
 
     def __setattr__(
             self,
@@ -159,8 +162,10 @@ class Configuration:
     ):
         if key in self.params:
             self.params.get(key).value = value
-        else:
+        elif key in ['_Configuration__add_state'] or (hasattr(self, '__add_state') and self.__add_state):
             super().__setattr__(key, value)
+        else:
+            raise AttributeError(f'Could not set non-existing parameter: {key}.')
 
     def __getattribute__(
             self,
@@ -195,7 +200,7 @@ class Configuration:
             self
     ) -> Dict[str, P]:
         return {key: param for key, param in self.__dict__.items() if
-                isinstance(param, Param) and 'condition' in param.tags or 'pre-condition' in param.tags}
+                isinstance(param, Param) and ('condition' in param.tags or 'pre-condition' in param.tags)}
 
     @property
     def params(
@@ -216,7 +221,7 @@ class Configuration:
     def dependencies(
             self
     ) -> Dict[str, P]:
-        return {param_key: param for param_key, param in self.__dict__.items() if param.is_dependency}
+        return {param_key: param for param_key, param in self.params.items() if param.is_dependency}
 
     def get(
             self,
@@ -256,6 +261,7 @@ class Configuration:
         if name in self.__dict__:
             raise AlreadyExistingParameterException(param=self.get(name))
 
+        self.__add_state = True
         self.__dict__[name] = Param(name=name,
                                     value=value,
                                     type_hint=type_hint,
@@ -264,6 +270,7 @@ class Configuration:
                                     allowed_range=allowed_range,
                                     is_required=is_required,
                                     variants=variants)
+        self.__add_state = False
 
         if is_required:
             self.add_condition(name=f'{name}_is_required',

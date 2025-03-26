@@ -160,6 +160,37 @@ def test_validate_empty(
     assert result.passed is True
 
 
+def test_modify_invalid_param(
+
+):
+    config = Configuration()
+    config.add(name='x', value=10)
+
+    assert config.x == 10
+    with pytest.raises(AttributeError):
+        config.y = 50
+
+
+def test_modify_variants():
+    config = Configuration()
+    config.add(name='x', variants=[5, 10])
+    config.get('x').variants = [2]
+
+    assert config.get('x').variants == [2]
+    assert len(config.variants) == 2
+
+    with pytest.raises(ValidationFailureException):
+        config.validate()
+
+    v_combinations = config.variants[0]
+    for comb in v_combinations:
+        alt_config = config.delta_copy(**comb)
+        if alt_config.x is None:
+            with pytest.raises(ValidationFailureException):
+                alt_config.validate()
+
+
+
 def test_required_validation():
     """
     Testing that 'is_required' parameter attribute triggers an exception when parameter.value is None
