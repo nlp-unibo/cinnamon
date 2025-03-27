@@ -12,27 +12,31 @@ def filter_keys(
         keys: List[cinnamon.registry.RegistrationKey]
 ):
     # Namespace
+    keys = sorted(keys, key=lambda key: str(key))
     selected_namespace, keys = select_namespace(keys=keys)
 
     if not len(keys):
         return keys
 
     # Name
+    keys = sorted(keys, key=lambda key: str(key))
     selected_name, keys = select_name(keys=keys)
 
     if not len(keys):
         return keys
 
     # Tags
+    keys = sorted(keys, key=lambda key: str(key))
     selected_tags, keys = select_tags(keys=keys)
 
     if not len(keys):
         return keys
 
     # Final selection
+    keys = sorted(keys, key=lambda key: str(key))
     keys = select_keys(keys=keys, selected_tags=selected_tags)
 
-    return keys
+    return sorted(keys, key=lambda key: str(key))
 
 
 def select_namespace(
