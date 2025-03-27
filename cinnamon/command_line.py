@@ -124,9 +124,12 @@ def run():
     if not action:
         return
 
-    # TODO: we have already the configuration associated with the key and the component
-    #   We should retrieve it and save it? print it? pass it to the component?
     for key in filtered_keys:
         logger.info(f'Executing {key}')
+
+        key_index = valid_keys.keys.index(key)
+        config = valid_keys.configs[key_index]
+        logger.info(f'Configuration: {os.linesep}{config}')
+
         component = RunnableComponent.build_component(registration_key=key)
-        component.run()
+        component.run(config=config)

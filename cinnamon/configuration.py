@@ -6,21 +6,19 @@ from copy import deepcopy
 from functools import partial
 from typing import Dict, Any, Callable, Optional, TypeVar, Sized, List, Set, Union, Type, Tuple
 
-from pandas import json_normalize
-
 import cinnamon.component
 import cinnamon.registry
 from cinnamon.utility.configuration import get_dict_values_combinations
 from cinnamon.utility.exceptions import (
     AlreadyExistingParameterException
 )
+from cinnamon.utility.registration import Tags
 from cinnamon.utility.sanity import (
     ValidationResult,
     ValidationFailureException,
     is_required_cond,
     allowed_range_cond,
 )
-from cinnamon.utility.registration import Tags
 
 C = TypeVar('C', bound='Configuration')
 P = TypeVar('P', bound='Param')
@@ -308,8 +306,7 @@ class Configuration:
 
         tags = set() if tags is None else tags
         tags.add('condition')
-        if is_pre_condition:
-            tags.add('pre-condition')
+        tags.add('pre-condition' if is_pre_condition else 'post-condition')
 
         condition_name = f'cond_{name}' if not name.startswith('cond_') else name
 
@@ -376,7 +373,7 @@ class Configuration:
                 if not child_validation.passed:
                     return child_validation
 
-        conditions = self.search_condition_by_tag(tags={'condition'}, exact_match=False)
+        conditions = self.search_condition_by_tag(tags={'post-condition'}, exact_match=False)
         return self._validate(conditions=conditions, strict=strict)
 
     def pre_validate(
@@ -466,14 +463,14 @@ class Configuration:
         value_dict = {}
         for param_name, param in self.params.items():
             if isinstance(param.value, Configuration):
-                value_dict.update(param.value.to_value_dict())
+                value_dict[param_name] = param.value.to_value_dict()
             else:
                 value_dict[param_name] = param.value
 
         if not len(value_dict):
             return value_dict
 
-        return json_normalize(value_dict, sep='.').to_dict(orient='records')[0]
+        return value_dict
 
     @property
     def has_variants(

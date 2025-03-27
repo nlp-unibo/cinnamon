@@ -959,11 +959,10 @@ class Registry:
         config_info = cls._REGISTRY[registration_key]
         config = config_info.constructor()
 
-        if config_info.build_recursively:
-            for child_name, child in config.dependencies.items():
-                child_key: RegistrationKey = child.value
-                if child_key is not None:
-                    child.value = cls.build_configuration(registration_key=child_key)
+        for child_name, child in config.dependencies.items():
+            child_key: RegistrationKey = child.value
+            if child_key is not None:
+                child.value = cls.build_configuration(registration_key=child_key)
 
         return config
 

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Optional, TypeVar, Type
+from typing import Optional, TypeVar, Type, Dict, Any
 
 import cinnamon.configuration
 import cinnamon.registry
@@ -60,9 +60,14 @@ class RunnableComponent(Component):
     """
 
     def run(
-            self
+            self,
+            config: Optional[Dict[str, Any]] = None
     ):
         """
+
+        Args:
+            config: optionally, the cinnamon configuration of the ``Component``.
+
         Run interface to execute components.
         """
         raise NotImplementedError(f"A {RunnableComponent} instance must implement the `run` method.")

@@ -190,7 +190,6 @@ def test_modify_variants():
                 alt_config.validate()
 
 
-
 def test_required_validation():
     """
     Testing that 'is_required' parameter attribute triggers an exception when parameter.value is None
@@ -371,3 +370,5 @@ def test_configuration_with_multiple_variant_keys():
         assert len(variant_key.tags) == 2
         assert f'x{key.KEY_VALUE_SEPARATOR}{variant_kwargs["x"]}' in variant_key.tags
         assert f'z{key.KEY_VALUE_SEPARATOR}{variant_kwargs["z"]}' in variant_key.tags
+
+# TODO: add test that combines pre- and post-conditions
