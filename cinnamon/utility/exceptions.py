@@ -2,6 +2,19 @@ import os
 from pathlib import Path
 from typing import List, Union, AnyStr
 
+__all__ = [
+    'AlreadyExistingParameterException',
+    'AlreadyRegisteredException',
+    'NamespaceNotFoundException',
+    'NotRegisteredException',
+    'NotBoundException',
+    'DisconnectedGraphException',
+    'NotADAGException',
+    'AlreadyExpandedException',
+    'NotExpandedException',
+    'InvalidDirectoryException'
+]
+
 
 class AlreadyExistingParameterException(Exception):
 
@@ -34,7 +47,9 @@ class NamespaceNotFoundException(Exception):
         super(NamespaceNotFoundException, self).__init__(
             f'The given registration key contains a namespace that cannot be found. {os.linesep}'
             f'Key: {registration_key}{os.linesep}'
-            f'Namespaces: {namespaces}')
+            f'Namespaces: {namespaces}{os.linesep}'
+            f'Please, make sure you add the main directory containing that namespace '
+            f'when calling Registry.setup() method')
 
 
 class NotRegisteredException(Exception):

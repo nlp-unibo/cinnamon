@@ -15,8 +15,7 @@ __all__ = [
 
 class Component:
     """
-    Generic component class.
-    Components generally receive data and produce other data as output: i.e., a data transformation process.
+    A component defines any logic of a program, including data loading, data visualization, and model training.
     """
 
     @classmethod
@@ -57,7 +56,7 @@ class Component:
 
 class RunnableComponent(Component):
     """
-    A simple extension of Component that can be executed as standalone
+    A Component that can be executed as standalone through command-line.
     """
 
     def run(

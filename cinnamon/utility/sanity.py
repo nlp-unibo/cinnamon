@@ -43,7 +43,7 @@ def check_external_json_path(
 @dataclass
 class ValidationResult:
     """
-    Utility dataclass to store conditions evaluation result (see ``Configuration.validate()``).
+    Stores conditions evaluation result (see ``Configuration.validate()``).
 
     Args:
         passed: True if all conditions are True

@@ -16,7 +16,9 @@ def get_dict_values_combinations(
         params_dict: dictionary that has parameter names as keys and the list of possible values as values
 
     Returns:
-        A list of dictionaries, each describing a parameters combination
+        value_combinations: A List of all possible key:value dict combinations of parameters that have variants.
+        index_combinations: A List of all possible key:index dict combinations of parameters that have variants.
+        Indexes refer to variant index in variants list.
     """
 
     params_combinations = []

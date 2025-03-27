@@ -24,25 +24,26 @@ logger = getLogger(__name__)
 # TODO: make interactive
 def setup():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-dir', '--directory', type=str)
-    parser.add_argument('-ext', '--external-path', type=Optional[str], default=None)
-    parser.add_argument('-save', '--save-directory', type=Optional[str], default=None)
+    parser.add_argument('-dir',
+                        '--directory',
+                        type=str,
+                        help='Directory containing cinnamon registrations')
+    parser.add_argument('-ext',
+                        '--external-path',
+                        type=Optional[str],
+                        default=None,
+                        help="Path to file containing all external directories")
     args = parser.parse_args()
 
     directory = check_directory(directory_path=args.directory)
     external_directories = None
-    save_directory = None
 
     if args.external_path is not None:
         external_directories = check_external_json_path(jsonpath=args.external_path)
 
-    if args.save_directory is not None:
-        save_directory = check_directory(directory_path=args.save_directory)
-
     logger.info(f"""Loading cinnamon registrations using:
         Directory: {directory}
-        External dependencies: {external_directories}
-        Git save directory: {save_directory}
+        External directories: {external_directories}
     """)
 
     # add to PYTHONPATH
@@ -50,8 +51,7 @@ def setup():
 
     valid_keys, invalid_keys = Registry.setup(
         directory=directory,
-        external_directories=external_directories,
-        save_directory=save_directory
+        external_directories=external_directories
     )
 
     registration_path = directory.joinpath('registrations')
@@ -85,23 +85,17 @@ def run():
     parser = argparse.ArgumentParser()
     parser.add_argument('-dir', '--directory', type=str)
     parser.add_argument('-ext', '--external-path', type=Optional[str], default=None)
-    parser.add_argument('-save', '--save-directory', type=Optional[str], default=None)
     args = parser.parse_args()
 
     directory = check_directory(directory_path=args.directory)
     external_directories = None
-    save_directory = None
 
     if args.external_path is not None:
         external_directories = check_external_json_path(jsonpath=args.external_path)
 
-    if args.save_directory is not None:
-        save_directory = check_directory(directory_path=args.save_directory)
-
     logger.info(f"""Loading cinnamon registrations using:
             Directory: {directory}
             External dependencies: {external_directories}
-            Git save directory: {save_directory}
         """)
 
     # add to PYTHONPATH
@@ -109,8 +103,7 @@ def run():
 
     valid_keys, invalid_keys = Registry.setup(
         directory=directory,
-        external_directories=external_directories,
-        save_directory=save_directory
+        external_directories=external_directories
     )
 
     keys = [key for key in valid_keys.keys if 'runnable' in key.special_tags]
@@ -131,6 +124,8 @@ def run():
     if not action:
         return
 
+    # TODO: we have already the configuration associated with the key and the component
+    #   We should retrieve it and save it? print it? pass it to the component?
     for key in filtered_keys:
         logger.info(f'Executing {key}')
         component = RunnableComponent.build_component(registration_key=key)

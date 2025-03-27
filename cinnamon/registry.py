@@ -11,6 +11,7 @@ from typing import Type, AnyStr, List, Dict, Any, Union, Optional, Callable, Tup
 
 import networkx as nx
 import numpy as np
+import logging
 
 import cinnamon.component
 import cinnamon.configuration
@@ -197,11 +198,20 @@ class RegistrationKey:
                                description=self.description,
                                metadata=self.metadata)
 
-    # TODO: add unit tests
     def from_tags_simplification(
             self,
             tags: Tags
     ):
+        """
+        Builds a new ``RegistrationKey`` from current instance by removing provided tags.
+
+        Args:
+            tags: a Tag set containing tags to remove
+
+        Returns:
+            A ``RegistrationKey`` instance that is the same as the current instance but with ``tags`` removed.
+
+        """
         remaining_tags = self.tags.difference(tags)
         return RegistrationKey(name=self.name,
                                tags=remaining_tags,
@@ -213,7 +223,7 @@ class RegistrationKey:
             string_format: str
     ) -> RegistrationKey:
         """
-        Utility method to parse a ``RegistrationKey`` instance from its string format.
+        Parses a ``RegistrationKey`` instance from its string format.
 
         Args:
             string_format: the string format of a ``RegistrationKey`` instance.
@@ -326,10 +336,13 @@ class ConfigurationInfo:
     Behind the curtains, the ``Configuration`` class is stored in the Registry via its corresponding
     ``ConfigurationInfo`` wrapper.
 
-    This wrapper containsL
-        - class_type: the ``Configuration`` class type
+    This wrapper contains:
+        - config_class: the ``Configuration`` class type
         - constructor: the method for creating an instance from the specified ``class_type``.
-            By default, the constructor is set to ``Configuration.get_default()`` method.
+            By default, the constructor is set to ``Configuration.default()`` method.
+        - component_class: the ``Component`` class type
+        - build_recursively: whether the ``Configuration`` or its bound ``Component`` dependencies
+        should be built recursively or not.
     """
 
     config_class: Type[cinnamon.configuration.Configuration]
@@ -339,6 +352,10 @@ class ConfigurationInfo:
 
 
 class ResolutionInfo:
+    """
+    Contains information about ``RegistrationKey`` and corresponding ``Configuration`` that have been retrieved after
+    Registry DAG resolution of dependencies.
+    """
 
     def __init__(
             self
@@ -495,15 +512,37 @@ class Registry:
     def setup(
             cls,
             directory: Union[Path, AnyStr] = None,
-            external_directories: List[Union[AnyStr, Path]] = None,
-            save_directory: Union[Path, AnyStr] = None
+            external_directories: List[Union[AnyStr, Path]] = None
     ) -> Tuple[ResolutionInfo, ResolutionInfo]:
+        """
+        Main entrypoint of cinnamon.
+        The registry checks provided directories for configurations to populate its internal registry and build
+        the dependency DAG.
+        Eventually, the dependency DAG is expanded to account for variants and invalid configurations.
+
+        Args:
+            directory: the main directory of the project containing configurations.
+            external_directories: additional external directories containing configurations.
+
+        Returns:
+            valid_keys: a ``ResolutionInfo` object containing valid ``RegistrationKey``
+            invalid_keys: a ``ResolutionInfo` object containing invalid ``RegistrationKey``
+
+        Raises:
+           ``RuntimeWarning``: if duplicate namespaces are found.
+
+           ``InvalidDirectoryException``: if one of the provided directories does not exist or is not a directory.
+
+           ``AlreadyExpandedException``: if the dependency DAG has already been expanded.
+
+           ``NotADAGException``: if the dependency DAG is not a DAG.
+
+           ``DisconnectedGraphException``: if, for some reasons, the dependency DAG contains disconnected nodes.
+           This should never happen via cinnamon APIs, unless some manual intervention on the dependency DAG
+           is carried out.
+        """
+
         directory = Path(directory).resolve() if type(directory) != Path else directory
-        if save_directory is not None:
-            save_directory = Path(save_directory).resolve() if type(
-                save_directory) != Path else directory.parent.resolve()
-        else:
-            save_directory = directory.parent.resolve()
 
         cls.initialize()
 
@@ -539,6 +578,18 @@ class Registry:
             cls,
             directories: List[Path]
     ) -> Tuple[List[str], Dict[str, List[str]]]:
+        """
+        Runs a static code analyzer to inspect code scripts containing cinnamon registrations
+        with the goal of determining unique namespaces.
+
+        Args:
+            directories: list of pathlib.Path directories containing cinnamon registrations.
+
+        Returns:
+            namespaces: unique list of namespaces
+            mapping: mapping from namespace to pathlib.Path directories.
+        """
+
         extractor = NamespaceExtractor()
         namespaces = []
         mapping = {}
@@ -557,6 +608,19 @@ class Registry:
             cls,
             external_directories: List[Union[AnyStr, Path]],
     ) -> List[Path]:
+        """
+        Checks if provided directories are valid directories and exist.
+
+        Args:
+            external_directories: list of directories to validate.
+
+        Returns:
+            resolved_directories: list of validated directories as pathlib.Path instances
+
+        Raises:
+            ``InvalidDirectoryException``: if any of the provided directories is not a directory or does not exist.
+        """
+
         resolved_directories = []
         for directory in external_directories:
             directory = Path(directory) if type(directory) != Path else directory
@@ -573,12 +637,15 @@ class Registry:
     ):
         """
         Imports a Python's module for registration.
-        In particular, the Registry looks for ``register()`` functions in each found ``__init__.py``.
+        In particular, the Registry looks for ``register()`` and ``register_method()`` decorators.
         These functions are the entry points for registrations: that is, where the ``Registry`` APIs are invoked
         to issue registrations.
 
         Args:
             directory: path of the module
+
+        Raises:
+            ``InvalidDirectoryException``: if the provided directory is not a directory or does not exist.
         """
         directory = Path(directory) if type(directory) != Path else directory
 
@@ -598,27 +665,31 @@ class Registry:
                 for python_script in config_folder.rglob('*.py'):
                     spec = importlib.util.spec_from_file_location(name=python_script.name,
                                                                   location=python_script)
+
+                    if spec is None:
+                        logging.warning(f'Could not load {python_script}. Skipping...')
+                        continue
+
                     # import module and run registration methods
-                    if spec is not None:
-                        current_keys = set(cls.REGISTRATION_METHODS.keys())
-                        module = importlib.util.module_from_spec(spec=spec)
-                        spec.loader.exec_module(module)
-                        new_keys = set(cls.REGISTRATION_METHODS.keys()).difference(current_keys)
-                        for key in new_keys:
-                            key_method = cls.REGISTRATION_METHODS[key]
-                            if isinstance(key_method, BufferedRegistration):
-                                class_method_name = key_method.func.__qualname__.split('.')[-2]
-                                method_name = key_method.func.__qualname__.split('.')[-1]
-                                class_method = module.__dict__[class_method_name]
-                                Registry.register_configuration(config_class=class_method,
-                                                                config_constructor=getattr(class_method, method_name),
-                                                                name=key_method.name,
-                                                                tags=key_method.tags,
-                                                                namespace=key_method.namespace,
-                                                                component_class=key_method.component_class,
-                                                                build_recursively=key_method.build_recursively)
-                            else:
-                                cls.REGISTRATION_METHODS[key]()
+                    current_keys = set(cls.REGISTRATION_METHODS.keys())
+                    module = importlib.util.module_from_spec(spec=spec)
+                    spec.loader.exec_module(module)
+                    new_keys = set(cls.REGISTRATION_METHODS.keys()).difference(current_keys)
+                    for key in new_keys:
+                        key_method = cls.REGISTRATION_METHODS[key]
+                        if isinstance(key_method, BufferedRegistration):
+                            class_method_name = key_method.func.__qualname__.split('.')[-2]
+                            method_name = key_method.func.__qualname__.split('.')[-1]
+                            class_method = module.__dict__[class_method_name]
+                            Registry.register_configuration(config_class=class_method,
+                                                            config_constructor=getattr(class_method, method_name),
+                                                            name=key_method.name,
+                                                            tags=key_method.tags,
+                                                            namespace=key_method.namespace,
+                                                            component_class=key_method.component_class,
+                                                            build_recursively=key_method.build_recursively)
+                        else:
+                            cls.REGISTRATION_METHODS[key]()
 
     @classmethod
     def in_registry(
@@ -654,6 +725,19 @@ class Registry:
     def check_registration_graph(
             cls
     ) -> bool:
+        """
+        Checks if the dependency DAG is valid.
+
+        Raises:
+           ``AlreadyExpandedException``: if the dependency DAG has already been expanded.
+
+           ``NotADAGException``: if the dependency DAG is not a DAG.
+
+           ``DisconnectedGraphException``: if, for some reasons, the dependency DAG contains disconnected nodes.
+           This should never happen via cinnamon APIs, unless some manual intervention on the dependency DAG
+           is carried out.
+        """
+
         if cls.expanded:
             raise AlreadyExpandedException()
 
@@ -669,14 +753,25 @@ class Registry:
         return True
 
     # TODO: check runtime execution and DAG traversal
-    # This function needs to be efficient since cinnamon cannot be a bottleneck here
-    # Possibly, add option to store DAG to avoid re-execution and --force option to re-compute it
-    # It is up to the user, right now, to determine when a DAG should be computed based on their code changes
+    #       This function needs to be efficient since cinnamon cannot be a bottleneck here
+    #       Possibly, add option to store DAG to avoid re-execution and --force option to re-compute it
+    #       It is up to the user, right now, to determine when a DAG should be computed based on their code changes
     # TODO: avoid re-expanding already traversed keys -> we might use a special tag to retrieve variants edges from DAG
     @classmethod
     def dag_resolution(
             cls
     ) -> Tuple[ResolutionInfo, ResolutionInfo]:
+        """
+        Expands and resolves dependencies in registration DAG.
+        The dependency traversal is done bottom-up by recursively expanding top nodes
+        (i.e., ``RegistrationKey`` instances).
+        Expanded keys are retrieved, and built for full validation.
+
+        Returns:
+            valid_keys: a ``ResolutionInfo` object containing valid ``RegistrationKey``
+            invalid_keys: a ``ResolutionInfo` object containing invalid ``RegistrationKey``
+        """
+
         cls.check_registration_graph()
 
         def _expand_node_variants(key: RegistrationKey, key_buffer: Set[RegistrationKey]):
@@ -713,8 +808,8 @@ class Registry:
                 # Store variant in registry
                 # This is required since a key might share multiple key paths
                 # TODO: this might be a little risky since we might overlook registration errors
-                # in_registry should compare between unique hashes built from RegistrationKey instances
-                # so that we are sure about equality in all fields.
+                #       in_registry should compare between unique hashes built from RegistrationKey instances
+                #       so that we are sure about equality in all fields.
                 if not cls.in_registry(variant_key):
                     cls.register_configuration_from_variant(config_class=config_info.config_class,
                                                             config_constructor=config_info.constructor,
@@ -780,9 +875,9 @@ class Registry:
 
         Args:
             registration_key: the ``RegistrationKey`` used to register the ``Configuration`` class.
-            name: the ``name`` field of ``RegistrationKey``
-            tags: the ``tags`` field of ``RegistrationKey``
-            namespace: the ``namespace`` field of ``RegistrationKey``
+            name: the ``name`` attribute of ``RegistrationKey``
+            tags: the ``tags`` attribute of ``RegistrationKey``
+            namespace: the ``namespace`` attribute of ``RegistrationKey``
             build_args: additional custom component constructor args
 
         Returns:
@@ -834,7 +929,7 @@ class Registry:
             tags: Tags = None,
     ) -> cinnamon.configuration.Configuration:
         """
-            Retrieves a configuration instance given its implicit registration key.
+        Retrieves a configuration instance given its registration key.
 
         Args:
             registration_key: key used to register the configuration
@@ -844,6 +939,11 @@ class Registry:
 
         Returns:
             The built configuration
+
+        Raises:
+            ``NotExpandedException``: if the dependency DAG has not been expanded yet.
+
+            ``NotRegisteredException``: if the provided ``RegistrationKey`` is not in the registry.
         """
         if not cls.expanded:
             raise NotExpandedException()
@@ -879,7 +979,7 @@ class Registry:
             build_recursively: bool = True
     ):
         """
-        Registers a ``Configuration`` in the ``Registry`` via explicit ``RegistrationKey``.
+        Registers a ``Configuration`` in the registry.
         In particular, a ``ConfigurationInfo`` wrapper is stored in the ``Registry``.
 
         Args:
@@ -895,7 +995,12 @@ class Registry:
             The built ``RegistrationKey`` instance that can be used to retrieve the registered ``ConfigurationInfo``.
 
         Raises:
+            ``NotExpandedException``: if the dependency DAG has not been expanded yet.
+
             ``AlreadyRegisteredException``: if the ``RegistrationKey`` is already used
+
+            ``NamespaceNotFoundException``: if one of the dependencies of ``RegistrationKey`` belongs to a
+            namespace not covered.
         """
         if cls.expanded:
             raise AlreadyExpandedException()
@@ -966,6 +1071,31 @@ class Registry:
             component_class: Optional[Type[cinnamon.component.Component]] = None,
             build_recursively: bool = True
     ):
+        """
+        Registers a configuration from its variant key:value dict.
+
+        Args:
+            config_class: the class of the ``Configuration``
+            name: the ``name`` field of ``RegistrationKey``
+            namespace: the ``namespace`` field of ``RegistrationKey``
+            variant_kwargs: the key:value dict containing parameter names and their variant values.
+            tags: the ``tags`` field of ``RegistrationKey``
+            config_constructor: the constructor method to build the ``Configuration`` instance from its class
+            component_class: component class to perform binding, if any
+            build_recursively: if True, children are automatically built iteratively.
+
+        Returns:
+            The built ``RegistrationKey`` instance that can be used to retrieve the registered ``ConfigurationInfo``.
+
+        Raises:
+            ``NotExpandedException``: if the dependency DAG has not been expanded yet.
+
+            ``AlreadyRegisteredException``: if the ``RegistrationKey`` is already used
+
+            ``NamespaceNotFoundException``: if one of the dependencies of ``RegistrationKey`` belongs to a
+            namespace not covered.
+        """
+
         config_constructor = config_constructor if config_constructor is not None else config_class.default
         return cls.register_configuration(config_class=config_class,
                                           name=name,
@@ -984,7 +1114,7 @@ class Registry:
             tags: Tags = None,
     ) -> cinnamon.configuration.Configuration:
         """
-            Retrieves a configuration instance given its implicit registration key.
+            Retrieves a ``Configuration`` instance from the registry via its ``RegistrationKey``.
 
         Args:
             registration_key: key used to register the configuration
@@ -993,7 +1123,7 @@ class Registry:
             tags: the ``tags`` field of ``RegistrationKey``
 
         Returns:
-            The built configuration
+            config: the built configuration instance
         """
 
         registration_key = RegistrationKey.parse(registration_key=registration_key,
@@ -1016,6 +1146,22 @@ class Registry:
             namespace: Optional[str] = None,
             tags: Tags = None,
     ) -> ConfigurationInfo:
+        """
+            Retrieves a ``ConfigurationInfo`` from the registry via its ``RegistrationKey``.
+
+        Args:
+            registration_key: key used to register the configuration
+            name: the ``name`` field of ``RegistrationKey``
+            namespace: the ``namespace`` field of ``RegistrationKey``
+            tags: the ``tags`` field of ``RegistrationKey``
+
+        Returns:
+            The ``ConfigurationInfo`` instance
+
+        Raises:
+            ``NotRegisteredException``: if the provided ``RegistrationKey`` is not in the registry.
+        """
+
         registration_key = RegistrationKey.parse(registration_key=registration_key,
                                                  name=name,
                                                  tags=tags,
@@ -1034,6 +1180,18 @@ class Registry:
             tags: Tags = None,
             keys: List[RegistrationKey] = None
     ) -> List[RegistrationKey]:
+        """
+        Retrieves ``RegistrationKey`` from registry via given name, tags, namespaces filters.
+        The search can be limited to a fixed set of keys, optionally given in input.
+
+        Args:
+            names: a name or a list of names to filter registration keys.
+            namespaces: a namespace or a list of namespaces to filter registration keys.
+            tags: a tag set to filter registration keys.
+            keys: an optional list of ``RegistrationKey`` on which to apply the search.
+
+        Returns:
+        """
 
         keys = keys if keys is not None else cls._REGISTRY.keys()
 

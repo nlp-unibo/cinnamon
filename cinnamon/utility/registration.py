@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 import ast
-import functools
-import inspect
 import types
 from copy import deepcopy
 from enum import Enum
@@ -11,7 +9,6 @@ from typing import List, Optional, Set, Union
 
 __all__ = [
     'NamespaceExtractor',
-    'get_method_class',
     'Tags',
     'TAGGABLE_TYPES',
     'match_name',
@@ -32,6 +29,9 @@ TAGGABLE_TYPES = [
 
 
 class NamespaceExtractor(ast.NodeVisitor):
+    """
+    Static code analyzer that parses cinnamon-compliant scripts for registrations.
+    """
 
     def __init__(
             self
@@ -78,26 +78,6 @@ class NamespaceExtractor(ast.NodeVisitor):
             namespace = namespace.replace('\'', '').replace("\"", '')
             self.namespaces.append(namespace)
         self.generic_visit(node)
-
-
-def get_method_class(meth):
-    if isinstance(meth, functools.partial):
-        return get_method_class(meth.func)
-    if inspect.ismethod(meth) or \
-            (inspect.isbuiltin(meth)
-             and getattr(meth, '__self__', None) is not None
-             and getattr(meth.__self__, '__class__', None)):
-        for cls in inspect.getmro(meth.__self__.__class__):
-            if meth.__name__ in cls.__dict__:
-                return cls
-        meth = getattr(meth, '__func__', meth)  # fallback to __qualname__ parsing
-    if inspect.isfunction(meth):
-        cls = getattr(inspect.getmodule(meth),
-                      meth.__qualname__.split('.<locals>', 1)[0].rsplit('.', 1)[0],
-                      None)
-        if isinstance(cls, type):
-            return cls
-    return getattr(meth, '__objclass__', None)
 
 
 def match_name(

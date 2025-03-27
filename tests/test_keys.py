@@ -98,3 +98,13 @@ def test_from_config_variants_with_non_taggable_params():
             continue
 
         assert variant_key.tags == {f'x{config_key.KEY_VALUE_SEPARATOR}variant-1'}
+
+
+def test_tags_simplification():
+    key = RegistrationKey(name='test', tags={'x', 'y', 'z'}, namespace='testing')
+    simplified_key = key.from_tags_simplification({'x', 'y'})
+
+    assert len(simplified_key.tags) == 1
+    assert simplified_key.tags == {'z'}
+    assert simplified_key.name == key.name
+    assert simplified_key.namespace == key.namespace

@@ -41,10 +41,10 @@ logger = logging.getLogger(__name__)
 
 class Param:
     """
-    A generic attribute wrapper that allows
-    - type annotation
-    - textual description metadata
-    - tags metadata for categorization and general-purpose retrieval
+    A generic attribute wrapper that allows:
+        - Type annotations
+        - Textual description metadata
+        - Tags metadata for categorization and general-purpose retrieval
     """
 
     def __init__(
@@ -138,14 +138,13 @@ class Param:
             other: another ``Param`` instance
 
         Returns:
-            True if the two ``Param`` instances are equal.
+            True if the two ``Param`` instances are equal. False, otherwise.
         """
         return self.name == other.name and self.value == other.value
 
 
 class Configuration:
     """
-    Generic Configuration class.
     A Configuration specifies the parameters of a Component.
     Configurations store parameters and allow flow control via conditions.
     """
@@ -245,7 +244,7 @@ class Configuration:
             variants: Optional[Sized] = None,
     ):
         """
-        Adds a Parameter to the Configuration via its implicit format.
+        Adds a Parameter to the Configuration.
         By default, Parameter's default conditions are added as well.
 
         Args:
@@ -257,6 +256,9 @@ class Configuration:
             allowed_range: allowed range of values for ``value``
             is_required: if True, ``value`` cannot be None
             variants: set of variant values of ``value`` of interest
+
+        Raises:
+            ``AlreadyExistingParameterException``: if the provided `name` already exists in the Configuration instance.
         """
         if name in self.__dict__:
             raise AlreadyExistingParameterException(param=self.get(name))
@@ -294,11 +296,14 @@ class Configuration:
         Adds a condition to be validated.
 
         Args:
-            condition: a function that receives as input the current ``Data`` instance and returns a boolean.
+            condition: a function that receives as input the current ``Configuration`` instance and returns a boolean.
             name: unique identifier.
             description: a string description for readability purposes.
             tags: a set of string tags to mark the condition with metadata.
             is_pre_condition: True if the condition concerns configuration parameters before build (i.e., flat parameters)
+
+        Raises:
+            ``AlreadyExistingParameterException``: if the provided `name` already exists in the Configuration instance.
         """
 
         tags = set() if tags is None else tags
@@ -320,7 +325,7 @@ class Configuration:
             strict: bool = True,
     ) -> ValidationResult:
         """
-        Calls all stage-related conditions to assess the correctness of the current ``Configuration``.
+       Validates all provided conditions related to the ``Configuration`` instance.
 
         Args:
             strict: if True, a failed validation process will raise ``InvalidConfigurationException``
@@ -352,7 +357,7 @@ class Configuration:
             strict: bool = True
     ) -> ValidationResult:
         """
-        Calls all stage-related conditions to assess the correctness of the current ``Configuration``.
+        Calls all conditions to assess the correctness of the current ``Configuration``.
 
         Args:
             strict: if True, a failed validation process will raise ``InvalidConfigurationException``
@@ -378,6 +383,20 @@ class Configuration:
             self,
             strict: bool = True
     ) -> ValidationResult:
+        """
+        Calls all pre-built conditions to assess the correctness of the current ``Configuration``.
+
+        Args:
+            strict: if True, a failed validation process will raise ``InvalidConfigurationException``
+
+        Returns:
+            A ``ValidationResult`` object that stores the boolean result of the validation process along with
+            an error message if the result is ``False``.
+
+        Raises:
+            ``ValidationFailureException``: if ``strict = True`` and the validation process failed
+        """
+
         conditions = self.search_condition_by_tag(tags={'pre-condition'}, exact_match=False)
         return self._validate(conditions=conditions, strict=strict)
 
@@ -386,7 +405,7 @@ class Configuration:
             **kwargs
     ) -> C:
         """
-        Gets a delta copy of current ``Configuration``.
+        Gets a delta copy of current ``Configuration``, including conditions.
 
         Returns:
             A delta copy of current ``Configuration``.
@@ -426,16 +445,24 @@ class Configuration:
             cls: Type[C]
     ) -> C:
         """
-        Returns the default Configuration instance.
+        Returns the default ``Configuration`` instance.
 
         Returns:
-            Configuration instance.
+            ``Configuration`` instance.
         """
         return cls()
 
     def to_value_dict(
             self
     ) -> Dict[str, Any]:
+        """
+        Returns all ``Configuration`` parameters in key:value format.
+        The method supports nesting so that dependencies parameters are retrieved iteratively.
+
+        Returns:
+            JSON normalized dict where keys are parameters names and values are their corresponding values.
+        """
+
         value_dict = {}
         for param_name, param in self.params.items():
             if isinstance(param.value, Configuration):
@@ -466,7 +493,9 @@ class Configuration:
         instance based on specified variants.
 
         Returns:
-            TODO:
+            value_combinations: A List of all possible key:value dict combinations of parameters that have variants.
+            index_combinations: A List of all possible key:index dict combinations of parameters that have variants.
+            Indexes refer to variant index in variants list.
         """
 
         has_variants = self.has_variants
@@ -578,4 +607,13 @@ class Configuration:
             self,
             conditions: List[Callable[[Condition], bool]]
     ) -> List[Param]:
+        """
+        Performs a custom condition search by given conditions.
+
+        Args:
+            conditions: list of callable filter functions
+
+        Returns:
+            A dictionary with ``Param.name`` as keys and ``Param`` as values corresponding to conditions.
+        """
         return self._search(conditions=conditions, buffer=self.conditions)
