@@ -61,7 +61,7 @@ class RunnableComponent(Component):
 
     def run(
             self,
-            config: Optional[Dict[str, Any]] = None
+            config: Optional[cinnamon.configuration.Configuration] = None
     ):
         """
 

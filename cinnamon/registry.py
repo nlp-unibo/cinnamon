@@ -361,12 +361,12 @@ class ResolutionInfo:
             self
     ):
         self.keys: List[RegistrationKey] = []
-        self.configs: List[Dict[str, Any]] = []
+        self.configs: List[cinnamon.configuration.Configuration] = []
 
     def add(
             self,
             key: RegistrationKey,
-            config: Dict[str, Any]
+            config: cinnamon.configuration.Configuration
     ):
         self.keys.append(key)
         self.configs.append(config)
@@ -838,22 +838,20 @@ class Registry:
         invalid_keys = ResolutionInfo()
         for key in path_keys:
             config = cls.retrieve_configuration(registration_key=key)
-            config_values = config.to_value_dict()
             validation_result = config.pre_validate(strict=False)
             if not validation_result.passed:
                 key.metadata = validation_result.stack_trace
-                invalid_keys.add(key=key, config=config_values)
+                invalid_keys.add(key=key, config=config)
                 continue
 
             built_config = cls.build_configuration(registration_key=key)
-            config_values = built_config.to_value_dict()
             validation_result = built_config.validate(strict=False)
             if not validation_result.passed:
                 key.metadata = validation_result.stack_trace
-                invalid_keys.add(key=key, config=config_values)
+                invalid_keys.add(key=key, config=built_config)
                 continue
 
-            valid_keys.add(key=key, config=config_values)
+            valid_keys.add(key=key, config=built_config)
 
         return valid_keys, invalid_keys
 

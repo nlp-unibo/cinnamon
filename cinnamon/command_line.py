@@ -129,7 +129,7 @@ def run():
 
         key_index = valid_keys.keys.index(key)
         config = valid_keys.configs[key_index]
-        logger.info(f'Configuration: {os.linesep}{config}')
+        config.show()
 
         component = RunnableComponent.build_component(registration_key=key)
         component.run(config=config)
