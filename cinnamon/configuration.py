@@ -5,6 +5,7 @@ import os
 from copy import deepcopy
 from functools import partial
 from typing import Dict, Any, Callable, Optional, TypeVar, Sized, List, Set, Union, Type, Tuple
+from pandas import json_normalize
 
 import cinnamon.component
 import cinnamon.registry
@@ -526,8 +527,12 @@ class Configuration:
         Displays ``Configuration`` parameters.
         """
         logger.info(f'Displaying {self.__class__.__name__} parameters...')
+        to_show = json_normalize(self.to_value_dict()).to_dict(orient='records')
+        if len(to_show):
+            to_show = to_show[0]
+
         parameters_repr = os.linesep.join(
-            [f'{key}: {value}' for key, value in self.to_value_dict().items()])
+            [f'{key}: {value}' for key, value in to_show.items()])
         logger.info(parameters_repr)
 
     def _search(

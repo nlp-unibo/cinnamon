@@ -25,6 +25,7 @@ What if we want to define **multiple** ``DataLoader``, each pointing to a differ
 We notice that we are **mixing** code logic (i.e., the ``DataLoader`` class) with its configuration (i.e., ``df_path``).
 
 We can **separate** code logic from configuration.
+
 Instead of relying on additional data formats (e.g., JSON), we define a ``DataLoaderConfig`` in python.
 
 .. code-block:: python
@@ -61,11 +62,14 @@ In ``cinnamon`` we follow the above paradigm.
 
 .. code-block:: python
 
-    class DataLoaderConfig(cinnamon_core.core.configuration.Configuration):
+    from cinnamon.configuration import Configuration
+    from cinnamon.component import Component
+
+    class DataLoaderConfig(Configuration):
 
         @classmethod
-        def get_default(cls):
-            config = super().get_default()
+        def default(cls):
+            config = super().default()
 
             config.add(name='df_path',
                        value='path/to/data',
@@ -75,25 +79,31 @@ In ``cinnamon`` we follow the above paradigm.
             return config
 
 
-    class DataLoader(cinnamon_core.core.component.Component):
+    class DataLoader(Component):
+
+        def __init__(self, df_path):
+            self.df_path = df_path
 
         def load():
-            df = pd.read_csv(self.config.df_path)
+            df = pd.read_csv(self.df_path)
             return df
 
     if __name__ = '__main__':
-        config = DataLoaderConfig.get_default()
-        loader = DataLoader(config)
+        config = DataLoaderConfig.default()
+        loader = DataLoader(**config.values)
         data = loader.load()
 
-Configurations are ``cinnamon_core.core.configuration.Configuration`` subclasses, where the ``get_default()`` method
+Configurations are ``cinnamon.configuration.Configuration`` subclasses, where the ``default()`` method
 defines the standard template of the configuration.
 
 You can **add parameters** to the configuration via ``add()`` method.
+
 Each parameter is defined by a ``name``, a ``value``, and, optionally, info about its type, textual description, variants, allowed value range and more...
+
 All this information allows ``cinnamon`` checking whether the defined ``Configuration`` is **valid** or not.
 
-The code logic is a ``cinnamon_core.core.component.Component`` subclass and maintains the same code structure **with minimal modifications**.
+The code logic is a ``cinnamon.component.Component`` subclass and maintains the same code structure **with no modifications**.
+
 In particular, components can be defined as you would normally define a standard python class.
 
 
@@ -101,7 +111,7 @@ In particular, components can be defined as you would normally define a standard
 Registration
 -------------------------
 
-In ``cinnamon``, we **don't explicitly** instantiate a ``Configuration`` and its corresponding ``Component`` as done in previous sections.
+In ``cinnamon``, we **don't explicitly** instantiate a ``Configuration`` and its corresponding ``Component`` as done in the previous section.
 
 Instead, ``cinnamon`` supports a **registration, bind, and build** paradigm.
 
@@ -109,25 +119,17 @@ Once, we have defined the ``Configuration`` and its corresponding ``Component``,
 
 .. code-block:: python
 
-    Registry.add_configuration(config_class=DataLoaderConfig,
+    Registry.register_configuration(config_class=DataLoaderConfig,
                                name='data_loader',
                                tags={'test'},
-                               namespace='showcasing')
+                               namespace='showcasing',
+                               component_class=DataLoader)
 
 We do so by using a ``RegistrationKey`` defined as a (``name``, ``tags``, ``namespace``) tuple.
 
-Then we ``bind`` the ``Configuration`` to the ``Component`` using the ``RegistrationKey``.
+Additionally, we **bind** the ``Configuration`` to a ``Component`` so that ``cinnamon`` knows that we want to create ``DataLoader`` instances via ``DataLoaderConfig``.
 
-.. code-block:: python
-
-    Registry.bind(component_class=DataLoader,
-                  name='data_loader',
-                  tags={'test'},
-                  namespace='showcasing')
-
-Now, ``cinnamon`` knows that we want to create ``DataLoader`` instances via ``DataLoaderConfig``.
-
-We just need to build our first instance.
+At this point, we only need to build our first instance via the ``RegistrationKey``.
 
 .. code-block:: python
 
@@ -147,12 +149,16 @@ to return a ``DataLoader`` instance rather than a generic ``Component``.
 
 Now, we can build ``DataLoader`` instances anywhere in our code by simply using the associated ``RegistrationKey``.
 
+.. note::
+    If you want to quickly change the ``Configuration`` of your ``DataLoader``, **you only need to change the key!**
+
 
 ****************************
 Beyond quickstart
 ****************************
 
 ``cinnamon`` uses the **registration, bind, and build** to provide flexible, clean and easy to extend code.
+
 The main code dependency are ``RegistrationKey`` instances.
 
 Via this paradigm, ``cinnamon`` supports:

@@ -6,8 +6,9 @@
 Overview
 ====================================
 
-Cinnamon is a simple framework for general-purpose configuration and code logic de-coupling.
-It was developed to offer two main functionalities:
+Cinnamon is a lightweight library for general-purpose configuration and code logic de-coupling.
+
+It has been developed to offer two main functionalities:
 
 **De-coupling**
    a code logic from its regulating parameters
@@ -33,17 +34,32 @@ Features
 
 
 ===============================================
+Install
+===============================================
+
+pip
+
+.. code-block:: bash
+
+   pip install cinnamon-core
+
+git
+
+.. code-block:: bash
+
+   git clone https://github.com/nlp-unibo/cinnamon
+
+===============================================
 Quickstart
 ===============================================
 
-Check out :ref:`quickstart` for a quick introduction to how ``cinnamon`` works.
+Check `quickstart <https://nlp-unibo.github.io/cinnamon/quickstart.html/>`_ for a quick introduction to how ``cinnamon`` works.
 
 ===============================================
 Demos
 ===============================================
 
-Check out `cinnamon-examples <https://nlp-unibo.github.io/cinnamon_examples/>`_ for a quick overview on how to evaluate a SVM classifier on a binary classification task with cinnamon!
-
+Check `cinnamon-examples <https://nlp-unibo.github.io/cinnamon_examples/>`_ for a quick overview on how to evaluate a SVM classifier on a binary classification task with cinnamon!
 
 ===============================================
 Contact

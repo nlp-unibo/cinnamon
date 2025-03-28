@@ -116,8 +116,8 @@ def run():
     while not len(filtered_keys):
         filtered_keys = filter_keys(keys=keys)
 
-    logger.info(f'You have selected the following keys to execute: '
-                f'{os.linesep.join([str(item) for item in filtered_keys])}')
+    logger.info(f'You have selected the following keys to execute: {os.linesep}'
+                f'{os.linesep.join([f"{idx + 1}. {str(item)}" for idx, item in enumerate(filtered_keys)])}')
 
     action = inquirer.confirm(message='Proceed?', default=True).execute()
 
