@@ -4,7 +4,7 @@
    contain the root `toctree` directive.
 
 Overview
-====================================
+*********************************************
 
 Cinnamon is a lightweight library for general-purpose configuration and code logic de-coupling.
 
@@ -37,17 +37,12 @@ Features
 Install
 ===============================================
 
-pip
-
-.. code-block:: bash
-
-   pip install cinnamon-core
-
 git
 
 .. code-block:: bash
 
    git clone https://github.com/nlp-unibo/cinnamon
+   pip install ./cinnamon
 
 ===============================================
 Quickstart

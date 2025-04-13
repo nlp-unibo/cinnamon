@@ -45,8 +45,8 @@ def test_set_param_from_param():
     Raise an exception when we attempt to change a parameter value
     """
     param = Param(name='x', value=50)
-    param.x = 20
-    assert param.x == 20
+    param.value = 20
+    assert param.value == 20
 
 
 def test_add_condition():

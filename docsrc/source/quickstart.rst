@@ -54,9 +54,9 @@ Now, we are relying on **dependency injection** to separate code logic and confi
 .. note::
     The ``DataLoader``'s APIs do not change as we change the configuration.
 
-****************************
+=============================================
 Cinnamon
-****************************
+=============================================
 
 In ``cinnamon`` we follow the above paradigm.
 
@@ -106,12 +106,11 @@ The code logic is a ``cinnamon.component.Component`` subclass and maintains the 
 
 In particular, components can be defined as you would normally define a standard python class.
 
-
--------------------------
+=============================================
 Registration
--------------------------
+=============================================
 
-In ``cinnamon``, we **don't explicitly** instantiate a ``Configuration`` and its corresponding ``Component`` as done in the previous section.
+In ``cinnamon``, we usually **don't explicitly** instantiate a ``Configuration`` and its corresponding ``Component`` as done in the previous section.
 
 Instead, ``cinnamon`` supports a **registration, bind, and build** paradigm.
 
@@ -125,6 +124,27 @@ Once, we have defined the ``Configuration`` and its corresponding ``Component``,
                                namespace='showcasing',
                                component_class=DataLoader)
 
+or
+
+.. code-block:: python
+
+    class DataLoaderConfig(Configuration):
+
+        @classmethod
+        @register_method(name='data_loader',
+                         tags={'test'},
+                         namespace='showcasing',
+                         component_class=DataLoader)
+        def default(cls):
+            config = super().default()
+
+            config.add(name='df_path',
+                       value='path/to/data',
+                       type_hint=Path,
+                       description='path where to load data')
+
+            return config
+
 We do so by using a ``RegistrationKey`` defined as a (``name``, ``tags``, ``namespace``) tuple.
 
 Additionally, we **bind** the ``Configuration`` to a ``Component`` so that ``cinnamon`` knows that we want to create ``DataLoader`` instances via ``DataLoaderConfig``.
@@ -133,19 +153,11 @@ At this point, we only need to build our first instance via the ``RegistrationKe
 
 .. code-block:: python
 
-    loader = Registry.build_component(name='data_loader',
-                                      tags={'test'},
-                                      namespace='showcasing')
-
-or
-
-.. code-block:: python
-
     loader = DataLoader.build_component(name='data_loader',
                                         tags={'test'},
                                         namespace='showcasing')
 
-to return a ``DataLoader`` instance rather than a generic ``Component``.
+to return a ``DataLoader``.
 
 Now, we can build ``DataLoader`` instances anywhere in our code by simply using the associated ``RegistrationKey``.
 
@@ -153,18 +165,20 @@ Now, we can build ``DataLoader`` instances anywhere in our code by simply using 
     If you want to quickly change the ``Configuration`` of your ``DataLoader``, **you only need to change the key!**
 
 
-****************************
+=============================================
 Beyond quickstart
-****************************
+=============================================
 
 ``cinnamon`` uses the **registration, bind, and build** to provide flexible, clean and easy to extend code.
 
 The main code dependency are ``RegistrationKey`` instances.
+See `Registration <https://nlp-unibo.github.io/cinnamon/registration.html/>`_ if you want to know more about how to set up your code with ``cinnamon``.
 
 Via this paradigm, ``cinnamon`` supports:
 
-- `**Nesting** <https://federicoruggeri.github.io/cinnamon_core/configuration.html#nested-configurations>`_ ``Component`` and ``Configuration`` to build more sophisticated ones.
-- Automatically generating ``Configuration`` `**variants** <https://federicoruggeri.github.io/cinnamon_core/configuration.html#configuration-variants>`_.
-- Quick integration of `**external** <https://federicoruggeri.github.io/cinnamon_core/dependencies.html#external-registrations>`_ ``Component`` and ``Configuration`` (e.g., written by other users).
-- Static and dynamic code `**sanity check** <https://federicoruggeri.github.io/cinnamon_core/configuration.html>`_.
+- **Nesting** ``Component`` and ``Configuration`` to build more sophisticated ones.
+- Automatically generating ``Configuration`` **variants**.
+- Quick integration of **external** ``Component`` and ``Configuration`` (e.g., written by other users).
+- Static and dynamic code **sanity check**.
 
+See `Configuration <https://nlp-unibo.github.io/cinnamon/configuration.html/>`_ for more details.

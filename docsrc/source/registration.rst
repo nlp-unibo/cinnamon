@@ -1,305 +1,140 @@
 .. _registration:
 
-Registration APIs
+Registration
 *********************************************
 
-Let's first recap the core concepts of ``cinnamon``.
+While it is possible to instantiate ``Configuration`` and ``Component`` manually and inline, cinnamon defines a registration-based dependency system.
 
-**Configuration**
-    defines all hyper-parameters and conditions of a Component
+This system allows to link ``Configuration`` to ``Component`` and ``Configuration`` to other ``Configuration`` by relying on unique identifiers.
 
-**Component**
-    defines a code logic
+These unique identifiers are called ``RegistrationKey``.
 
-Cinnamon allows to quickly **retrieve**, **build** and **re-use** a ``Component`` via a set of registration APIs.
+=============================================
+RegistrationKey
+=============================================
 
-Consider our data loader recurring example.
+A ``RegistrationKey`` is a compound identifier comprising a ``name``, an optional ``tags`` set and a ``namespace``.
 
 .. code-block:: python
 
-    # Component
-    class DataLoader(Component):
+    key = RegistrationKey(name='test', tags={'tag1', 'tag2'}, namespace='testing')
 
-        def load(...):
-            ...
+``RegistrationKey`` are the fundamental concept of cinnamon as they allow retrieving and building any ``Configuration`` or ``Component`` on the fly.
 
-    # Configuration
-    class DataLoaderConfig(Configuration):
+In particular, by loosely coupling configurations and components via ``RegistrationKey``, we can quickly change them by changing the ``RegistrationKey`` instances.
+
+To understand this fundamental concept, we first need to introduce how coupling is carried out.
+
+=============================================
+Registration
+=============================================
+
+In cinnamon, **registration** is the action of storing a ``Configuration`` into the ``Registry``, a dynamic lookup table of ``Configuration``.
+
+In other words, the ``Registry`` is a dictionary where each ``RegistrationKey`` corresponds a ``Configuration`` template.
+
+In cinnamon, we have two ways to **register** a ``Configuration``: class methods and ad-hoc functions.
+
+---------------------------------------------
+Class method registration
+---------------------------------------------
+
+We can directly register a ``Configuration`` template class method via ``register_method()`` function.
+
+.. code-block:: python
+
+    class CustomConfig(cinnamon.configuration.Configuration):
 
         @classmethod
-        def get_default(cls):
-            config = super().get_default(cls)
-            config.add(name='folder_name',
-                       type_hint=str,
-                       is_required=True)
+        @register_method(name='test', tags={'default'}, namespace='testing', component_class=CustomComponent)
+        def default(cls):
+            config = super(cls).default()
+
+            config.add(name='x', value=5)
 
             return config
 
-*********************************************
-Registering a Configuration
-*********************************************
+In this example, we **register** the default template of ``CustomConfig`` by specifying the ``RegistrationKey`` attributes and binding ``CustomConfig`` to ``CustomComponent``.
 
-Suppose we have a <``Configuration``, ``Component``> pair (e.g., <``DataLoaderConfig``, ``DataLoader``>).
+Internally, the ``Registry`` associates the ``RegistrationKey`` defined as (``'test'``, ``{'default'}``, ``'testing'``) to the following information:
 
-We first store the ``Configuration`` in the cinnamon's ``Registry`` to memorize it.
+- configuration class ``CustomConfig``
+- configuration template ``CustomConfig.default()``
+- component class ``CustomComponent``
 
-We do so by defining a ``RegistrationKey`` to uniquely access to the ``Configuration``.
+By doing so, cinnamon has all the information to
 
-.. image:: /img/registration_with_key.png
-    :scale: 60%
-    :align: center
+- instantiate a ``CustomConfig`` instance by calling ``CustomConfig.default()``
+- instantiate a ``CustomComponent`` instance by passing ``CustomConfig`` instance attributes.
 
+---------------------------------------------
+Ad-hoc registration
+---------------------------------------------
 
-We register the ``DataLoaderConfig`` as follows:
+There might be cases where we do not need to define custom ``Configuration``, but simply re-use existing ones.
 
-.. code-block:: python
-
-    Registry.add_configuration(config_class=DataLoaderConfig,
-                               name='data_loader'
-                               namespace='showcase')
-
-Or, we can define the ``RegistrationKey`` explicitly
+We can still carry out registration via ``register`` decorator and by relying on ``Registry.register_configuration()`` API.
 
 .. code-block:: python
 
-    key = RegistrationKey(name='data_loader', namespace='showcase')
-    Registry.add_configuration_from_key(config_class=DataLoaderConfig,
-                                        key=key)
+    @register
+    def custom_registration():
+        Registry.register_configuration(name='test',
+                                        tags={'default'},
+                                        namespace='testing',
+                                        config_class=CustomConfiguration,
+                                        component_class=CustomComponent)
 
+Unless specified, the ``default`` configuration template is considered.
 
-Once registered, we can always **retrieve and build** a ``Configuration`` from the ``Registry``.
-
-.. code-block:: python
-
-    config = Registry.build_configuration(name='data_loader',
-                                          namespace='showcase')
-
-or
+Alternatively, we can specify a specific constructor template.
 
 .. code-block:: python
 
-    key = RegistrationKey(name='data_loader', namespace='showcase')
-    config = Registry.build_configuration_from_key(key=key)
+    @register
+    def custom_registration():
+        Registry.register_configuration(name='test',
+                                        tags={'default'},
+                                        namespace='testing',
+                                        config_class=CustomConfiguration,
+                                        config_constructor=CustomConfiguration.custom_constructor,
+                                        component_class=CustomComponent)
 
-In particular, the ``get_default()`` method is invoked to build the ``Configuration`` instance.
-
-*********************************************
-Custom Configuration instance building
-*********************************************
-
-The ``Configuration.get_default()`` defines the general structure of a ``Configuration`` (see :ref:`configuration` for more details).
-
-What if we want to build a ``Configuration`` instance via a **custom function**?
-
-Suppose the following ``DataLoaderConfig``:
+where ``CustomConfiguration.custom_constructor`` could be defined as follows
 
 .. code-block:: python
 
-    # Configuration
-    class DataLoaderConfig(Configuration):
+        class CustomConfig(cinnamon.configuration.Configuration):
 
         @classmethod
-        def get_default(cls):
-            config = super().get_default(cls)
-            config.add(name='folder_name',
-                       type_hint=str,
-                       is_required=True)
+        def default(cls):
+            config = super(cls).default()
+
+            config.add(name='x', value=5)
 
             return config
 
-       @classmethod
-       def limited_samples_variant(cls):
-            config = cls.get_default()
-            config.folder_name = '*folder_name"'
-            config.add(name='max_samples_amount', value=100, type_hint=int)
+        @classmethod
+        def custom_constructor(cls):
+            config = super(cls).default()
+
+            config.x = 42
+            config.add(name='y', value=True)
+
             return config
 
 
-We want to register our ``Configuration`` such that its instances are built via the ``limited_samples_variant()`` method.
+=============================================
+Retrieving registrations
+=============================================
 
-We do so by specifying the ``DataLoaderConfig.limited_samples_variant`` constructor method when registering the ``DataLoaderConfig``.
+TODO
 
-.. code-block:: python
+=============================================
+Building instances from registrations
+=============================================
 
-    Registry.add_configuration(name='data_loader',
-                               namespace='showcasing',
-                               config_constructor=DataLoaderConfig.limited_samples_variant)
-
-
-*********************************************
-Registration Key
-*********************************************
-
-A ``RegistrationKey`` is a unique compound identifier that allows to quickly retrieve a ``Configuration`` from the
-``Registry``.
-
-In particular, a ``RegistrationKey`` consists of
-
-*   **name**: a generic name to identify the type of configuration (and corresponding bound component, if any). For instance, 'data_loader' for a data loader.
-
-*   **[Optional] tags**: a set of string tags to identify the configuration. For instance, two data loaders will have the same name but different tags.
-
-*   **namespace**: the namespace to which the configuration belongs to. For instance, two configurations pointing to the same deep learning model, one written in Tensorflow and the other one in Pytorch, have the same name and tags but different namespace.
-
-
-*********************************************
-Binding a Configuration to a Component
-*********************************************
-
-Once we have registered our ``Configuration``, we need to **bind** it to a ``Component`` to automatically build
-``Component`` instances.
-
-We instruct the ``Registry`` to perform the binding operation by leveraging the ``RegistrationKey`` used to
-store our ``Configuration``.
-
-.. image:: img/binding_with_key.png
-    :scale: 60%
-    :align: center
-
-In our data loader example, we perform the binding between the registered ``DataLoaderConfig`` and ``DataLoader`` as follows
-
-.. code-block:: python
-
-    Registry.bind(component_class=DataLoader,
-                  name='data_loader',
-                  namespace='showcase')
-
-or
-
-.. code-block:: python
-
-    key = RegistrationKey(name='data_loader', namespace='showcase')
-    Registry.bind_from_key(component_class=DataLoader,
-                           key=key)
-
-
-The ``Registry`` offers the capability of performing the **registration** and **binding** operations in one step.
-
-.. code-block:: python
-
-    Registry.add_and_bind(config_class=DataLoaderConfig,
-                          component_class=DataLoader,
-                          name='data_loader',
-                          namespace='showcase')
-
-If the ``DataLoaderConfig`` has some hyper-parameter variants to take into account, we can register them as well
-
-.. code-block:: python
-
-    Registry.add_and_bind_variants(config_class=DataLoaderConfig,
-                                   component_class=DataLoader,
-                                   name='data_loader',
-                                   namespace='showcase')
-
-
-*********************************************
-Building a Component
-*********************************************
-
-Once a ``Configuration`` is bound to a ``Component``, the ``Registry`` can automatically build a ``Component`` instance
-by using the associated ``RegistrationKey``.
-
-.. code-block:: python
-
-    data_loader = Registry.build_component(name='data_loader',
-                                           namespace='showcasing')
-
-or
-
-.. code-block:: python
-
-    key = RegistrationKey(name='data_loader', namespace='showcasing')
-    data_loader = Registry.build_component_from_key(registration_key=key)
-
-.. note::
-    The ``Registry`` deals with ``Configuration`` and ``Component`` **classes** and **not** class instances.
-    Classes are stored as ''factories'' for building class instances on-the-fly.
-
-*********************************************
-Retrieving a Component
-*********************************************
-
-The ``Registry`` can also retrieve the ``Component`` class instead of building an instance
-
-.. code-block:: python
-
-    component_class = Registry.retrieve_component(name='data_loader',
-                                                  namespace='showcasing')
-
-or
-
-.. code-block:: python
-
-    key = RegistrationKey(name='data_loader', namespace='showcasing')
-    component_class = Registry.retrieve_component_from_key(registration_key=key)
-
-
-**************************************************
-Registering and retrieving a Component instance
-**************************************************
-
-A ``Component`` instance can be registered as well via a ``RegistrationKey``.
-
-.. note::
-    The same ``RegistrationKey`` used to bind the ``Component`` can be used as well.
-
-Such a functionality is particularly useful to have access to a ``Component`` instance anywhere in the code.
-
-.. code-block:: python
-
-    Registry.register_component_instance(name='data_loader',
-                                         namespace='showcasing',
-                                         component=component)           # instantiated somewhere
-
-
-or
-
-.. code-block:: python
-
-    key = RegistrationKey(name='data_loader', namespace='showcasing')
-    Registry.register_component_instance_from_key(registration_key=key
-                                                  component=component)
-
-
-
-Additionally, we can directly register the ``Component`` instance when building it.
-
-.. code-block:: python
-
-    component = Registry.build_component(name='data_loader',
-                                         namespace='showcasing',
-                                         register_component_instance=True)
-
-
-Once registered, we can always retrieve the ``Component`` instance via the associated ``RegistrationKey``
-
-.. code-block:: python
-
-    component = Registry.retrieve_component_instance(name='data_loader',
-                                                     namespace='showcasing')
-
-or
-
-.. code-block:: python
-
-    key = RegistrationKey(name='data_loader', namespace='showcasing')
-    component = Registry.retrieve_component_instance_from_key(registration_key=key)
-
-*********************************************
-Empty Configuration
-*********************************************
-
-In some cases, a ``Component`` may not have any hyper-parameters.
-
-We can use the ``Configuration`` class to bind an empty ``Configuration``.
-
-.. code-block:: python
-
-    Registry.add_and_bind(config_class=Configuration,
-                          component_class=DataLoader,
-                          name='data_loader',
-                          namespace='showcasing')
-
+TODO
 
 *********************************************
 Tl;dr (Too long; didn't read)
@@ -309,7 +144,6 @@ Tl;dr (Too long; didn't read)
 - Define its corresponding ``Configuration`` (one or more).
 - Register the ``Configuration`` to the ``Registry`` via a ``RegistrationKey``.
 - The ``RegistrationKey`` is a compound string-based unique identifier.
-- Bind the ``Configuration`` to its ``Component`` via the ``RegistrationKey``.
 - Build ``Component`` instances via the ``RegistrationKey``.
 
 **Congrats! This is 99% of cinnamon!**
