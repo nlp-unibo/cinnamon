@@ -1,9 +1,23 @@
 .. _dependencies:
 
-Code Organization
+Registration Dependencies
 *********************************************
 
-We recommend organizing your code as follows
+In `registration <https://nlp-unibo.github.io/cinnamon/registration.html/>`_, we have seen that cinnamon pairs ``Configuration`` to ``Component`` via ``RegistrationKey``.
+Moreover, ``Configuration`` can be nested to indirectly define nested ``Component`` (see `configuration <https://nlp-unibo.github.io/cinnamon/configuration.html/>`_).
+
+We are only left to the question of **how** should we use these APIs to work with cinnamon.
+
+=============================================
+Code Organization
+=============================================
+
+Ideally, registration functions (either class methods or ad-hoc functions) can be written anywhere: it is up to the ``Registry`` to find these functions and run them to populate itself with ``RegistrationKey`` and associated configuration and component information.
+
+Nonetheless, cinnamon is designed to check only registration functions written in files located in ``configurations`` folder.
+This choice is meant to avoid unwanted code executions when checking python files.
+
+Therefore, we recommend organizing your code as follows
 
 .. code-block::
 
@@ -16,7 +30,7 @@ We recommend organizing your code as follows
 
 We also recommend using the same filename for <``Configuration``, ``Component``> paired scripts for readability purposes.
 
-Recalling our data loader recurring example, we have
+For instance, if we define a data loader component, our code organization will be
 
 .. code-block::
 
@@ -29,7 +43,7 @@ Recalling our data loader recurring example, we have
 
 where
 
-configurations/data_loader.py
+components/data_loader.py
     .. code-block:: python
 
         class DataLoader(Component):
@@ -37,88 +51,116 @@ configurations/data_loader.py
             def load(...):
                 ...
 
-components/data_loader.py
+configurations/data_loader.py
     .. code-block:: python
 
         class DataLoaderConfig(Configuration):
 
             @classmethod
-            def get_default(cls):
-                config = super().get_default(cls)
-                config.add(name='folder_name',
-                           type_hint=str,
-                           is_required=True)
+            @register_method(name='loader', tags={'default'}, namespace='testing', component_class=DataLoader)
+            def default(cls):
+                config = super(cls).default()
+
+                config.add(name='folder_name', type_hint=str, value='my_custom_folder')
 
                 return config
 
+.. note::
+    Defining a ``components`` folder is not mandatory, but it improves readability by allowing users to quickly pair components and configurations.
 
 
-*********************************************
-Registration calls
-*********************************************
+=============================================
+Resolving dependencies
+=============================================
 
-Cinnamon **requires** registration APIs to be **located** in configuration script files, **wrapped** into python functions, and **decorated** with ``@register`` decorator.
+Registering and nesting ``Configuration`` can quickly lead to a dependency problem.
+Furthermore, the addition of ``Configuration`` variants may further exacerbate the issue.
 
-For instance, ``configurations/data_loader.py`` should be as follows:
+To avoid users manually ordering registrations to avoid conflicts, cinnamon dynamically builds a dependency graphs, **independently** of the registration order.
+
+For instance, consider the following nesting dependency between two configurations:
 
 .. code-block:: python
 
-    class DataLoaderConfig(Configuration):
+    class ParentConfig(cinnamon.configuration.Configuration):
 
         @classmethod
-        def get_default(cls):
-            config = super().get_default(cls)
-            config.add(name='folder_name',
-                       type_hint=str,
-                       is_required=True)
+        def default(
+                cls
+        ):
+            config = super(cls).default()
+
+            config.add(name='param_1', value=True)
+            config.add(name='param_2', value=False)
+            config.add(name='child',
+                       value=RegistrationKey(name='test', tags={'nested'}, namespace='testing'))
+            return config
+
+
+    class NestedChild(Configuration):
+
+        @classmethod
+        def default(
+                cls
+        ):
+            config = super().default()
+
+            config.add(name='x', value=42)
 
             return config
 
-    @register
-    def register_data_loaders():
-        Registry.add_and_bind(config_class=DataLoaderConfig,
-                              component_class=DataLoader,
-                              name='data_loader',
-                              namespace='showcase')
+The following registration functions produce the same dependency graph.
 
-*********************************************
-Dependency DAG
-*********************************************
+.. code-block:: python
+
+    @register
+    def custom_registration():
+        Registry.register_configuration(config_class=ParentConfig,
+                                        name='test',
+                                        tags={'parent'},
+                                        namespace='testing',
+                                        )
+        Registry.register_configuration(config_class=NestedChild,
+                                        name='test',
+                                        tags={'nested'},
+                                        namespace='testing',
+                                        )
+
+    @register
+    def custom_registration():
+        Registry.register_configuration(config_class=NestedChild,
+                                        name='test',
+                                        tags={'nested'},
+                                        namespace='testing',
+                                        )
+        Registry.register_configuration(config_class=ParentConfig,
+                                        name='test',
+                                        tags={'parent'},
+                                        namespace='testing',
+                                        )
+
+.. note::
+    The same reasoning applies for class method registrations (i.e., via ``register_method`` decorator).
 
 This code organization is meant to simplify registration burden while keeping high readability.
 
-The ``Registry`` can be issued to look for all ``@register`` decorated functions located in ``configurations`` folder
+Behind the curtains, the ``Registry`` is issued to look for all ``@register`` and ``@register_method`` decorators located in ``configurations`` folder
 to automatically execute them.
 
-.. code-block:: python
-
-    Registry.check_registration_graph()
-    Registry.expand_and_resolve_registration()
-
-
-The first function checks if the registration DAG is valid. Indeed, registration APIs like ``add_and_bind`` or ``add_configuration`` issue a **delayed registration action** to avoid conflicts.
-
-This means that the ``Registry`` first **builds a graph** where nodes are ``RegistrationKey`` and links denote a dependency. Then the ``Registry`` **checks** if the graph is a DAG (i.e., it has no loops)
-
-The ``Registry`` eventually issues all registration function calls in order according to the dependency graph (``expand_and_resolve_registration()``)
-
-The dependency DAG is necessary since the ``Registry`` doesn't know the **correct registration order**.
-Additionally, as the number of registrations increases, it becomes cumbersome to keep track of all possible valid registration orders.
-
-**Cinnamon does that for you!**
-
-One can inspect the generated dependency DAG as follows
+This action is handled by ``Registry.setup()`` method.
 
 .. code-block:: python
 
-    Registry.show_dependencies()
+    Registry.setup(directory=Path('.'))
 
-This method generates a ``dependencies.html`` containing a graphical representation of the dependency DAG, useful for debugging.
+Issues the ``Registry`` to look for all ``configurations`` folder(s) under the current working directory.
 
+.. note::
+    The ``Registry`` search for registrations also accounts for nested ``configurations`` folders in a given directory.
 
-*********************************************
-External registrations
-*********************************************
+=============================================
+External dependencies
+=============================================
 
 Cinnamon is a community project. This means that **you** are the main contributor.
 
@@ -127,43 +169,34 @@ In many situations, you may need to import other's work: external configurations
 Cinnamon supports loading registration function calls that are external to your project's ``configurations`` folder.
 Moreover, you can also build your ``Configuration`` and ``Component`` with dependencies on external ones.
 
-For instance, suppose that a ``DataLoaderConfig`` variant has a external child (i.e., a ``Parameter`` pointing to an external ``RegistrationKey``).
+For instance, suppose that a ``DataLoaderConfig`` variant has a external dependency.
 
 .. code-block:: python
 
     class DataLoaderConfig(Configuration):
 
         @classmethod
-        def get_default(cls):
-            config = super().get_default(cls)
-            config.add(name='folder_name',
-                       type_hint=str,
-                       is_required=True)
+        def default(cls):
+            config = super(cls).get_default()
+
+            config.add(name='folder_name', type_hint=str)
 
             return config
 
         @classmethod
+        @register_method(name='loader', tags={'external'}, namespace='testing')
         def external_variant(cls):
-            config = cls.get_default()
-            config.add(name='processor',
-                       namespace='external')
+            config = cls.default()
 
-    @register
-    def register_data_loaders():
-        Registry.add_and_bind(config_class=DataLoaderConfig,
-                              component_class=DataLoader,
-                              config_constructor=DataLoaderConfig.external_variant,
-                              name='data_loader',
-                              namespace='showcase')
+            config.add(name='processor', value=RegistrationKey(name='processor', namespace='external'))
 
+            return config
 
-This registration is possible if we tell the ``Registry`` where to retrieve the ``RegistrationKey`` with ``name='processor'`` and ``namespace='external'``
-We can do so via ``Registry.load_registrations()`` to be invoked at the **beginning** of our main script to execute.
+In this case, to avoid incurring in errors, we need to inform the ``Registry`` where ``RegistrationKey(name='processor', namespace='external')`` has been declared.
 
+We do so, by specifying the main external directory when issuing ``Registry.setup()``.
 
 .. code-block:: python
 
-    external_directory_path = ...
-    Registry.load_registrations(directory_path=external_directory_path)
+    Registry.setup(directory=Path('.'), external_directories=[Path('path/to/external/directory')])
 
-In this way, during the dependency DAG resolution and expansion, the ``Registry`` searches in ``external_directory_path`` folder for ``RegistrationKey`` that are not found locally (i.e., in ``configurations`` folder).

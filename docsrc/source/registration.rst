@@ -128,34 +128,61 @@ where ``CustomConfiguration.custom_constructor`` could be defined as follows
 Retrieving registrations
 =============================================
 
-TODO
+Once registered, we can retrieve configuration registration info, including the configuration class, its constructor template and, if exists, the bound component class.
+
+.. code-block:: python
+
+    config_info = Registry.retrieve_configuration(name='test', tags={'default'}, namespace='testing')
+
+This information is usually not needed by a user since the ``Registry`` handles building ``Configuration`` and ``Component`` instances via a ``RegistrationKey`` directly.
 
 =============================================
 Building instances from registrations
 =============================================
 
-TODO
+Given a ``RegistrationKey``, the same used to register a ``Configuration``, we can issue the ``Registry`` to build a ``Configuration`` instance.
 
-*********************************************
+.. code-block:: python
+
+    config = Registry.build_configuration(name='test', tags={'default'}, namespace='testing')
+    config.x    # >>> 5
+
+Moreover, we can use the same ``RegistrationKey`` to build the bound ``Component`` instance.
+
+.. code-block:: python
+
+    component = Registry.build_component(name='test', tags={'default'}, namespace='testing')
+    component.x     # >>> 5
+
+Alternatively, we can rely on ``Component`` interface to build a specific component instance.
+
+.. code-block:: python
+
+    component = CustomComponent.build_component(name='test', tags={'default'}, namespace='testing')
+    component.x     # >>> 5
+
+
+=============================================
 Tl;dr (Too long; didn't read)
-*********************************************
+=============================================
 
 - Define your ``Component`` (code logic).
 - Define its corresponding ``Configuration`` (one or more).
 - Register the ``Configuration`` to the ``Registry`` via a ``RegistrationKey``.
 - The ``RegistrationKey`` is a compound string-based unique identifier.
+- Build ``Configuration`` instance via the ``RegistrationKey``.
 - Build ``Component`` instances via the ``RegistrationKey``.
 
 **Congrats! This is 99% of cinnamon!**
 
-*********************************************
+=============================================
 How to use registration APIs
-*********************************************
+=============================================
 
-You may be wondering **how** to properly use these registration APIs...
+You may be wondering **how** to properly use these registration APIs.
 
 Long story short, you **don't need** to contaminate your code with registration and binding operations.
 
 Cinnamon supports a **specific code organization** to **automatically** address all registration related operations while keeping a clean code organization.
 
-See :doc:`dependencies` for more details.
+See `dependencies <https://nlp-unibo.github.io/cinnamon/dependencies.html/>`_ for more details.
