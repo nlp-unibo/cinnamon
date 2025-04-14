@@ -35,7 +35,7 @@ Once set, a ``Param`` can be modified directly
     param.value = 10
     print(param.value)      # >>> 10
 
- The same applies for all other attributes of ``Param``.
+The same applies for all other attributes of ``Param``.
 
 =============================================
 Configuration
@@ -43,15 +43,7 @@ Configuration
 
 A ``Configuration`` stores all the parameters of a ``Component``.
 
-.. image:: img/configuration.png
-    :scale: 70%
-    :align: center
-
 Each parameter is wrapped into a ``Param``.
-
-.. image:: img/configuration_params.png
-    :scale: 60%
-    :align: center
 
 For example, we can define a ``Configuration`` inline with a ``Param`` as follows
 
@@ -428,3 +420,10 @@ Likewise, ``NestedChild`` has a child ``Configuration``, named ``child``.
 .. note::
     In ``cinnamon`` nested configurations are called **dependencies**.
     You can access to a ``Configuration`` dependencies via ``Configuration.dependencies`` property.
+
+.. toctree::
+   :maxdepth: 4
+   :hidden:
+   :caption: Contents:
+   :titlesonly:
+

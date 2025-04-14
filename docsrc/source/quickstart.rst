@@ -182,3 +182,10 @@ Via this paradigm, ``cinnamon`` supports:
 - Static and dynamic code **sanity check**.
 
 See `Configuration <https://nlp-unibo.github.io/cinnamon/configuration.html/>`_ for more details.
+
+.. toctree::
+   :maxdepth: 4
+   :hidden:
+   :caption: Contents:
+   :titlesonly:
+

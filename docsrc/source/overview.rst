@@ -1,7 +1,4 @@
-.. Cinnamon documentation master file, created by
-   sphinx-quickstart on Wed Aug 23 17:17:36 2023.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+.. _overview:
 
 Overview
 *********************************************
@@ -60,7 +57,7 @@ Contact
 
 Don't hesitate to contact:
 
-- `Federico Ruggeri <https://www.unibo.it/sitoweb/federico.ruggeri6/en>`_
+- `Federico Ruggeri <https://www.unibo.it/sitoweb/federico.ruggeri6>`_
 
 for questions/doubts/issues!
 
@@ -69,11 +66,3 @@ for questions/doubts/issues!
    :hidden:
    :caption: Contents:
    :titlesonly:
-
-   Overview <overview.rst>
-   Quickstart <quickstart.rst>
-   Configuration <configuration.rst>
-   Component <component.rst>
-   Registration <registration.rst>
-   Dependencies <dependencies.rst>
-   Commands <commands.rst>

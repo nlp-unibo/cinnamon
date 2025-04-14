@@ -81,4 +81,10 @@ Thus, ``cmn-run`` allows selecting one or more of those keys to execute all corr
     Intuitively, ``cmn-run`` supports running one or more ``RunnableComponent`` in sequence given a ``name``, some ``tags`` and a ``namespace``.
 
 
+.. toctree::
+   :maxdepth: 4
+   :hidden:
+   :caption: Contents:
+   :titlesonly:
+
 

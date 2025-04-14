@@ -200,3 +200,10 @@ We do so, by specifying the main external directory when issuing ``Registry.setu
 
     Registry.setup(directory=Path('.'), external_directories=[Path('path/to/external/directory')])
 
+
+.. toctree::
+   :maxdepth: 4
+   :hidden:
+   :caption: Contents:
+   :titlesonly:
+

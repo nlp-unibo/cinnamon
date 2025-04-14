@@ -1,3 +1,10 @@
+import sys
+from pathlib import Path
+
+sys.path.insert(0, Path(__file__).parent.parent.parent.resolve().absolute().as_posix())
+sys.path.insert(0, Path(__file__).parent.parent.parent.resolve().absolute().joinpath('cinnamon').as_posix())
+sys.path.insert(0, Path(__file__).parent.parent.parent.resolve().absolute().joinpath('cinnamon', 'utility').as_posix())
+
 # Configuration file for the Sphinx documentation builder.
 #
 # For the full list of built-in configuration values, see the documentation:
@@ -7,7 +14,7 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = 'Cinnamon'
-copyright = '2023, Federico Ruggeri'
+copyright = '2025, Federico Ruggeri'
 author = 'Federico Ruggeri'
 release = '0.1'
 
@@ -50,7 +57,6 @@ exclude_patterns = []
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-# TODO: change theme!
 html_title = 'Cinnamon'
 html_theme = 'sphinx_rtd_theme'
 # html_theme_path = [sphinx_pdj_theme.get_html_theme_path()]
