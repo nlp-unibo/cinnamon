@@ -136,14 +136,8 @@ Build the ``DataLoader`` via the used **registration key**
 
 ## Install
 
-
-pip
-
-      pip install cinnamon-core
-
-git
-
       git clone https://github.com/nlp-unibo/cinnamon
+      pip install ./cinnamon
 
 
 ## Contribute
@@ -158,6 +152,6 @@ Cinnamon is meant to be a community project :)
 ## Contact
 
 Don't hesitate to contact:
-- Federico Ruggeri @ [federico.ruggeri6@unibo.it](mailto:federico.ruggeri6@unibo.it)
+- Federico Ruggeri @ [federico.ruggeri6@unibo.it](https://www.unibo.it/sitoweb/federico.ruggeri6/en)
 
 for questions/doubts/issues!

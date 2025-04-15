@@ -1,0 +1,755 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>cinnamon.registry module &mdash; Cinnamon</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=2709fde1"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            Cinnamon
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../configuration.html">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../component.html">Component</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../registration.html">Registration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dependencies.html">Dependencies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../commands.html">Commands</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html">Code Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Cinnamon</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">cinnamon.registry module</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/cinnamon/registry.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-cinnamon.registry">
+<span id="cinnamon-registry-module"></span><h1>cinnamon.registry module<a class="headerlink" href="#module-cinnamon.registry" title="Link to this heading"></a></h1>
+<dl class="py exception">
+<dt class="sig sig-object py" id="cinnamon.registry.AlreadyRegisteredException">
+<em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cinnamon.registry.</span></span><span class="sig-name descname"><span class="pre">AlreadyRegisteredException</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">registration_key</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cinnamon.registry.AlreadyRegisteredException" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Exception</span></code></p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="cinnamon.registry.ConfigurationInfo">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cinnamon.registry.</span></span><span class="sig-name descname"><span class="pre">ConfigurationInfo</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config_class</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">constructor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">component_class</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">build_recursively</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cinnamon.registry.ConfigurationInfo" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Utility dataclass used for registration.
+Behind the curtains, the <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> class is stored in the Registry via its corresponding
+<code class="docutils literal notranslate"><span class="pre">ConfigurationInfo</span></code> wrapper.</p>
+<dl>
+<dt>This wrapper contains:</dt><dd><ul class="simple">
+<li><p>config_class: the <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> class type</p></li>
+<li><dl class="simple">
+<dt>constructor: the method for creating an instance from the specified <code class="docutils literal notranslate"><span class="pre">class_type</span></code>.</dt><dd><p>By default, the constructor is set to <code class="docutils literal notranslate"><span class="pre">Configuration.default()</span></code> method.</p>
+</dd>
+</dl>
+</li>
+<li><p>component_class: the <code class="docutils literal notranslate"><span class="pre">Component</span></code> class type</p></li>
+<li><p>build_recursively: whether the <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> or its bound <code class="docutils literal notranslate"><span class="pre">Component</span></code> dependencies</p></li>
+</ul>
+<p>should be built recursively or not.</p>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="cinnamon.registry.ConfigurationInfo.build_recursively">
+<span class="sig-name descname"><span class="pre">build_recursively</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></em><a class="headerlink" href="#cinnamon.registry.ConfigurationInfo.build_recursively" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="cinnamon.registry.ConfigurationInfo.component_class">
+<span class="sig-name descname"><span class="pre">component_class</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">Type</span></code><span class="pre">[</span><a class="reference internal" href="component.html#cinnamon.component.Component" title="cinnamon.component.Component"><code class="xref py py-class docutils literal notranslate"><span class="pre">Component</span></code></a><span class="pre">]</span></em><a class="headerlink" href="#cinnamon.registry.ConfigurationInfo.component_class" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="cinnamon.registry.ConfigurationInfo.config_class">
+<span class="sig-name descname"><span class="pre">config_class</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">Type</span></code><span class="pre">[</span><a class="reference internal" href="configuration.html#cinnamon.configuration.Configuration" title="cinnamon.configuration.Configuration"><code class="xref py py-class docutils literal notranslate"><span class="pre">Configuration</span></code></a><span class="pre">]</span></em><a class="headerlink" href="#cinnamon.registry.ConfigurationInfo.config_class" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="cinnamon.registry.ConfigurationInfo.constructor">
+<span class="sig-name descname"><span class="pre">constructor</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-data docutils literal notranslate"><span class="pre">Callable</span></code><span class="pre">[[],</span> <a class="reference internal" href="configuration.html#cinnamon.configuration.Configuration" title="cinnamon.configuration.Configuration"><code class="xref py py-class docutils literal notranslate"><span class="pre">Configuration</span></code></a><span class="pre">]</span></em><a class="headerlink" href="#cinnamon.registry.ConfigurationInfo.constructor" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="cinnamon.registry.InvalidDirectoryException">
+<em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cinnamon.registry.</span></span><span class="sig-name descname"><span class="pre">InvalidDirectoryException</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">directory</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cinnamon.registry.InvalidDirectoryException" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Exception</span></code></p>
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="cinnamon.registry.NamespaceNotFoundException">
+<em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cinnamon.registry.</span></span><span class="sig-name descname"><span class="pre">NamespaceNotFoundException</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">registration_key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">namespaces</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cinnamon.registry.NamespaceNotFoundException" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Exception</span></code></p>
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="cinnamon.registry.NotADAGException">
+<em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cinnamon.registry.</span></span><span class="sig-name descname"><span class="pre">NotADAGException</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">edges</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cinnamon.registry.NotADAGException" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Exception</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="cinnamon.registry.NotADAGException.build_edge_view">
+<span class="sig-name descname"><span class="pre">build_edge_view</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">edges</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cinnamon.registry.NotADAGException.build_edge_view" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="cinnamon.registry.NotRegisteredException">
+<em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cinnamon.registry.</span></span><span class="sig-name descname"><span class="pre">NotRegisteredException</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">registration_key</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cinnamon.registry.NotRegisteredException" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Exception</span></code></p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="cinnamon.registry.RegistrationKey">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cinnamon.registry.</span></span><span class="sig-name descname"><span class="pre">RegistrationKey</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">namespace</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tags</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">description</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">special_tags</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cinnamon.registry.RegistrationKey" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Compound key used for registration.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="cinnamon.registry.RegistrationKey.ATTRIBUTE_SEPARATOR">
+<span class="sig-name descname"><span class="pre">ATTRIBUTE_SEPARATOR</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'--'</span></em><a class="headerlink" href="#cinnamon.registry.RegistrationKey.ATTRIBUTE_SEPARATOR" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="cinnamon.registry.RegistrationKey.HIERARCHY_SEPARATOR">
+<span class="sig-name descname"><span class="pre">HIERARCHY_SEPARATOR</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'.'</span></em><a class="headerlink" href="#cinnamon.registry.RegistrationKey.HIERARCHY_SEPARATOR" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="cinnamon.registry.RegistrationKey.KEY_VALUE_SEPARATOR">
+<span class="sig-name descname"><span class="pre">KEY_VALUE_SEPARATOR</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'='</span></em><a class="headerlink" href="#cinnamon.registry.RegistrationKey.KEY_VALUE_SEPARATOR" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="cinnamon.registry.RegistrationKey.MAX_TAGS_PER_LINE">
+<span class="sig-name descname"><span class="pre">MAX_TAGS_PER_LINE</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">6</span></em><a class="headerlink" href="#cinnamon.registry.RegistrationKey.MAX_TAGS_PER_LINE" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="cinnamon.registry.RegistrationKey.compound_tags">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">compound_tags</span></span><a class="headerlink" href="#cinnamon.registry.RegistrationKey.compound_tags" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cinnamon.registry.RegistrationKey.from_string">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_string</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">string_format</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cinnamon.registry.RegistrationKey.from_string" title="Link to this definition"></a></dt>
+<dd><p>Parses a <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code> instance from its string format.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>string_format</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – the string format of a <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code> instance.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#cinnamon.registry.RegistrationKey" title="cinnamon.registry.RegistrationKey"><code class="xref py py-class docutils literal notranslate"><span class="pre">RegistrationKey</span></code></a></span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The corresponding parsed <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code> instance</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cinnamon.registry.RegistrationKey.from_tags_simplification">
+<span class="sig-name descname"><span class="pre">from_tags_simplification</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tags</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cinnamon.registry.RegistrationKey.from_tags_simplification" title="Link to this definition"></a></dt>
+<dd><p>Builds a new <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code> from current instance by removing provided tags.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>tags</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Set</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]]</span>) – a Tag set containing tags to remove</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code> instance that is the same as the current instance but with <code class="docutils literal notranslate"><span class="pre">tags</span></code> removed.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cinnamon.registry.RegistrationKey.from_variant">
+<span class="sig-name descname"><span class="pre">from_variant</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">variant_kwargs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">variant_indexes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cinnamon.registry.RegistrationKey.from_variant" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#cinnamon.registry.RegistrationKey" title="cinnamon.registry.RegistrationKey"><code class="xref py py-class docutils literal notranslate"><span class="pre">RegistrationKey</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="cinnamon.registry.RegistrationKey.hierarchy_tags">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">hierarchy_tags</span></span><a class="headerlink" href="#cinnamon.registry.RegistrationKey.hierarchy_tags" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cinnamon.registry.RegistrationKey.match">
+<span class="sig-name descname"><span class="pre">match</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tags</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cinnamon.registry.RegistrationKey.match" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cinnamon.registry.RegistrationKey.parse">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">parse</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">registration_key</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">namespace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tags</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cinnamon.registry.RegistrationKey.parse" title="Link to this definition"></a></dt>
+<dd><p>Parses a given <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code> instance.
+If the given <code class="docutils literal notranslate"><span class="pre">registration_key</span></code> is in its string format, it is converted to <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code> instance</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>registration_key</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<a class="reference internal" href="#cinnamon.registry.RegistrationKey" title="cinnamon.registry.RegistrationKey"><code class="xref py py-class docutils literal notranslate"><span class="pre">RegistrationKey</span></code></a>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>]</span>) – a <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code> instance in its class instance or string format</p></li>
+<li><p><strong>name</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]</span>) – the <code class="docutils literal notranslate"><span class="pre">name</span></code> field of <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code></p></li>
+<li><p><strong>namespace</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]</span>) – the <code class="docutils literal notranslate"><span class="pre">namespace</span></code> field of <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code></p></li>
+<li><p><strong>tags</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Set</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]]</span>) – the <code class="docutils literal notranslate"><span class="pre">tags</span></code> field of <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code></p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#cinnamon.registry.RegistrationKey" title="cinnamon.registry.RegistrationKey"><code class="xref py py-class docutils literal notranslate"><span class="pre">RegistrationKey</span></code></a></span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The parsed <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code> instance</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cinnamon.registry.RegistrationKey.sanitize_variant_tag">
+<span class="sig-name descname"><span class="pre">sanitize_variant_tag</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">param_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">param_index</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">param_value</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cinnamon.registry.RegistrationKey.sanitize_variant_tag" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cinnamon.registry.RegistrationKey.toJSON">
+<span class="sig-name descname"><span class="pre">toJSON</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cinnamon.registry.RegistrationKey.toJSON" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cinnamon.registry.RegistrationKey.to_pretty_string">
+<span class="sig-name descname"><span class="pre">to_pretty_string</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cinnamon.registry.RegistrationKey.to_pretty_string" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cinnamon.registry.RegistrationKey.to_record">
+<span class="sig-name descname"><span class="pre">to_record</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cinnamon.registry.RegistrationKey.to_record" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">List</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]], <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>], <code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="cinnamon.registry.Registry">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cinnamon.registry.</span></span><span class="sig-name descname"><span class="pre">Registry</span></span><a class="headerlink" href="#cinnamon.registry.Registry" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>The registration registry.
+The registry has three main functionalities:
+- Storing/Retrieving registered <code class="docutils literal notranslate"><span class="pre">Configuration</span></code>: via the <code class="docutils literal notranslate"><span class="pre">ConfigurationInfo</span></code> internal wrapper.
+- Storing/Retrieving <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> to <code class="docutils literal notranslate"><span class="pre">Component</span></code> bindings: the binding operation allows to build
+a <code class="docutils literal notranslate"><span class="pre">Component</span></code> instance from its registered <code class="docutils literal notranslate"><span class="pre">Configuration</span></code>.
+- Storing/Retrieving registered built <code class="docutils literal notranslate"><span class="pre">Component</span></code> instances: a <code class="docutils literal notranslate"><span class="pre">Component</span></code> instance can be registered
+as well to mimic Singleton behaviours. This functionality is useful is a single <code class="docutils literal notranslate"><span class="pre">Component</span></code> instance
+is used multiple times in a program.</p>
+<p>All the above functionalities require to specify a <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code> (either directly or indirectly).</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="cinnamon.registry.Registry.REGISTRATION_CONTEXT">
+<span class="sig-name descname"><span class="pre">REGISTRATION_CONTEXT</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">RegistrationContext</span></code></em><a class="headerlink" href="#cinnamon.registry.Registry.REGISTRATION_CONTEXT" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="cinnamon.registry.Registry.REGISTRATION_METHODS">
+<span class="sig-name descname"><span class="pre">REGISTRATION_METHODS</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">Dict</span></code><span class="pre">[</span><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code><span class="pre">,</span> <code class="xref py py-data docutils literal notranslate"><span class="pre">Callable</span></code><span class="pre">]</span></em><a class="headerlink" href="#cinnamon.registry.Registry.REGISTRATION_METHODS" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cinnamon.registry.Registry.build_component">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">build_component</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">registration_key</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">namespace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tags</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">build_args</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cinnamon.registry.Registry.build_component" title="Link to this definition"></a></dt>
+<dd><p>Builds a <code class="docutils literal notranslate"><span class="pre">Component</span></code> instance from its bounded <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> via the implicit <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>registration_key</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<a class="reference internal" href="#cinnamon.registry.RegistrationKey" title="cinnamon.registry.RegistrationKey"><code class="xref py py-class docutils literal notranslate"><span class="pre">RegistrationKey</span></code></a>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>]</span>) – the <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code> used to register the <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> class.</p></li>
+<li><p><strong>name</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]</span>) – the <code class="docutils literal notranslate"><span class="pre">name</span></code> attribute of <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code></p></li>
+<li><p><strong>tags</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Set</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]]</span>) – the <code class="docutils literal notranslate"><span class="pre">tags</span></code> attribute of <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code></p></li>
+<li><p><strong>namespace</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]</span>) – the <code class="docutils literal notranslate"><span class="pre">namespace</span></code> attribute of <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code></p></li>
+<li><p><strong>build_args</strong> – additional custom component constructor args</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="component.html#cinnamon.component.Component" title="cinnamon.component.Component"><code class="xref py py-class docutils literal notranslate"><span class="pre">Component</span></code></a></span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The built <code class="docutils literal notranslate"><span class="pre">Component</span></code> instance</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>InvalidConfigurationTypeException</strong> – if there’s a mismatch between the <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> class used</p></li>
+<li><p><strong>during registration and the type</strong><strong> of </strong><strong>the built Configuration instance using the registered</strong> – </p></li>
+<li><p><strong>constructor` method</strong><strong> (</strong><strong>see ConfigurationInfo arguments</strong><strong>)</strong> – </p></li>
+<li><p><strong>NotBoundException</strong> – if the <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> is not bound to any <code class="docutils literal notranslate"><span class="pre">Component</span></code>.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cinnamon.registry.Registry.build_configuration">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">build_configuration</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">registration_key</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">namespace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tags</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cinnamon.registry.Registry.build_configuration" title="Link to this definition"></a></dt>
+<dd><p>Retrieves a configuration instance given its registration key.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>registration_key</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<a class="reference internal" href="#cinnamon.registry.RegistrationKey" title="cinnamon.registry.RegistrationKey"><code class="xref py py-class docutils literal notranslate"><span class="pre">RegistrationKey</span></code></a>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>]</span>) – key used to register the configuration</p></li>
+<li><p><strong>name</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]</span>) – the <code class="docutils literal notranslate"><span class="pre">name</span></code> field of <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code></p></li>
+<li><p><strong>namespace</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]</span>) – the <code class="docutils literal notranslate"><span class="pre">namespace</span></code> field of <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code></p></li>
+<li><p><strong>tags</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Set</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]]</span>) – the <code class="docutils literal notranslate"><span class="pre">tags</span></code> field of <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code></p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="configuration.html#cinnamon.configuration.Configuration" title="cinnamon.configuration.Configuration"><code class="xref py py-class docutils literal notranslate"><span class="pre">Configuration</span></code></a></span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The built configuration</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>NotExpandedException</strong> – if the dependency DAG has not been expanded yet.</p></li>
+<li><p><a class="reference internal" href="#cinnamon.registry.NotRegisteredException" title="cinnamon.registry.NotRegisteredException"><strong>NotRegisteredException</strong></a> – if the provided <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code> is not in the registry.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cinnamon.registry.Registry.check_registration_graph">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">check_registration_graph</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cinnamon.registry.Registry.check_registration_graph" title="Link to this definition"></a></dt>
+<dd><p>Checks if the dependency DAG is valid.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>AlreadyExpandedException</strong> – if the dependency DAG has already been expanded.</p></li>
+<li><p><a class="reference internal" href="#cinnamon.registry.NotADAGException" title="cinnamon.registry.NotADAGException"><strong>NotADAGException</strong></a> – if the dependency DAG is not a DAG.</p></li>
+<li><p><strong>DisconnectedGraphException</strong> – if, for some reasons, the dependency DAG contains disconnected nodes.</p></li>
+<li><p><strong>This should never happen via cinnamon APIs</strong><strong>, </strong><strong>unless some manual intervention on the dependency DAG</strong> – </p></li>
+<li><p><strong>is carried out.</strong> – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cinnamon.registry.Registry.dag_resolution">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">dag_resolution</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cinnamon.registry.Registry.dag_resolution" title="Link to this definition"></a></dt>
+<dd><p>Expands and resolves dependencies in registration DAG.
+The dependency traversal is done bottom-up by recursively expanding top nodes
+(i.e., <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code> instances).
+Expanded keys are retrieved, and built for full validation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>a <code class="docutils literal notranslate"><span class="pre">ResolutionInfo`</span> <span class="pre">object</span> <span class="pre">containing</span> <span class="pre">valid</span> <span class="pre">``RegistrationKey</span></code>
+invalid_keys: a <code class="docutils literal notranslate"><span class="pre">ResolutionInfo`</span> <span class="pre">object</span> <span class="pre">containing</span> <span class="pre">invalid</span> <span class="pre">``RegistrationKey</span></code></p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>valid_keys</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="cinnamon.registry.Registry.expanded">
+<span class="sig-name descname"><span class="pre">expanded</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></em><a class="headerlink" href="#cinnamon.registry.Registry.expanded" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cinnamon.registry.Registry.in_graph">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">in_graph</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">registration_key</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">namespace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tags</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cinnamon.registry.Registry.in_graph" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cinnamon.registry.Registry.in_registry">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">in_registry</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">registration_key</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cinnamon.registry.Registry.in_registry" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cinnamon.registry.Registry.initialize">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">initialize</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cinnamon.registry.Registry.initialize" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cinnamon.registry.Registry.is_namespace_covered">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">is_namespace_covered</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">registration_key</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cinnamon.registry.Registry.is_namespace_covered" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cinnamon.registry.Registry.load_registrations">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">load_registrations</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">directory</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cinnamon.registry.Registry.load_registrations" title="Link to this definition"></a></dt>
+<dd><p>Imports a Python’s module for registration.
+In particular, the Registry looks for <code class="docutils literal notranslate"><span class="pre">register()</span></code> and <code class="docutils literal notranslate"><span class="pre">register_method()</span></code> decorators.
+These functions are the entry points for registrations: that is, where the <code class="docutils literal notranslate"><span class="pre">Registry</span></code> APIs are invoked
+to issue registrations.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>directory</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">AnyStr</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Path</span></code>]</span>) – path of the module</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#cinnamon.registry.InvalidDirectoryException" title="cinnamon.registry.InvalidDirectoryException"><strong>InvalidDirectoryException</strong></a> – if the provided directory is not a directory or does not exist.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cinnamon.registry.Registry.parse_configuration_files">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">parse_configuration_files</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">directories</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cinnamon.registry.Registry.parse_configuration_files" title="Link to this definition"></a></dt>
+<dd><p>Runs a static code analyzer to inspect code scripts containing cinnamon registrations
+with the goal of determining unique namespaces.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>directories</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">List</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Path</span></code>]</span>) – list of pathlib.Path directories containing cinnamon registrations.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>unique list of namespaces
+mapping: mapping from namespace to pathlib.Path directories.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>namespaces</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cinnamon.registry.Registry.register_configuration">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">register_configuration</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config_class</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">namespace</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tags</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config_constructor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">component_class</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">build_recursively</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cinnamon.registry.Registry.register_configuration" title="Link to this definition"></a></dt>
+<dd><p>Registers a <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> in the registry.
+In particular, a <code class="docutils literal notranslate"><span class="pre">ConfigurationInfo</span></code> wrapper is stored in the <code class="docutils literal notranslate"><span class="pre">Registry</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>config_class</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Type</span></code>[<a class="reference internal" href="configuration.html#cinnamon.configuration.Configuration" title="cinnamon.configuration.Configuration"><code class="xref py py-class docutils literal notranslate"><span class="pre">Configuration</span></code></a>]</span>) – the class of the <code class="docutils literal notranslate"><span class="pre">Configuration</span></code></p></li>
+<li><p><strong>name</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – the <code class="docutils literal notranslate"><span class="pre">name</span></code> field of <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code></p></li>
+<li><p><strong>namespace</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – the <code class="docutils literal notranslate"><span class="pre">namespace</span></code> field of <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code></p></li>
+<li><p><strong>tags</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Set</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]]</span>) – the <code class="docutils literal notranslate"><span class="pre">tags</span></code> field of <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code></p></li>
+<li><p><strong>config_constructor</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Callable</span></code>[[], <a class="reference internal" href="configuration.html#cinnamon.configuration.Configuration" title="cinnamon.configuration.Configuration"><code class="xref py py-class docutils literal notranslate"><span class="pre">Configuration</span></code></a>]]</span>) – the constructor method to build the <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> instance from its class</p></li>
+<li><p><strong>component_class</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Type</span></code>[<a class="reference internal" href="component.html#cinnamon.component.Component" title="cinnamon.component.Component"><code class="xref py py-class docutils literal notranslate"><span class="pre">Component</span></code></a>]]</span>) – component class to perform binding, if any</p></li>
+<li><p><strong>build_recursively</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – if True, children are automatically built iteratively.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The built <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code> instance that can be used to retrieve the registered <code class="docutils literal notranslate"><span class="pre">ConfigurationInfo</span></code>.</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>NotExpandedException</strong> – if the dependency DAG has not been expanded yet.</p></li>
+<li><p><a class="reference internal" href="#cinnamon.registry.AlreadyRegisteredException" title="cinnamon.registry.AlreadyRegisteredException"><strong>AlreadyRegisteredException</strong></a> – if the <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code> is already used</p></li>
+<li><p><a class="reference internal" href="#cinnamon.registry.NamespaceNotFoundException" title="cinnamon.registry.NamespaceNotFoundException"><strong>NamespaceNotFoundException</strong></a> – if one of the dependencies of <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code> belongs to a</p></li>
+<li><p><strong>namespace not covered.</strong> – </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cinnamon.registry.Registry.register_configuration_from_variant">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">register_configuration_from_variant</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config_class</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">namespace</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">variant_kwargs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tags</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config_constructor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">component_class</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">build_recursively</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cinnamon.registry.Registry.register_configuration_from_variant" title="Link to this definition"></a></dt>
+<dd><p>Registers a configuration from its variant key:value dict.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>config_class</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Type</span></code>[<a class="reference internal" href="configuration.html#cinnamon.configuration.Configuration" title="cinnamon.configuration.Configuration"><code class="xref py py-class docutils literal notranslate"><span class="pre">Configuration</span></code></a>]</span>) – the class of the <code class="docutils literal notranslate"><span class="pre">Configuration</span></code></p></li>
+<li><p><strong>name</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – the <code class="docutils literal notranslate"><span class="pre">name</span></code> field of <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code></p></li>
+<li><p><strong>namespace</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – the <code class="docutils literal notranslate"><span class="pre">namespace</span></code> field of <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code></p></li>
+<li><p><strong>variant_kwargs</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Dict</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>]</span>) – the key:value dict containing parameter names and their variant values.</p></li>
+<li><p><strong>tags</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Set</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]]</span>) – the <code class="docutils literal notranslate"><span class="pre">tags</span></code> field of <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code></p></li>
+<li><p><strong>config_constructor</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Callable</span></code>[[], <a class="reference internal" href="configuration.html#cinnamon.configuration.Configuration" title="cinnamon.configuration.Configuration"><code class="xref py py-class docutils literal notranslate"><span class="pre">Configuration</span></code></a>]]</span>) – the constructor method to build the <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> instance from its class</p></li>
+<li><p><strong>component_class</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Type</span></code>[<a class="reference internal" href="component.html#cinnamon.component.Component" title="cinnamon.component.Component"><code class="xref py py-class docutils literal notranslate"><span class="pre">Component</span></code></a>]]</span>) – component class to perform binding, if any</p></li>
+<li><p><strong>build_recursively</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – if True, children are automatically built iteratively.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The built <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code> instance that can be used to retrieve the registered <code class="docutils literal notranslate"><span class="pre">ConfigurationInfo</span></code>.</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>NotExpandedException</strong> – if the dependency DAG has not been expanded yet.</p></li>
+<li><p><a class="reference internal" href="#cinnamon.registry.AlreadyRegisteredException" title="cinnamon.registry.AlreadyRegisteredException"><strong>AlreadyRegisteredException</strong></a> – if the <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code> is already used</p></li>
+<li><p><a class="reference internal" href="#cinnamon.registry.NamespaceNotFoundException" title="cinnamon.registry.NamespaceNotFoundException"><strong>NamespaceNotFoundException</strong></a> – if one of the dependencies of <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code> belongs to a</p></li>
+<li><p><strong>namespace not covered.</strong> – </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cinnamon.registry.Registry.resolve_external_directories">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">resolve_external_directories</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">external_directories</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cinnamon.registry.Registry.resolve_external_directories" title="Link to this definition"></a></dt>
+<dd><p>Checks if provided directories are valid directories and exist.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>external_directories</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">List</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">AnyStr</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Path</span></code>]]</span>) – list of directories to validate.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>list of validated directories as pathlib.Path instances</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>resolved_directories</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#cinnamon.registry.InvalidDirectoryException" title="cinnamon.registry.InvalidDirectoryException"><strong>InvalidDirectoryException</strong></a> – if any of the provided directories is not a directory or does not exist.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cinnamon.registry.Registry.retrieve_configuration">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">retrieve_configuration</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">registration_key</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">namespace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tags</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cinnamon.registry.Registry.retrieve_configuration" title="Link to this definition"></a></dt>
+<dd><blockquote>
+<div><p>Retrieves a <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> instance from the registry via its <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code>.</p>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>registration_key</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<a class="reference internal" href="#cinnamon.registry.RegistrationKey" title="cinnamon.registry.RegistrationKey"><code class="xref py py-class docutils literal notranslate"><span class="pre">RegistrationKey</span></code></a>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>]</span>) – key used to register the configuration</p></li>
+<li><p><strong>name</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]</span>) – the <code class="docutils literal notranslate"><span class="pre">name</span></code> field of <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code></p></li>
+<li><p><strong>namespace</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]</span>) – the <code class="docutils literal notranslate"><span class="pre">namespace</span></code> field of <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code></p></li>
+<li><p><strong>tags</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Set</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]]</span>) – the <code class="docutils literal notranslate"><span class="pre">tags</span></code> field of <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code></p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>the built configuration instance</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>config</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cinnamon.registry.Registry.retrieve_configuration_info">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">retrieve_configuration_info</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">registration_key</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">namespace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tags</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cinnamon.registry.Registry.retrieve_configuration_info" title="Link to this definition"></a></dt>
+<dd><blockquote>
+<div><p>Retrieves a <code class="docutils literal notranslate"><span class="pre">ConfigurationInfo</span></code> from the registry via its <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code>.</p>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>registration_key</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<a class="reference internal" href="#cinnamon.registry.RegistrationKey" title="cinnamon.registry.RegistrationKey"><code class="xref py py-class docutils literal notranslate"><span class="pre">RegistrationKey</span></code></a>]</span>) – key used to register the configuration</p></li>
+<li><p><strong>name</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]</span>) – the <code class="docutils literal notranslate"><span class="pre">name</span></code> field of <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code></p></li>
+<li><p><strong>namespace</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]</span>) – the <code class="docutils literal notranslate"><span class="pre">namespace</span></code> field of <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code></p></li>
+<li><p><strong>tags</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Set</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]]</span>) – the <code class="docutils literal notranslate"><span class="pre">tags</span></code> field of <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code></p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#cinnamon.registry.ConfigurationInfo" title="cinnamon.registry.ConfigurationInfo"><code class="xref py py-class docutils literal notranslate"><span class="pre">ConfigurationInfo</span></code></a></span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The <code class="docutils literal notranslate"><span class="pre">ConfigurationInfo</span></code> instance</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#cinnamon.registry.NotRegisteredException" title="cinnamon.registry.NotRegisteredException"><strong>NotRegisteredException</strong></a> – if the provided <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code> is not in the registry.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cinnamon.registry.Registry.retrieve_keys">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">retrieve_keys</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">names</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">namespaces</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tags</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keys</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cinnamon.registry.Registry.retrieve_keys" title="Link to this definition"></a></dt>
+<dd><p>Retrieves <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code> from registry via given name, tags, namespaces filters.
+The search can be limited to a fixed set of keys, optionally given in input.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>names</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">List</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>], <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>]</span>) – a name or a list of names to filter registration keys.</p></li>
+<li><p><strong>namespaces</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">List</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>], <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>]</span>) – a namespace or a list of namespaces to filter registration keys.</p></li>
+<li><p><strong>tags</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Set</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]]</span>) – a tag set to filter registration keys.</p></li>
+<li><p><strong>keys</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">List</span></code>[<a class="reference internal" href="#cinnamon.registry.RegistrationKey" title="cinnamon.registry.RegistrationKey"><code class="xref py py-class docutils literal notranslate"><span class="pre">RegistrationKey</span></code></a>]]</span>) – an optional list of <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code> on which to apply the search.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">List</span></code>[<a class="reference internal" href="#cinnamon.registry.RegistrationKey" title="cinnamon.registry.RegistrationKey"><code class="xref py py-class docutils literal notranslate"><span class="pre">RegistrationKey</span></code></a>]</span></p>
+</dd>
+</dl>
+<p>Returns:</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cinnamon.registry.Registry.setup">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">setup</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">directory</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">external_directories</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cinnamon.registry.Registry.setup" title="Link to this definition"></a></dt>
+<dd><p>Main entrypoint of cinnamon.
+The registry checks provided directories for configurations to populate its internal registry and build
+the dependency DAG.
+Eventually, the dependency DAG is expanded to account for variants and invalid configurations.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>directory</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Path</span></code>, <code class="xref py py-data docutils literal notranslate"><span class="pre">AnyStr</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>]</span>) – the main directory of the project containing configurations.</p></li>
+<li><p><strong>external_directories</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">List</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">AnyStr</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Path</span></code>]]]</span>) – additional external directories containing configurations.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>a <code class="docutils literal notranslate"><span class="pre">ResolutionInfo`</span> <span class="pre">object</span> <span class="pre">containing</span> <span class="pre">valid</span> <span class="pre">``RegistrationKey</span></code>
+invalid_keys: a <code class="docutils literal notranslate"><span class="pre">ResolutionInfo`</span> <span class="pre">object</span> <span class="pre">containing</span> <span class="pre">invalid</span> <span class="pre">``RegistrationKey</span></code></p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>valid_keys</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>RuntimeWarning</strong> – if duplicate namespaces are found.</p></li>
+<li><p><a class="reference internal" href="#cinnamon.registry.InvalidDirectoryException" title="cinnamon.registry.InvalidDirectoryException"><strong>InvalidDirectoryException</strong></a> – if one of the provided directories does not exist or is not a directory.</p></li>
+<li><p><strong>AlreadyExpandedException</strong> – if the dependency DAG has already been expanded.</p></li>
+<li><p><a class="reference internal" href="#cinnamon.registry.NotADAGException" title="cinnamon.registry.NotADAGException"><strong>NotADAGException</strong></a> – if the dependency DAG is not a DAG.</p></li>
+<li><p><strong>DisconnectedGraphException</strong> – if, for some reasons, the dependency DAG contains disconnected nodes.</p></li>
+<li><p><strong>This should never happen via cinnamon APIs</strong><strong>, </strong><strong>unless some manual intervention on the dependency DAG</strong> – </p></li>
+<li><p><strong>is carried out.</strong> – </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cinnamon.registry.Registry.update_namespaces">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">update_namespaces</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">namespaces</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">module_mapping</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cinnamon.registry.Registry.update_namespaces" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="cinnamon.registry.ResolutionInfo">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cinnamon.registry.</span></span><span class="sig-name descname"><span class="pre">ResolutionInfo</span></span><a class="headerlink" href="#cinnamon.registry.ResolutionInfo" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Contains information about <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code> and corresponding <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> that have been retrieved after
+Registry DAG resolution of dependencies.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="cinnamon.registry.ResolutionInfo.add">
+<span class="sig-name descname"><span class="pre">add</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cinnamon.registry.ResolutionInfo.add" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cinnamon.registry.register">
+<span class="sig-prename descclassname"><span class="pre">cinnamon.registry.</span></span><span class="sig-name descname"><span class="pre">register</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cinnamon.registry.register" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Callable</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cinnamon.registry.register_method">
+<span class="sig-prename descclassname"><span class="pre">cinnamon.registry.</span></span><span class="sig-name descname"><span class="pre">register_method</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">namespace</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tags</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">component_class</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">build_recursively</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cinnamon.registry.register_method" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Callable</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Federico Ruggeri.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
