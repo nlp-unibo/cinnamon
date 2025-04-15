@@ -3,8 +3,8 @@
 Registration Dependencies
 *********************************************
 
-In `registration <https://nlp-unibo.github.io/cinnamon/registration.html/>`_, we have seen that cinnamon pairs ``Configuration`` to ``Component`` via ``RegistrationKey``.
-Moreover, ``Configuration`` can be nested to indirectly define nested ``Component`` (see `configuration <https://nlp-unibo.github.io/cinnamon/configuration.html/>`_).
+In `registration <https://nlp-unibo.github.io/cinnamon/registration.html>`_, we have seen that cinnamon pairs ``Configuration`` to ``Component`` via ``RegistrationKey``.
+Moreover, ``Configuration`` can be nested to indirectly define nested ``Component`` (see `configuration <https://nlp-unibo.github.io/cinnamon/configuration.html>`_).
 
 We are only left to the question of **how** should we use these APIs to work with cinnamon.
 

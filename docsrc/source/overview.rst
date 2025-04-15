@@ -43,13 +43,13 @@ Install
 Quickstart
 ===============================================
 
-Check `quickstart <https://nlp-unibo.github.io/cinnamon/quickstart.html/>`_ for a quick introduction to how ``cinnamon`` works.
+Check `quickstart <https://nlp-unibo.github.io/cinnamon/quickstart.html>`_ for a quick introduction to how ``cinnamon`` works.
 
 ===============================================
 Demos
 ===============================================
 
-Check `cinnamon-examples <https://nlp-unibo.github.io/cinnamon_examples/>`_ for a quick overview on how to evaluate a SVM classifier on a binary classification task with cinnamon!
+Check `cinnamon-examples <https://nlp-unibo.github.io/cinnamon_examples>`_ for a quick overview on how to evaluate a SVM classifier on a binary classification task with cinnamon!
 
 ===============================================
 Contact

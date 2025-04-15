@@ -172,7 +172,7 @@ Beyond quickstart
 ``cinnamon`` uses the **registration, bind, and build** to provide flexible, clean and easy to extend code.
 
 The main code dependency are ``RegistrationKey`` instances.
-See `Registration <https://nlp-unibo.github.io/cinnamon/registration.html/>`_ if you want to know more about how to set up your code with ``cinnamon``.
+See `Registration <https://nlp-unibo.github.io/cinnamon/registration.html>`_ if you want to know more about how to set up your code with ``cinnamon``.
 
 Via this paradigm, ``cinnamon`` supports:
 
@@ -181,7 +181,7 @@ Via this paradigm, ``cinnamon`` supports:
 - Quick integration of **external** ``Component`` and ``Configuration`` (e.g., written by other users).
 - Static and dynamic code **sanity check**.
 
-See `Configuration <https://nlp-unibo.github.io/cinnamon/configuration.html/>`_ for more details.
+See `Configuration <https://nlp-unibo.github.io/cinnamon/configuration.html>`_ for more details.
 
 .. toctree::
    :maxdepth: 4

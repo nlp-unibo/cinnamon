@@ -185,7 +185,7 @@ Long story short, you **don't need** to contaminate your code with registration 
 
 Cinnamon supports a **specific code organization** to **automatically** address all registration related operations while keeping a clean code organization.
 
-See `dependencies <https://nlp-unibo.github.io/cinnamon/dependencies.html/>`_ for more details.
+See `dependencies <https://nlp-unibo.github.io/cinnamon/dependencies.html>`_ for more details.
 
 
 .. toctree::
