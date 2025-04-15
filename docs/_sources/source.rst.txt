@@ -1,0 +1,12 @@
+.. _source:
+
+Code Documentation
+*********************************************
+
+.. autosummary::
+    .. toctree:: generated
+
+    ../cinnamon/configuration
+    ../cinnamon/component
+    ../cinnamon/registry
+    ../cinnamon/command_line

@@ -1,0 +1,7 @@
+cinnamon.command\_line module
+=============================
+
+.. automodule:: cinnamon.command_line
+   :members:
+   :undoc-members:
+   :show-inheritance:

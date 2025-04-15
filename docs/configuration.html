@@ -1,0 +1,467 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Configuration &mdash; Cinnamon</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=2709fde1"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Component" href="component.html" />
+    <link rel="prev" title="Quickstart" href="quickstart.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Cinnamon
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Configuration</a><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="component.html">Component</a></li>
+<li class="toctree-l1"><a class="reference internal" href="registration.html">Registration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="dependencies.html">Dependencies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="commands.html">Commands</a></li>
+<li class="toctree-l1"><a class="reference internal" href="modules.html">Code Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Cinnamon</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Configuration</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/configuration.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="configuration">
+<span id="id1"></span><h1>Configuration<a class="headerlink" href="#configuration" title="Link to this heading"></a></h1>
+<section id="param">
+<h2>Param<a class="headerlink" href="#param" title="Link to this heading"></a></h2>
+<p>A <code class="docutils literal notranslate"><span class="pre">Param</span></code> is a useful wrapper for storing additional metadata like</p>
+<ul class="simple">
+<li><p>type hints</p></li>
+<li><p>textual descriptions</p></li>
+<li><p>allowed value range</p></li>
+<li><p>possible value variants</p></li>
+<li><p>optional tags for efficient <code class="docutils literal notranslate"><span class="pre">Param</span></code> search</p></li>
+</ul>
+<p>For instance, the following code defines an integer <code class="docutils literal notranslate"><span class="pre">Param</span></code> with a specific allowed value range</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">param</span> <span class="o">=</span> <span class="n">Param</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">type_hint</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">allowed_range</span><span class="o">=</span><span class="k">lambda</span> <span class="n">p</span><span class="p">:</span> <span class="n">p</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">10</span><span class="p">])</span>
+</pre></div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">name</span></code> attribute is the <code class="docutils literal notranslate"><span class="pre">Param</span></code> unique identifier.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">allowed_range</span></code> attribute introduces a condition such that <code class="docutils literal notranslate"><span class="pre">x</span></code> can only be set to <code class="docutils literal notranslate"><span class="pre">1,</span></code>, <code class="docutils literal notranslate"><span class="pre">5</span></code> or <code class="docutils literal notranslate"><span class="pre">10</span></code>.</p>
+<p>Once set, a <code class="docutils literal notranslate"><span class="pre">Param</span></code> can be modified directly</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">param</span> <span class="o">=</span> <span class="n">Param</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">type_hint</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">allowed_range</span><span class="o">=</span><span class="k">lambda</span> <span class="n">p</span><span class="p">:</span> <span class="n">p</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">10</span><span class="p">])</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">param</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>      <span class="c1"># &gt;&gt;&gt; 5</span>
+<span class="n">param</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="mi">10</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">param</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>      <span class="c1"># &gt;&gt;&gt; 10</span>
+</pre></div>
+</div>
+<p>The same applies for all other attributes of <code class="docutils literal notranslate"><span class="pre">Param</span></code>.</p>
+</section>
+<section id="id2">
+<h2>Configuration<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
+<p>A <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> stores all the parameters of a <code class="docutils literal notranslate"><span class="pre">Component</span></code>.</p>
+<p>Each parameter is wrapped into a <code class="docutils literal notranslate"><span class="pre">Param</span></code>.</p>
+<p>For example, we can define a <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> inline with a <code class="docutils literal notranslate"><span class="pre">Param</span></code> as follows</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">config</span> <span class="o">=</span> <span class="n">Configuration</span><span class="p">()</span>
+<span class="n">config</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">type_hint</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s1">&#39;An example parameter&#39;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">x</span><span class="p">)</span>     <span class="c1"># &gt;&gt;&gt; 50</span>
+<span class="n">config</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="mi">10</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">x</span><span class="p">)</span>     <span class="c1"># &gt;&gt;&gt; 10</span>
+</pre></div>
+</div>
+<p>We can always access the <code class="docutils literal notranslate"><span class="pre">Param</span></code> instance via <code class="docutils literal notranslate"><span class="pre">config.get()</span></code> as follows</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">config</span> <span class="o">=</span> <span class="n">Configuration</span><span class="p">()</span>
+<span class="n">config</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">type_hint</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s1">&#39;An example parameter&#39;</span><span class="p">)</span>
+<span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;x&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="mi">20</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">x</span><span class="p">)</span>     <span class="c1"># &gt;&gt;&gt; 20</span>
+<span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;x&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">variants</span> <span class="o">=</span> <span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">70</span><span class="p">]</span>
+</pre></div>
+</div>
+<p>Adding a <code class="docutils literal notranslate"><span class="pre">Param</span></code> with via <code class="docutils literal notranslate"><span class="pre">name</span></code> that already exist will throw an error</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">config</span> <span class="o">=</span> <span class="n">Configuration</span><span class="p">()</span>
+<span class="n">config</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+<span class="n">config</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>    <span class="c1"># &gt;&gt;&gt; raises cinnamon.AlreadyExistingParameterException</span>
+</pre></div>
+</div>
+<p>Likewise, setting a non-existing <code class="docutils literal notranslate"><span class="pre">Param</span></code> will throw an error</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">config</span> <span class="o">=</span> <span class="n">Configuration</span><span class="p">()</span>
+<span class="n">config</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+<span class="n">config</span><span class="o">.</span><span class="n">y</span> <span class="o">=</span> <span class="kc">True</span>     <span class="c1"># &gt;&gt;&gt; raises AttributeError</span>
+</pre></div>
+</div>
+<section id="adding-conditions">
+<h3>Adding conditions<a class="headerlink" href="#adding-conditions" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">Configuration</span></code> also support special kind of <code class="docutils literal notranslate"><span class="pre">Param</span></code> known as <strong>conditions</strong>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Therefore, all <code class="docutils literal notranslate"><span class="pre">Param</span></code> rules apply to conditions as well, such as conflicting names.</p>
+</div>
+<p>Conditions allow a user to set constraints on a <code class="docutils literal notranslate"><span class="pre">Configuration</span></code>, such as enforcing a specific <code class="docutils literal notranslate"><span class="pre">Param</span></code> combination.</p>
+<p>Some conditions are set under the hood when adding a <code class="docutils literal notranslate"><span class="pre">Param</span></code></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">config</span> <span class="o">=</span> <span class="n">Configuration</span><span class="p">()</span>
+<span class="n">config</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">allowed_range</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">v</span><span class="p">:</span> <span class="n">v</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">)</span>
+<span class="n">config</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="n">is_required</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Here, we set two different <strong>conditions</strong>.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">allowed_range</span></code>: specifies that <code class="docutils literal notranslate"><span class="pre">x</span></code> can only be greater or equal than 0</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">is_required</span></code>: specifies that <code class="docutils literal notranslate"><span class="pre">y</span></code> cannot be set to <code class="docutils literal notranslate"><span class="pre">None</span></code></p></li>
+</ul>
+<p>We can also write our own conditions</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">config</span> <span class="o">=</span> <span class="n">Configuration</span><span class="p">()</span>
+<span class="n">config</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+<span class="n">config</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+<span class="n">config</span><span class="o">.</span><span class="n">add_condition</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;match_x_y&#39;</span><span class="p">,</span> <span class="n">condition</span><span class="o">=</span><span class="k">lambda</span> <span class="n">c</span><span class="p">:</span> <span class="n">c</span><span class="o">.</span><span class="n">x</span> <span class="o">==</span> <span class="n">c</span><span class="o">.</span><span class="n">y</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Here we specify that we only allow <code class="docutils literal notranslate"><span class="pre">config</span></code> to have <code class="docutils literal notranslate"><span class="pre">x</span></code> equal to <code class="docutils literal notranslate"><span class="pre">y</span></code>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>So far, we have only defined conditions.
+We require now some APIs to <strong>validate</strong> such conditions to ensure that <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> instances can be used.</p>
+</div>
+</section>
+<section id="validating-configurations">
+<h3>Validating Configurations<a class="headerlink" href="#validating-configurations" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">Configuration</span></code> conditions are <strong>not</strong> executed <strong>automatically</strong>.</p>
+<p>We can directly evaluate all conditions via <code class="docutils literal notranslate"><span class="pre">Configuration.validate</span></code> method</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">config</span> <span class="o">=</span> <span class="n">Configuration</span><span class="p">()</span>
+<span class="n">config</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">variants</span><span class="o">=</span><span class="p">[</span><span class="mi">5</span><span class="p">,</span> <span class="mi">15</span><span class="p">])</span>
+<span class="n">config</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">variants</span><span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">15</span><span class="p">])</span>
+<span class="n">config</span><span class="o">.</span><span class="n">add_condition</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;match_x_y&#39;</span><span class="p">,</span> <span class="n">condition</span><span class="o">=</span><span class="k">lambda</span> <span class="n">c</span><span class="p">:</span> <span class="n">c</span><span class="o">.</span><span class="n">x</span> <span class="o">==</span> <span class="n">c</span><span class="o">.</span><span class="n">y</span><span class="p">)</span>
+<span class="n">config</span><span class="o">.</span><span class="n">validate</span><span class="p">()</span>               <span class="c1"># &gt;&gt;&gt; raises cinnamon.ValidationFailureException</span>
+<span class="n">config</span><span class="o">.</span><span class="n">validate</span><span class="p">(</span><span class="n">strict</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>   <span class="c1"># &gt;&gt;&gt; False</span>
+
+<span class="n">config</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="mi">5</span>
+<span class="n">config</span><span class="o">.</span><span class="n">validate</span><span class="p">()</span>       <span class="c1"># nothing happens, all conditions pass</span>
+</pre></div>
+</div>
+</section>
+<section id="search-params">
+<h3>Search Params<a class="headerlink" href="#search-params" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">Param</span></code> support tags, a <strong>set</strong> of arbitrary string keywords provided by users.</p>
+<p>Tags allow to quickly retrieve <code class="docutils literal notranslate"><span class="pre">Param</span></code> that share one or more keywords from a <code class="docutils literal notranslate"><span class="pre">Configuration</span></code></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">config</span> <span class="o">=</span> <span class="n">Configuration</span><span class="p">()</span>
+<span class="n">config</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;number&quot;</span><span class="p">})</span>
+<span class="n">config</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;boolean&quot;</span><span class="p">})</span>
+<span class="n">config</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;z&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;number&quot;</span><span class="p">})</span>
+
+<span class="n">config</span><span class="o">.</span><span class="n">search_param_by_tag</span><span class="p">(</span><span class="n">tags</span><span class="o">=</span><span class="s1">&#39;number&#39;</span><span class="p">)</span>   <span class="c1"># &gt;&gt;&gt; [x, z]</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">Param</span></code> search can also be generalized based on custom conditions</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">config</span> <span class="o">=</span> <span class="n">Configuration</span><span class="p">()</span>
+<span class="n">config</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;number&quot;</span><span class="p">})</span>
+<span class="n">config</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;boolean&quot;</span><span class="p">})</span>
+<span class="n">config</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;z&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;number&quot;</span><span class="p">})</span>
+
+<span class="n">config</span><span class="o">.</span><span class="n">search_param</span><span class="p">(</span><span class="n">conditions</span><span class="o">=</span><span class="p">[</span>
+    <span class="k">lambda</span> <span class="n">param</span><span class="p">:</span> <span class="s1">&#39;number&#39;</span> <span class="ow">in</span> <span class="n">param</span><span class="o">.</span><span class="n">tags</span>
+<span class="p">])</span>
+<span class="c1"># &gt;&gt;&gt; [x, z]</span>
+</pre></div>
+</div>
+<section id="delta-copy">
+<h4>Delta copy<a class="headerlink" href="#delta-copy" title="Link to this heading"></a></h4>
+<p>In many cases, we may need a slightly modified <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> instance.</p>
+<p>We can quickly create a <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> instance delta copy by only specifying the parameters to change</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">config</span> <span class="o">=</span> <span class="n">Configuration</span><span class="p">()</span>
+<span class="n">config</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+<span class="n">delta_copy</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">delta_copy</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="mi">20</span><span class="p">)</span>
+<span class="n">delta_copy</span><span class="o">.</span><span class="n">x</span>    <span class="c1"># &gt;&gt;&gt; 20</span>
+<span class="n">config</span><span class="o">.</span><span class="n">x</span>        <span class="c1"># &gt;&gt;&gt; 5</span>
+</pre></div>
+</div>
+<p>We have created a delta copy of <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> instance with <code class="docutils literal notranslate"><span class="pre">x</span></code> set to 20 instead of 5.</p>
+</section>
+<section id="default-template">
+<h4>Default template<a class="headerlink" href="#default-template" title="Link to this heading"></a></h4>
+<p><code class="docutils literal notranslate"><span class="pre">Configuration</span></code> are usually not defined inline as shown in the previous examples, but through class methods.</p>
+<p>In particular, the <code class="docutils literal notranslate"><span class="pre">default</span></code> method defines the default template for <code class="docutils literal notranslate"><span class="pre">Configuration</span></code>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">MyConfig</span><span class="p">(</span><span class="n">cinnamon</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">Configuration</span><span class="p">):</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">default</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">default</span><span class="p">()</span>
+
+        <span class="n">config</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">config</span>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">config</span> <span class="o">=</span> <span class="n">MyConfig</span><span class="o">.</span><span class="n">default</span><span class="p">()</span>
+    <span class="n">config</span><span class="o">.</span><span class="n">x</span>    <span class="c1"># &gt;&gt;&gt; 5</span>
+</pre></div>
+</div>
+<p>As any class, we can define custom template methods</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">MyConfig</span><span class="p">(</span><span class="n">cinnamon</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">Configuration</span><span class="p">):</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">default</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">default</span><span class="p">()</span>
+
+        <span class="n">config</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">config</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">custom_template</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">default</span><span class="p">()</span>
+
+        <span class="n">config</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="mi">20</span>
+        <span class="n">config</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">config</span>
+</pre></div>
+</div>
+<p>Intuitively, since we are dealing with python classes, we can exploit inheritance to quickly define configuration extensions</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">MyConfig</span><span class="p">(</span><span class="n">cinnamon</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">Configuration</span><span class="p">):</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">default</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">default</span><span class="p">()</span>
+
+        <span class="n">config</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">config</span>
+
+<span class="k">class</span> <span class="nc">MyConfigExtension</span><span class="p">(</span><span class="n">MyConfig</span><span class="p">):</span>
+
+   <span class="nd">@classmethod</span>
+   <span class="k">def</span> <span class="nf">default</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+       <span class="n">config</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">default</span><span class="p">()</span>
+
+       <span class="n">config</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+       <span class="k">return</span> <span class="n">config</span>
+</pre></div>
+</div>
+</section>
+<section id="variants">
+<h4>Variants<a class="headerlink" href="#variants" title="Link to this heading"></a></h4>
+<p>In a project, we may have that a <code class="docutils literal notranslate"><span class="pre">Component</span></code> is bound to several <code class="docutils literal notranslate"><span class="pre">Configuration</span></code>.</p>
+<p>In some of these cases, each of these <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> are just slight parameter variations of a single <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> template.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">CustomComponent</span><span class="p">(</span><span class="n">cinnamon</span><span class="o">.</span><span class="n">component</span><span class="o">.</span><span class="n">Component</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="n">x</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">y</span> <span class="o">=</span> <span class="n">y</span>
+
+<span class="k">class</span> <span class="nc">CustomConfig</span><span class="p">(</span><span class="n">cinnamon</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">Configuration</span><span class="p">):</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">default</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">default</span><span class="p">()</span>
+
+        <span class="n">config</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+        <span class="n">config</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">config</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">variantA</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">default</span><span class="p">()</span>
+
+        <span class="n">config</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="mi">20</span>
+        <span class="n">config</span><span class="o">.</span><span class="n">y</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="k">return</span> <span class="n">config</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">variantB</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">default</span><span class="p">()</span>
+
+        <span class="n">config</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="mi">42</span>
+        <span class="n">config</span><span class="o">.</span><span class="n">y</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="k">return</span> <span class="n">config</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">variantC</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">default</span><span class="p">()</span>
+
+        <span class="c1"># This is allowed since there is no condition prohibiting so</span>
+        <span class="n">config</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">config</span>
+</pre></div>
+</div>
+<p>In cinnamon, we can avoid explicitly defining all these <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> templates and relying on the notion of <strong>configuration variant</strong>.</p>
+<p>A configuration variant is a <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> template that has at least one different parameter value.</p>
+<p>We define variants by specifying the <code class="docutils literal notranslate"><span class="pre">variants</span></code> field when adding a parameter to the <code class="docutils literal notranslate"><span class="pre">Configuration</span></code>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">CustomConfig</span><span class="p">(</span><span class="n">cinnamon</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">Configuration</span><span class="p">):</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">default</span><span class="p">(</span>
+            <span class="bp">cls</span>
+    <span class="p">):</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">default</span><span class="p">()</span>
+
+        <span class="n">config</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;x&#39;</span><span class="p">,</span>
+                   <span class="n">value</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+                   <span class="n">variants</span><span class="o">=</span><span class="p">[</span><span class="mi">20</span><span class="p">,</span> <span class="mi">42</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]])</span>
+        <span class="n">config</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;y&#39;</span><span class="p">,</span>
+                   <span class="n">value</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                   <span class="n">variants</span><span class="o">=</span><span class="p">[</span><span class="kc">True</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">config</span>
+</pre></div>
+</div>
+<p>In the above code example, <code class="docutils literal notranslate"><span class="pre">CustomConfig</span></code> has <code class="docutils literal notranslate"><span class="pre">x</span></code> and <code class="docutils literal notranslate"><span class="pre">y</span></code> boolean parameters.
+Both of them specify value variants, thus, defining 8 different <code class="docutils literal notranslate"><span class="pre">CustomConfig</span></code> variants, one for each combination of the two parameters.</p>
+<p>We can quickly inspect these variants via <code class="docutils literal notranslate"><span class="pre">Configuration.variants</span></code> property.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">config</span> <span class="o">=</span> <span class="n">MyConfig</span><span class="o">.</span><span class="n">default</span><span class="p">()</span>
+<span class="n">variants</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">variants</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="c1"># &gt;&gt;&gt; variants[0] = {&#39;x&#39;: 5, &#39;y&#39;: False}</span>
+<span class="c1"># &gt;&gt;&gt; variants[1] = {&#39;x&#39;: 5, &#39;y&#39;: True}</span>
+<span class="c1"># &gt;&gt;&gt; variants[2] = {&#39;x&#39;: 20, &#39;y&#39;: False}</span>
+<span class="c1"># &gt;&gt;&gt; variants[3] = {&#39;x&#39;: 20, &#39;y&#39;: True}</span>
+<span class="c1"># &gt;&gt;&gt; variants[4] = {&#39;x&#39;: 42, &#39;y&#39;: False}</span>
+<span class="c1"># &gt;&gt;&gt; variants[5] = {&#39;x&#39;: 42, &#39;y&#39;: True}</span>
+<span class="c1"># &gt;&gt;&gt; variants[6] = {&#39;x&#39;: [1, 2, 3], &#39;y&#39;: False}</span>
+<span class="c1"># &gt;&gt;&gt; variants[7] = {&#39;x&#39;: [1, 2, 3], &#39;y&#39;: True}</span>
+</pre></div>
+</div>
+<p>By using <code class="docutils literal notranslate"><span class="pre">Configuration.delta_copy</span></code> we can quickly instantiate one of these variants</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">my_variant</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">delta_copy</span><span class="p">(</span><span class="o">**</span><span class="n">variants</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="n">my_variant</span><span class="o">.</span><span class="n">x</span>      <span class="c1"># &gt;&gt;&gt; 5</span>
+<span class="n">my_variant</span><span class="o">.</span><span class="n">y</span>      <span class="c1"># &gt;&gt;&gt; False</span>
+</pre></div>
+</div>
+</section>
+<section id="nesting-i-e-adding-dependencies">
+<h4>Nesting (i.e., adding dependencies)<a class="headerlink" href="#nesting-i-e-adding-dependencies" title="Link to this heading"></a></h4>
+<p>One core functionality of cinnamon is that <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> can be nested to build more sophisticated ones (the same applies for <code class="docutils literal notranslate"><span class="pre">Component</span></code>).</p>
+<p>Cinnamon does that via loose pointers called <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code>, a compound unique identifier associated to a specific <code class="docutils literal notranslate"><span class="pre">Configuration</span></code>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">ParentConfig</span><span class="p">(</span><span class="n">cinnamon</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">Configuration</span><span class="p">):</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">default</span><span class="p">(</span>
+            <span class="bp">cls</span>
+    <span class="p">):</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">default</span><span class="p">()</span>
+
+        <span class="n">config</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;param_1&#39;</span><span class="p">,</span>
+                   <span class="n">value</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                   <span class="n">type_hint</span><span class="o">=</span><span class="nb">bool</span><span class="p">,</span>
+                   <span class="n">variants</span><span class="o">=</span><span class="p">[</span><span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">])</span>
+        <span class="n">config</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;param_2&#39;</span><span class="p">,</span>
+                   <span class="n">value</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                   <span class="n">type_hint</span><span class="o">=</span><span class="nb">bool</span><span class="p">,</span>
+                   <span class="n">variants</span><span class="o">=</span><span class="p">[</span><span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">])</span>
+        <span class="n">config</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;child&#39;</span><span class="p">,</span>
+                   <span class="n">value</span><span class="o">=</span><span class="n">RegistrationKey</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;test&#39;</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;nested&#39;</span><span class="p">},</span> <span class="n">namespace</span><span class="o">=</span><span class="s1">&#39;testing&#39;</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">config</span>
+
+
+<span class="k">class</span> <span class="nc">NestedChild</span><span class="p">(</span><span class="n">Configuration</span><span class="p">):</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">default</span><span class="p">(</span>
+            <span class="bp">cls</span>
+    <span class="p">):</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">default</span><span class="p">()</span>
+
+        <span class="n">config</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;child&#39;</span><span class="p">,</span>
+                   <span class="n">value</span><span class="o">=</span><span class="n">RegistrationKey</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;test&#39;</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;plain&#39;</span><span class="p">},</span> <span class="n">namespace</span><span class="o">=</span><span class="s1">&#39;testing&#39;</span><span class="p">),</span>
+
+        <span class="k">return</span> <span class="n">config</span>
+</pre></div>
+</div>
+<p>In the above example, <code class="docutils literal notranslate"><span class="pre">ParentConfig</span></code> has a child <code class="docutils literal notranslate"><span class="pre">Configuration</span></code>, named <code class="docutils literal notranslate"><span class="pre">child</span></code>, pointing to <code class="docutils literal notranslate"><span class="pre">NestedChild</span></code>.
+Likewise, <code class="docutils literal notranslate"><span class="pre">NestedChild</span></code> has a child <code class="docutils literal notranslate"><span class="pre">Configuration</span></code>, named <code class="docutils literal notranslate"><span class="pre">child</span></code>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>In <code class="docutils literal notranslate"><span class="pre">cinnamon</span></code> nested configurations are called <strong>dependencies</strong>.
+You can access to a <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> dependencies via <code class="docutils literal notranslate"><span class="pre">Configuration.dependencies</span></code> property.</p>
+</div>
+<div class="toctree-wrapper compound">
+</div>
+</section>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="quickstart.html" class="btn btn-neutral float-left" title="Quickstart" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="component.html" class="btn btn-neutral float-right" title="Component" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Federico Ruggeri.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

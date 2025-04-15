@@ -1,0 +1,259 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Registration &mdash; Cinnamon</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=2709fde1"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Registration Dependencies" href="dependencies.html" />
+    <link rel="prev" title="Component" href="component.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Cinnamon
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="component.html">Component</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Registration</a><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="dependencies.html">Dependencies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="commands.html">Commands</a></li>
+<li class="toctree-l1"><a class="reference internal" href="modules.html">Code Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Cinnamon</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Registration</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/registration.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="registration">
+<span id="id1"></span><h1>Registration<a class="headerlink" href="#registration" title="Link to this heading"></a></h1>
+<p>While it is possible to instantiate <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> and <code class="docutils literal notranslate"><span class="pre">Component</span></code> manually and inline, cinnamon defines a registration-based dependency system.</p>
+<p>This system allows to link <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> to <code class="docutils literal notranslate"><span class="pre">Component</span></code> and <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> to other <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> by relying on unique identifiers.</p>
+<p>These unique identifiers are called <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code>.</p>
+<section id="registrationkey">
+<h2>RegistrationKey<a class="headerlink" href="#registrationkey" title="Link to this heading"></a></h2>
+<p>A <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code> is a compound identifier comprising a <code class="docutils literal notranslate"><span class="pre">name</span></code>, an optional <code class="docutils literal notranslate"><span class="pre">tags</span></code> set and a <code class="docutils literal notranslate"><span class="pre">namespace</span></code>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">key</span> <span class="o">=</span> <span class="n">RegistrationKey</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;test&#39;</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;tag1&#39;</span><span class="p">,</span> <span class="s1">&#39;tag2&#39;</span><span class="p">},</span> <span class="n">namespace</span><span class="o">=</span><span class="s1">&#39;testing&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code> are the fundamental concept of cinnamon as they allow retrieving and building any <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> or <code class="docutils literal notranslate"><span class="pre">Component</span></code> on the fly.</p>
+<p>In particular, by loosely coupling configurations and components via <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code>, we can quickly change them by changing the <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code> instances.</p>
+<p>To understand this fundamental concept, we first need to introduce how coupling is carried out.</p>
+</section>
+<section id="id2">
+<h2>Registration<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
+<p>In cinnamon, <strong>registration</strong> is the action of storing a <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> into the <code class="docutils literal notranslate"><span class="pre">Registry</span></code>, a dynamic lookup table of <code class="docutils literal notranslate"><span class="pre">Configuration</span></code>.</p>
+<p>In other words, the <code class="docutils literal notranslate"><span class="pre">Registry</span></code> is a dictionary where each <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code> corresponds a <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> template.</p>
+<p>In cinnamon, we have two ways to <strong>register</strong> a <code class="docutils literal notranslate"><span class="pre">Configuration</span></code>: class methods and ad-hoc functions.</p>
+<section id="class-method-registration">
+<h3>Class method registration<a class="headerlink" href="#class-method-registration" title="Link to this heading"></a></h3>
+<p>We can directly register a <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> template class method via <code class="docutils literal notranslate"><span class="pre">register_method()</span></code> function.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">CustomConfig</span><span class="p">(</span><span class="n">cinnamon</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">Configuration</span><span class="p">):</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="nd">@register_method</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;test&#39;</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;default&#39;</span><span class="p">},</span> <span class="n">namespace</span><span class="o">=</span><span class="s1">&#39;testing&#39;</span><span class="p">,</span> <span class="n">component_class</span><span class="o">=</span><span class="n">CustomComponent</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">default</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">default</span><span class="p">()</span>
+
+        <span class="n">config</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">config</span>
+</pre></div>
+</div>
+<p>In this example, we <strong>register</strong> the default template of <code class="docutils literal notranslate"><span class="pre">CustomConfig</span></code> by specifying the <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code> attributes and binding <code class="docutils literal notranslate"><span class="pre">CustomConfig</span></code> to <code class="docutils literal notranslate"><span class="pre">CustomComponent</span></code>.</p>
+<p>Internally, the <code class="docutils literal notranslate"><span class="pre">Registry</span></code> associates the <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code> defined as (<code class="docutils literal notranslate"><span class="pre">'test'</span></code>, <code class="docutils literal notranslate"><span class="pre">{'default'}</span></code>, <code class="docutils literal notranslate"><span class="pre">'testing'</span></code>) to the following information:</p>
+<ul class="simple">
+<li><p>configuration class <code class="docutils literal notranslate"><span class="pre">CustomConfig</span></code></p></li>
+<li><p>configuration template <code class="docutils literal notranslate"><span class="pre">CustomConfig.default()</span></code></p></li>
+<li><p>component class <code class="docutils literal notranslate"><span class="pre">CustomComponent</span></code></p></li>
+</ul>
+<p>By doing so, cinnamon has all the information to</p>
+<ul class="simple">
+<li><p>instantiate a <code class="docutils literal notranslate"><span class="pre">CustomConfig</span></code> instance by calling <code class="docutils literal notranslate"><span class="pre">CustomConfig.default()</span></code></p></li>
+<li><p>instantiate a <code class="docutils literal notranslate"><span class="pre">CustomComponent</span></code> instance by passing <code class="docutils literal notranslate"><span class="pre">CustomConfig</span></code> instance attributes.</p></li>
+</ul>
+</section>
+<section id="ad-hoc-registration">
+<h3>Ad-hoc registration<a class="headerlink" href="#ad-hoc-registration" title="Link to this heading"></a></h3>
+<p>There might be cases where we do not need to define custom <code class="docutils literal notranslate"><span class="pre">Configuration</span></code>, but simply re-use existing ones.</p>
+<p>We can still carry out registration via <code class="docutils literal notranslate"><span class="pre">register</span></code> decorator and by relying on <code class="docutils literal notranslate"><span class="pre">Registry.register_configuration()</span></code> API.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@register</span>
+<span class="k">def</span> <span class="nf">custom_registration</span><span class="p">():</span>
+    <span class="n">Registry</span><span class="o">.</span><span class="n">register_configuration</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;test&#39;</span><span class="p">,</span>
+                                    <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;default&#39;</span><span class="p">},</span>
+                                    <span class="n">namespace</span><span class="o">=</span><span class="s1">&#39;testing&#39;</span><span class="p">,</span>
+                                    <span class="n">config_class</span><span class="o">=</span><span class="n">CustomConfiguration</span><span class="p">,</span>
+                                    <span class="n">component_class</span><span class="o">=</span><span class="n">CustomComponent</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Unless specified, the <code class="docutils literal notranslate"><span class="pre">default</span></code> configuration template is considered.</p>
+<p>Alternatively, we can specify a specific constructor template.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@register</span>
+<span class="k">def</span> <span class="nf">custom_registration</span><span class="p">():</span>
+    <span class="n">Registry</span><span class="o">.</span><span class="n">register_configuration</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;test&#39;</span><span class="p">,</span>
+                                    <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;default&#39;</span><span class="p">},</span>
+                                    <span class="n">namespace</span><span class="o">=</span><span class="s1">&#39;testing&#39;</span><span class="p">,</span>
+                                    <span class="n">config_class</span><span class="o">=</span><span class="n">CustomConfiguration</span><span class="p">,</span>
+                                    <span class="n">config_constructor</span><span class="o">=</span><span class="n">CustomConfiguration</span><span class="o">.</span><span class="n">custom_constructor</span><span class="p">,</span>
+                                    <span class="n">component_class</span><span class="o">=</span><span class="n">CustomComponent</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>where <code class="docutils literal notranslate"><span class="pre">CustomConfiguration.custom_constructor</span></code> could be defined as follows</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">CustomConfig</span><span class="p">(</span><span class="n">cinnamon</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">Configuration</span><span class="p">):</span>
+
+<span class="nd">@classmethod</span>
+<span class="k">def</span> <span class="nf">default</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">config</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">default</span><span class="p">()</span>
+
+    <span class="n">config</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">config</span>
+
+<span class="nd">@classmethod</span>
+<span class="k">def</span> <span class="nf">custom_constructor</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">config</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">default</span><span class="p">()</span>
+
+    <span class="n">config</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="mi">42</span>
+    <span class="n">config</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">config</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="retrieving-registrations">
+<h2>Retrieving registrations<a class="headerlink" href="#retrieving-registrations" title="Link to this heading"></a></h2>
+<p>Once registered, we can retrieve configuration registration info, including the configuration class, its constructor template and, if exists, the bound component class.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">config_info</span> <span class="o">=</span> <span class="n">Registry</span><span class="o">.</span><span class="n">retrieve_configuration</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;test&#39;</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;default&#39;</span><span class="p">},</span> <span class="n">namespace</span><span class="o">=</span><span class="s1">&#39;testing&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This information is usually not needed by a user since the <code class="docutils literal notranslate"><span class="pre">Registry</span></code> handles building <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> and <code class="docutils literal notranslate"><span class="pre">Component</span></code> instances via a <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code> directly.</p>
+</section>
+<section id="building-instances-from-registrations">
+<h2>Building instances from registrations<a class="headerlink" href="#building-instances-from-registrations" title="Link to this heading"></a></h2>
+<p>Given a <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code>, the same used to register a <code class="docutils literal notranslate"><span class="pre">Configuration</span></code>, we can issue the <code class="docutils literal notranslate"><span class="pre">Registry</span></code> to build a <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> instance.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">config</span> <span class="o">=</span> <span class="n">Registry</span><span class="o">.</span><span class="n">build_configuration</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;test&#39;</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;default&#39;</span><span class="p">},</span> <span class="n">namespace</span><span class="o">=</span><span class="s1">&#39;testing&#39;</span><span class="p">)</span>
+<span class="n">config</span><span class="o">.</span><span class="n">x</span>    <span class="c1"># &gt;&gt;&gt; 5</span>
+</pre></div>
+</div>
+<p>Moreover, we can use the same <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code> to build the bound <code class="docutils literal notranslate"><span class="pre">Component</span></code> instance.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">component</span> <span class="o">=</span> <span class="n">Registry</span><span class="o">.</span><span class="n">build_component</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;test&#39;</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;default&#39;</span><span class="p">},</span> <span class="n">namespace</span><span class="o">=</span><span class="s1">&#39;testing&#39;</span><span class="p">)</span>
+<span class="n">component</span><span class="o">.</span><span class="n">x</span>     <span class="c1"># &gt;&gt;&gt; 5</span>
+</pre></div>
+</div>
+<p>Alternatively, we can rely on <code class="docutils literal notranslate"><span class="pre">Component</span></code> interface to build a specific component instance.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">component</span> <span class="o">=</span> <span class="n">CustomComponent</span><span class="o">.</span><span class="n">build_component</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;test&#39;</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;default&#39;</span><span class="p">},</span> <span class="n">namespace</span><span class="o">=</span><span class="s1">&#39;testing&#39;</span><span class="p">)</span>
+<span class="n">component</span><span class="o">.</span><span class="n">x</span>     <span class="c1"># &gt;&gt;&gt; 5</span>
+</pre></div>
+</div>
+</section>
+<section id="tl-dr-too-long-didn-t-read">
+<h2>Tl;dr (Too long; didn’t read)<a class="headerlink" href="#tl-dr-too-long-didn-t-read" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Define your <code class="docutils literal notranslate"><span class="pre">Component</span></code> (code logic).</p></li>
+<li><p>Define its corresponding <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> (one or more).</p></li>
+<li><p>Register the <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> to the <code class="docutils literal notranslate"><span class="pre">Registry</span></code> via a <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code>.</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code> is a compound string-based unique identifier.</p></li>
+<li><p>Build <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> instance via the <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code>.</p></li>
+<li><p>Build <code class="docutils literal notranslate"><span class="pre">Component</span></code> instances via the <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code>.</p></li>
+</ul>
+<p><strong>Congrats! This is 99% of cinnamon!</strong></p>
+</section>
+<section id="how-to-use-registration-apis">
+<h2>How to use registration APIs<a class="headerlink" href="#how-to-use-registration-apis" title="Link to this heading"></a></h2>
+<p>You may be wondering <strong>how</strong> to properly use these registration APIs.</p>
+<p>Long story short, you <strong>don’t need</strong> to contaminate your code with registration and binding operations.</p>
+<p>Cinnamon supports a <strong>specific code organization</strong> to <strong>automatically</strong> address all registration related operations while keeping a clean code organization.</p>
+<p>See <a class="reference external" href="https://nlp-unibo.github.io/cinnamon/dependencies.html/">dependencies</a> for more details.</p>
+<div class="toctree-wrapper compound">
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="component.html" class="btn btn-neutral float-left" title="Component" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="dependencies.html" class="btn btn-neutral float-right" title="Registration Dependencies" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Federico Ruggeri.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,7 @@
+cinnamon.configuration module
+=============================
+
+.. automodule:: cinnamon.configuration
+   :members:
+   :undoc-members:
+   :show-inheritance:

@@ -77,3 +77,4 @@ for questions/doubts/issues!
    Registration <registration.rst>
    Dependencies <dependencies.rst>
    Commands <commands.rst>
+   Code Documentation <modules.rst>

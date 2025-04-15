@@ -1,0 +1,177 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cinnamon entry points &mdash; Cinnamon</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=2709fde1"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="cinnamon" href="modules.html" />
+    <link rel="prev" title="Registration Dependencies" href="dependencies.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Cinnamon
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="component.html">Component</a></li>
+<li class="toctree-l1"><a class="reference internal" href="registration.html">Registration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="dependencies.html">Dependencies</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Commands</a><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="modules.html">Code Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Cinnamon</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Cinnamon entry points</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/commands.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="cinnamon-entry-points">
+<span id="commands"></span><h1>Cinnamon entry points<a class="headerlink" href="#cinnamon-entry-points" title="Link to this heading"></a></h1>
+<p>The cinnamon package offers console scripts to work with <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> and <code class="docutils literal notranslate"><span class="pre">Component</span></code> without requiring any custom code.</p>
+<section id="cmn-setup">
+<h2>cmn-setup<a class="headerlink" href="#cmn-setup" title="Link to this heading"></a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">cmn-setup</span></code> command is the console script version of <code class="docutils literal notranslate"><span class="pre">Registry.setup()</span></code>.</p>
+<p>In addition to loading registrations and resolving dependencies, the <code class="docutils literal notranslate"><span class="pre">cmn-setup</span></code> command stores in csv format all valid and invalid <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code>.</p>
+<p>In particular, a <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code> is valid (invalid) if the associated <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> instance is valid (invalid).</p>
+<p>To run <code class="docutils literal notranslate"><span class="pre">cmn-setup</span></code>, do as follows</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>cmn-setup<span class="w"> </span>--dir<span class="w"> </span>*main-directory*<span class="w"> </span>--ext<span class="w"> </span>*ext-directory-1*<span class="w"> </span>*ext-directory-2*<span class="w"> </span>...
+</pre></div>
+</div>
+<p>By default, <code class="docutils literal notranslate"><span class="pre">cmn-setup</span></code> takes <code class="docutils literal notranslate"><span class="pre">dir=pwd</span></code>.</p>
+<p>Thus, usually, we only require to open a terminal in our main project directory and run</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>cmn-setup
+</pre></div>
+</div>
+</section>
+<section id="cmn-run">
+<h2>cmn-run<a class="headerlink" href="#cmn-run" title="Link to this heading"></a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">cmn-run</span></code> command allows building and executing <code class="docutils literal notranslate"><span class="pre">Component</span></code> given a <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code>.</p>
+<p>In particular, there exist a specific extension of <code class="docutils literal notranslate"><span class="pre">Component</span></code>, denoted as <code class="docutils literal notranslate"><span class="pre">RunnableComponent</span></code> that adds the <code class="docutils literal notranslate"><span class="pre">run()</span></code> method.</p>
+<p>Thus, to transform a <code class="docutils literal notranslate"><span class="pre">Component</span></code> into a <code class="docutils literal notranslate"><span class="pre">RunnableComponent</span></code>, we only need to define some code logic under <code class="docutils literal notranslate"><span class="pre">run()</span></code>.</p>
+<p>For instance,</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">CustomRunnable</span><span class="p">(</span><span class="n">cinnamon</span><span class="o">.</span><span class="n">component</span><span class="o">.</span><span class="n">RunnableComponent</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="n">x</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">y</span> <span class="o">=</span> <span class="n">y</span>
+
+    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span>
+        <span class="n">config</span><span class="p">:</span> <span class="n">cinnamon</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">Configuration</span>
+    <span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Running this component with x=</span><span class="si">{</span><span class="n">x</span><span class="si">}</span><span class="s2"> and y=</span><span class="si">{</span><span class="n">y</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;The configuration of the component is </span><span class="si">{</span><span class="n">config</span><span class="si">}</span><span class="s1">)</span>
+</pre></div>
+</div>
+<p>Defines a simple <code class="docutils literal notranslate"><span class="pre">RunnableComponent</span></code> that prints some information when being executed.</p>
+<p>Given a <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code>, the <code class="docutils literal notranslate"><span class="pre">cmn-run</span></code> does the following:</p>
+<ul class="simple">
+<li><p>Retrieves from <code class="docutils literal notranslate"><span class="pre">Registry</span></code> the <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> info via the given <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code></p></li>
+<li><p>Builds a <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> instance</p></li>
+<li><p>Builds a <code class="docutils literal notranslate"><span class="pre">Component</span></code> instance by providing the built <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> parameters.</p></li>
+</ul>
+<p>Nonetheless, providing a <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code> by heart is not a simple task, especially as projects scale up in the number of defined <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> and <code class="docutils literal notranslate"><span class="pre">Component</span></code>.</p>
+<p>To account for this problem, <code class="docutils literal notranslate"><span class="pre">cmn-run</span></code> allows for interactive search for <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code> by relying on <a class="reference external" href="https://inquirerpy.readthedocs.io/en/latest/">InquirePy</a>.</p>
+<p>In particular, <code class="docutils literal notranslate"><span class="pre">cmn-run</span></code> guides the user through three distinct prompts:</p>
+<ol class="arabic simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">namespace</span></code> selection</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">name</span></code> selection</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">tags</span></code> selection</p></li>
+</ol>
+<p>Eventually, the defined <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code> might be compatible with several actually registered <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code>.</p>
+<p>Thus, <code class="docutils literal notranslate"><span class="pre">cmn-run</span></code> allows selecting one or more of those keys to execute all corresponding components in sequence.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Intuitively, <code class="docutils literal notranslate"><span class="pre">cmn-run</span></code> supports running one or more <code class="docutils literal notranslate"><span class="pre">RunnableComponent</span></code> in sequence given a <code class="docutils literal notranslate"><span class="pre">name</span></code>, some <code class="docutils literal notranslate"><span class="pre">tags</span></code> and a <code class="docutils literal notranslate"><span class="pre">namespace</span></code>.</p>
+</div>
+<div class="toctree-wrapper compound">
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="dependencies.html" class="btn btn-neutral float-left" title="Registration Dependencies" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="modules.html" class="btn btn-neutral float-right" title="cinnamon" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Federico Ruggeri.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

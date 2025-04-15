@@ -1,0 +1,7 @@
+cinnamon.component module
+=========================
+
+.. automodule:: cinnamon.component
+   :members:
+   :undoc-members:
+   :show-inheritance:

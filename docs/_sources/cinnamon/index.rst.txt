@@ -1,0 +1,21 @@
+cinnamon package
+================
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 4
+
+   cinnamon.command_line
+   cinnamon.component
+   cinnamon.configuration
+   cinnamon.registry
+
+Module contents
+---------------
+
+.. automodule:: cinnamon
+   :members:
+   :undoc-members:
+   :show-inheritance:

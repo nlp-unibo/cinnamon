@@ -1,0 +1,7 @@
+cinnamon.registry module
+========================
+
+.. automodule:: cinnamon.registry
+   :members:
+   :undoc-members:
+   :show-inheritance:
