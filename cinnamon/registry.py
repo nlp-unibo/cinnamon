@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from copy import deepcopy
 import ast
 import importlib.util
 import json
@@ -774,23 +775,44 @@ class Registry:
 
         cls.check_registration_graph()
 
-        def _expand_node_variants(key: RegistrationKey, key_buffer: Set[RegistrationKey]):
+        def _expand_node_variants(key: RegistrationKey,
+                                  key_buffer: Set[RegistrationKey],
+                                  expanded_keys: Dict[RegistrationKey, Set[RegistrationKey]]
+                                  ) -> Set[RegistrationKey]:
+            if key in expanded_keys:
+                return expanded_keys[key]
+
             config_info = cls.retrieve_configuration_info(registration_key=key)
             built_config = cls.retrieve_configuration(registration_key=key)
             for child_name, child in built_config.dependencies.items():
                 child_key = child.value
-                child_variants = []
+                child_variants = set()
 
                 if child_key is not None:
-                    child_variants = _expand_node_variants(key=child_key, key_buffer=key_buffer)
+                    if child_key in expanded_keys:
+                        child_variants = expanded_keys[child_key]
+                    else:
+                        child_variants = _expand_node_variants(key=child_key,
+                                                               key_buffer=key_buffer,
+                                                               expanded_keys=expanded_keys)
+                        expanded_keys[child_key] = child_variants
+
                 for key_variant in child.variants:
                     if key_variant is not None:
-                        child_variants.extend(_expand_node_variants(key=key_variant, key_buffer=key_buffer))
+                        if key_variant in expanded_keys:
+                            key_variants = expanded_keys[key_variant]
+                        else:
+                            key_variants = _expand_node_variants(key=key_variant,
+                                                                 key_buffer=key_buffer,
+                                                                 expanded_keys=expanded_keys)
+                            expanded_keys[key_variant] = key_variants
+
+                        child_variants = child_variants.union(key_variants)
 
                 child.variants = child.variants if child.variants is not None else []
-                built_config.get(child_name).variants = list(set(child_variants + child.variants))
+                built_config.get(child_name).variants = list(set(list(child_variants) + child.variants))
 
-            variant_keys = []
+            variant_keys = set()
             for variant_kwargs, variant_indexes in zip(*built_config.variants):
                 variant_key = key.from_variant(variant_kwargs=variant_kwargs,
                                                variant_indexes=variant_indexes)
@@ -820,16 +842,18 @@ class Registry:
                                                             component_class=config_info.component_class,
                                                             build_recursively=config_info.build_recursively)
 
-                variant_keys.append(variant_key)
+                variant_keys.add(variant_key)
 
             key_buffer.add(key)
-            key_buffer.update(set(variant_keys))
+            key_buffer.update(variant_keys)
+            expanded_keys[key] = variant_keys
             return variant_keys
 
         # Variants expansion doesn't change the topology of the graph -> no need for a re-check
         path_keys: Set[RegistrationKey] = set()
+        expanded_keys: Dict[RegistrationKey, Set[RegistrationKey]] = {}
         for key in cls._DEPENDENCY_DAG.successors(cls._ROOT_KEY):
-            _expand_node_variants(key=key, key_buffer=path_keys)
+            _expand_node_variants(key=key, key_buffer=path_keys, expanded_keys=expanded_keys)
 
         cls.expanded = True
 
