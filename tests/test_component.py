@@ -156,7 +156,7 @@ def test_build_after_setup(
     external_directories = [
         Path().parent.resolve().joinpath('external_test_repo')
     ]
-    Registry.setup(directory=main_path,
+    Registry.build(directory=main_path,
                    external_directories=external_directories)
     key = RegistrationKey(name='config', namespace='testing')
     component = ComponentWithChild.build_component(registration_key=key)

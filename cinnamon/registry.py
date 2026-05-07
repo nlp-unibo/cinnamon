@@ -510,7 +510,7 @@ class Registry:
         cls._DEPENDENCY_DAG.add_node(cls._ROOT_KEY)
 
     @classmethod
-    def setup(
+    def build(
             cls,
             directory: Union[Path, AnyStr] = None,
             external_directories: List[Union[AnyStr, Path]] = None
@@ -679,8 +679,8 @@ class Registry:
                     for key in new_keys:
                         key_method = cls.REGISTRATION_METHODS[key]
                         if isinstance(key_method, BufferedRegistration):
-                            class_method_name = key_method.func.__qualname__.split('.')[-2]
                             method_name = key_method.func.__qualname__.split('.')[-1]
+                            class_method_name = key_method.func.__qualname__.split('.')[-2]
                             class_method = module.__dict__[class_method_name]
                             Registry.register_configuration(config_class=class_method,
                                                             config_constructor=getattr(class_method, method_name),
@@ -1051,32 +1051,21 @@ class Registry:
 
         built_config = config_constructor()
 
-        # include children
-        for child_name, child in built_config.dependencies.items():
-            child_key: RegistrationKey = child.value
-            if child_key is None:
-                if child.variants is None:
-                    continue
+        # include dependencies
+        for dependency_name, dependency in built_config.dependencies.items():
+            dependency_key = dependency.value
+            dependencies = [dependency_key] + dependency.variants if dependency_key is not None else dependency.variants
+            for dep in dependencies:
+                if not cls.in_graph(dep):
+                    cls._DEPENDENCY_DAG.add_node(dep)
 
-                for variant in child.variants:
-                    if not cls.in_graph(variant):
-                        cls._DEPENDENCY_DAG.add_node(variant)
-                    cls._DEPENDENCY_DAG.add_edge(registration_key, variant, type='child')
-                    if variant.namespace != namespace:
-                        if not cls.is_namespace_covered(variant):
-                            raise NamespaceNotFoundException(registration_key=registration_key,
-                                                             namespaces=cls._EXP_NAMESPACES)
-                        cls.load_registrations(directory=cls._MODULE_MAPPING[variant.namespace])
+                cls._DEPENDENCY_DAG.add_edge(registration_key, dep, type='child')
 
-                continue
-
-            if not cls.in_graph(child_key):
-                cls._DEPENDENCY_DAG.add_node(child_key)
-            cls._DEPENDENCY_DAG.add_edge(registration_key, child_key, type='child')
-            if child_key.namespace != namespace:
-                if not cls.is_namespace_covered(child_key):
-                    raise NamespaceNotFoundException(registration_key=registration_key, namespaces=cls._EXP_NAMESPACES)
-                cls.load_registrations(directory=cls._MODULE_MAPPING[child_key.namespace])
+                if dep.namespace != namespace:
+                    if not cls.is_namespace_covered(dep):
+                        raise NamespaceNotFoundException(registration_key=registration_key,
+                                                         namespaces=cls._EXP_NAMESPACES)
+                    cls.load_registrations(directory=cls._MODULE_MAPPING[dep.namespace])
 
         return registration_key
 

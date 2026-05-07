@@ -22,7 +22,7 @@ logger = getLogger(__name__)
 
 # TODO: add option to filter namespaces? -> directly in dag_resolution
 # TODO: make interactive
-def setup():
+def build():
     parser = argparse.ArgumentParser()
     parser.add_argument('-dir',
                         '--directory',
@@ -49,7 +49,7 @@ def setup():
     # add to PYTHONPATH
     sys.path.insert(0, directory.as_posix())
 
-    valid_keys, invalid_keys = Registry.setup(
+    valid_keys, invalid_keys = Registry.build(
         directory=directory,
         external_directories=external_directories
     )
@@ -101,7 +101,7 @@ def run():
     # add to PYTHONPATH
     sys.path.insert(0, directory.as_posix())
 
-    valid_keys, invalid_keys = Registry.setup(
+    valid_keys, invalid_keys = Registry.build(
         directory=directory,
         external_directories=external_directories
     )
