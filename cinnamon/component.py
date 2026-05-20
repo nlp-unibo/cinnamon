@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Optional, TypeVar, Type, Dict, Any
+from typing import Optional, TypeVar, Type
 
 import cinnamon.configuration
 import cinnamon.registry
@@ -59,6 +59,7 @@ class RunnableComponent(Component):
     A Component that can be executed as standalone through command-line.
     """
 
+    # TODO: check if config should be passed or not. Not convinced about this.
     def run(
             self,
             config: Optional[cinnamon.configuration.Configuration] = None

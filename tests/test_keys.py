@@ -75,10 +75,6 @@ def test_from_config_variants_with_taggable_params():
     for variant_kwargs, variant_indexes in zip(*config.variants):
         variant_key = config_key.from_variant(variant_kwargs=variant_kwargs,
                                               variant_indexes=variant_indexes)
-        variant_config = config.delta_copy(**variant_kwargs)
-
-        if variant_config == config:
-            continue
 
         assert variant_key.tags == {f'x{config_key.KEY_VALUE_SEPARATOR}1'}
 
@@ -91,11 +87,6 @@ def test_from_config_variants_with_non_taggable_params():
     for variant_kwargs, variant_indexes in zip(*config.variants):
         variant_key = config_key.from_variant(variant_kwargs=variant_kwargs,
                                               variant_indexes=variant_indexes)
-        variant_config = config.delta_copy(**variant_kwargs)
-
-        if variant_config == config:
-            assert variant_key.tags == {f'x{config_key.KEY_VALUE_SEPARATOR}default-value'}
-            continue
 
         assert variant_key.tags == {f'x{config_key.KEY_VALUE_SEPARATOR}variant-1'}
 

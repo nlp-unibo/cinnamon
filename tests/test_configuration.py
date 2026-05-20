@@ -78,6 +78,7 @@ def test_add_condition_conflicting_name():
     config.add_condition(name='x', condition=lambda c: len(c.x) > 1)
 
 
+# TODO continue from here -> test fails
 def test_search_by_tag():
     """
     Search parameter by tag for quick retrieval

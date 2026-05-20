@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from copy import deepcopy
 import ast
 import importlib.util
 import json
+import logging
 import sys
 from dataclasses import dataclass
 from logging import getLogger
@@ -12,7 +12,6 @@ from typing import Type, AnyStr, List, Dict, Any, Union, Optional, Callable, Tup
 
 import networkx as nx
 import numpy as np
-import logging
 
 import cinnamon.component
 import cinnamon.configuration
@@ -170,7 +169,7 @@ class RegistrationKey:
                 or any([isinstance(param_value, taggable_type) for taggable_type in TAGGABLE_TYPES]):
             sanitized_tag = f'{param_name}{self.KEY_VALUE_SEPARATOR}{param_value}'
         else:
-            variant_value = f'variant-{param_index}' if param_index > 0 else 'default-value'
+            variant_value = f'variant-{param_index + 1}'
             sanitized_tag = f'{param_name}{self.KEY_VALUE_SEPARATOR}{variant_value}'
 
         return sanitized_tag
@@ -338,18 +337,15 @@ class ConfigurationInfo:
     ``ConfigurationInfo`` wrapper.
 
     This wrapper contains:
-        - config_class: the ``Configuration`` class type
-        - constructor: the method for creating an instance from the specified ``class_type``.
-            By default, the constructor is set to ``Configuration.default()`` method.
+        - config: ``Configuration`` instance
         - component_class: the ``Component`` class type
         - build_recursively: whether the ``Configuration`` or its bound ``Component`` dependencies
         should be built recursively or not.
     """
 
-    config_class: Type[cinnamon.configuration.Configuration]
-    constructor: Constructor
-    component_class: Type[cinnamon.component.Component]
+    config: cinnamon.configuration.Configuration
     build_recursively: bool
+    component_class: Optional[Type[cinnamon.component.Component]] = None
 
 
 class ResolutionInfo:
@@ -775,85 +771,10 @@ class Registry:
 
         cls.check_registration_graph()
 
-        def _expand_node_variants(key: RegistrationKey,
-                                  key_buffer: Set[RegistrationKey],
-                                  expanded_keys: Dict[RegistrationKey, Set[RegistrationKey]]
-                                  ) -> Set[RegistrationKey]:
-            if key in expanded_keys:
-                return expanded_keys[key]
-
-            config_info = cls.retrieve_configuration_info(registration_key=key)
-            built_config = cls.retrieve_configuration(registration_key=key)
-            for child_name, child in built_config.dependencies.items():
-                child_key = child.value
-                child_variants = set()
-
-                if child_key is not None:
-                    if child_key in expanded_keys:
-                        child_variants = expanded_keys[child_key]
-                    else:
-                        child_variants = _expand_node_variants(key=child_key,
-                                                               key_buffer=key_buffer,
-                                                               expanded_keys=expanded_keys)
-                        expanded_keys[child_key] = child_variants
-
-                for key_variant in child.variants:
-                    if key_variant is not None:
-                        if key_variant in expanded_keys:
-                            key_variants = expanded_keys[key_variant]
-                        else:
-                            key_variants = _expand_node_variants(key=key_variant,
-                                                                 key_buffer=key_buffer,
-                                                                 expanded_keys=expanded_keys)
-                            expanded_keys[key_variant] = key_variants
-
-                        child_variants = child_variants.union(key_variants)
-
-                child.variants = child.variants if child.variants is not None else []
-                built_config.get(child_name).variants = list(set(list(child_variants) + child.variants))
-
-            variant_keys = set()
-            for variant_kwargs, variant_indexes in zip(*built_config.variants):
-                variant_key = key.from_variant(variant_kwargs=variant_kwargs,
-                                               variant_indexes=variant_indexes)
-                variant_config = built_config.delta_copy(**variant_kwargs)
-
-                # Skip existing config
-                # TODO: replace this with hash comparison (see TODO below)
-                if variant_config == built_config:
-                    continue
-
-                if not cls.in_graph(variant_key):
-                    cls._DEPENDENCY_DAG.add_node(variant_key)
-                cls._DEPENDENCY_DAG.add_edge(key, variant_key, type='variant')
-
-                # Store variant in registry
-                # This is required since a key might share multiple key paths
-                # TODO: this might be a little risky since we might overlook registration errors
-                #       in_registry should compare between unique hashes built from RegistrationKey instances
-                #       so that we are sure about equality in all fields.
-                if not cls.in_registry(variant_key):
-                    cls.register_configuration_from_variant(config_class=config_info.config_class,
-                                                            config_constructor=config_info.constructor,
-                                                            name=variant_key.name,
-                                                            tags=variant_key.tags,
-                                                            namespace=variant_key.namespace,
-                                                            variant_kwargs=variant_kwargs,
-                                                            component_class=config_info.component_class,
-                                                            build_recursively=config_info.build_recursively)
-
-                variant_keys.add(variant_key)
-
-            key_buffer.add(key)
-            key_buffer.update(variant_keys)
-            expanded_keys[key] = variant_keys
-            return variant_keys
-
         # Variants expansion doesn't change the topology of the graph -> no need for a re-check
         path_keys: Set[RegistrationKey] = set()
-        expanded_keys: Dict[RegistrationKey, Set[RegistrationKey]] = {}
         for key in cls._DEPENDENCY_DAG.successors(cls._ROOT_KEY):
-            _expand_node_variants(key=key, key_buffer=path_keys, expanded_keys=expanded_keys)
+            Registry.expand_configuration(key=key, key_buffer=path_keys)
 
         cls.expanded = True
 
@@ -862,22 +783,73 @@ class Registry:
         invalid_keys = ResolutionInfo()
         for key in path_keys:
             config = cls.retrieve_configuration(registration_key=key)
-            validation_result = config.pre_validate(strict=False)
+            validation_result = config.validate(strict=False)
             if not validation_result.passed:
                 key.metadata = validation_result.stack_trace
                 invalid_keys.add(key=key, config=config)
                 continue
 
-            built_config = cls.build_configuration(registration_key=key)
-            validation_result = built_config.validate(strict=False)
-            if not validation_result.passed:
-                key.metadata = validation_result.stack_trace
-                invalid_keys.add(key=key, config=built_config)
-                continue
-
-            valid_keys.add(key=key, config=built_config)
+            valid_keys.add(key=key, config=config)
 
         return valid_keys, invalid_keys
+
+    @classmethod
+    def expand_configuration(
+            cls,
+            key: RegistrationKey,
+            key_buffer: Set[RegistrationKey] = {},
+    ) -> Set[RegistrationKey]:
+        config_info = cls.retrieve_configuration_info(registration_key=key)
+        config = config_info.config
+
+        # If already expanded, we retrieve all keys related to input key through dependency DAG
+        if config.expanded:
+            keys = {edge[1] for edge in cls._DEPENDENCY_DAG.out_edges(key)}.union({key})
+            return keys
+
+        keys = {key}
+
+        # dependencies
+        for dependency_name, dependency in config.dependencies.items():
+            dependency_variants = set()
+
+            # if dependency returns multiple keys, we keep the first as the main one and the rest is moved to variants
+            if dependency.value is not None and isinstance(dependency.value, RegistrationKey):
+                dependency_keys = Registry.expand_configuration(key=dependency.value)
+                dependency.value = dependency_keys.pop()
+                dependency_variants.union(dependency_keys)
+
+            for key_variant in dependency.variants:
+                if key_variant is not None and isinstance(key_variant, RegistrationKey):
+                    dependency_variants.union(Registry.expand_configuration(key=key_variant))
+
+            config.get(dependency_name).variants = list(dependency_variants)
+            key_buffer.update(dependency_variants)
+
+        # variants
+        for variant_kwargs, variant_indexes in zip(*config.variants):
+            variant_key = key.from_variant(variant_kwargs=variant_kwargs,
+                                           variant_indexes=variant_indexes)
+            variant_config = config.delta_copy(**variant_kwargs)
+
+            if not cls.in_graph(variant_key):
+                cls._DEPENDENCY_DAG.add_node(variant_key)
+            cls._DEPENDENCY_DAG.add_edge(key, variant_key, type='variant')
+
+            cls.register_configuration(config=variant_config,
+                                       name=variant_key.name,
+                                       tags=variant_key.tags,
+                                       namespace=variant_key.namespace,
+                                       component_class=config_info.component_class,
+                                       build_recursively=config_info.build_recursively)
+
+            keys.add(variant_key)
+
+        key_buffer.update(keys)
+
+        config.expanded = True
+
+        return keys
 
     # Registration APIs
 
@@ -915,87 +887,43 @@ class Registry:
         if not cls.expanded:
             raise NotExpandedException()
 
-        registration_key = RegistrationKey.parse(registration_key=registration_key,
-                                                 name=name,
-                                                 tags=tags,
-                                                 namespace=namespace)
-
-        if not cls.in_registry(registration_key=registration_key):
-            raise NotRegisteredException(registration_key=registration_key)
-
-        registered_config_info = cls._REGISTRY[registration_key]
-        config = registered_config_info.constructor()
-
-        if registered_config_info.build_recursively:
-            for child_name, child in config.dependencies.items():
-                child_key: RegistrationKey = child.value
-                if child_key is not None:
-                    child.value = cls.build_component(registration_key=child_key)
-
-        if registered_config_info.component_class is None:
-            raise NotBoundException(registration_key=registration_key)
-
-        component_args = {**config.values, **build_args}
-        component = registered_config_info.component_class(**component_args)
-
-        return component
-
-    # Configuration
-
-    @classmethod
-    def build_configuration(
-            cls,
-            registration_key: Optional[Registration] = None,
-            name: Optional[str] = None,
-            namespace: Optional[str] = None,
-            tags: Tags = None,
-    ) -> cinnamon.configuration.Configuration:
-        """
-        Retrieves a configuration instance given its registration key.
-
-        Args:
-            registration_key: key used to register the configuration
-            name: the ``name`` field of ``RegistrationKey``
-            namespace: the ``namespace`` field of ``RegistrationKey``
-            tags: the ``tags`` field of ``RegistrationKey``
-
-        Returns:
-            The built configuration
-
-        Raises:
-            ``NotExpandedException``: if the dependency DAG has not been expanded yet.
-
-            ``NotRegisteredException``: if the provided ``RegistrationKey`` is not in the registry.
-        """
-        if not cls.expanded:
-            raise NotExpandedException()
-
-        registration_key = RegistrationKey.parse(registration_key=registration_key,
-                                                 name=name,
-                                                 tags=tags,
-                                                 namespace=namespace)
+        registration_key: RegistrationKey = RegistrationKey.parse(registration_key=registration_key,
+                                                                  name=name,
+                                                                  tags=tags,
+                                                                  namespace=namespace)
 
         if not cls.in_registry(registration_key=registration_key):
             raise NotRegisteredException(registration_key=registration_key)
 
         config_info = cls._REGISTRY[registration_key]
-        config = config_info.constructor()
+        config = config_info.config.delta_copy()
 
-        for child_name, child in config.dependencies.items():
-            child_key: RegistrationKey = child.value
-            if child_key is not None:
-                child.value = cls.build_configuration(registration_key=child_key)
+        if config_info.component_class is None:
+            raise NotBoundException(registration_key=registration_key)
 
-        return config
+        if config_info.build_recursively:
+            for child_name, child in config.dependencies.items():
+                if child.value is None or not isinstance(child.value, RegistrationKey):
+                    continue
 
+                child.value = cls.build_component(registration_key=child.value)
+
+        component_args = {**config.values, **build_args}
+        component = config_info.component_class(**component_args)
+
+        return component
+
+    # Configuration
+
+    # TODO: build_recursively should be an attribute of Param so that we can know if a Component is built automatically
+    # from that config. Moreover, we should rename it to build_automatically
     @classmethod
     def register_configuration(
             cls,
-            config_class: Type[cinnamon.configuration.Configuration],
+            config: cinnamon.configuration.Configuration,
             name: str,
             namespace: str,
             tags: Tags = None,
-            config_constructor: Optional[Constructor] = None,
             component_class: Optional[Type[cinnamon.component.Component]] = None,
             build_recursively: bool = True
     ):
@@ -1004,11 +932,10 @@ class Registry:
         In particular, a ``ConfigurationInfo`` wrapper is stored in the ``Registry``.
 
         Args:
-            config_class: the class of the ``Configuration``
+            config: `Configuration`` instance
             name: the ``name`` field of ``RegistrationKey``
             namespace: the ``namespace`` field of ``RegistrationKey``
             tags: the ``tags`` field of ``RegistrationKey``
-            config_constructor: the constructor method to build the ``Configuration`` instance from its class
             component_class: component class to perform binding, if any
             build_recursively: if True, children are automatically built iteratively.
 
@@ -1034,13 +961,13 @@ class Registry:
         if cls.in_registry(registration_key=registration_key):
             raise AlreadyRegisteredException(registration_key=registration_key)
 
+        # TODO: define `runnable` as enum tag
         if component_class is not None and issubclass(component_class, cinnamon.component.RunnableComponent):
             registration_key.special_tags.add('runnable')
 
         # Store configuration in registry
-        config_constructor = config_constructor if config_constructor is not None else config_class.default
-        cls._REGISTRY[registration_key] = ConfigurationInfo(config_class=config_class,
-                                                            constructor=config_constructor,
+        # TODO: we need to store the config module and script name for when we serialize configs to python files
+        cls._REGISTRY[registration_key] = ConfigurationInfo(config=config,
                                                             component_class=component_class,
                                                             build_recursively=build_recursively)
 
@@ -1049,10 +976,8 @@ class Registry:
         if not len(cls._DEPENDENCY_DAG.in_edges(registration_key)):
             cls._DEPENDENCY_DAG.add_edge(cls._ROOT_KEY, registration_key, type='child')
 
-        built_config = config_constructor()
-
         # include dependencies
-        for dependency_name, dependency in built_config.dependencies.items():
+        for dependency_name, dependency in config.dependencies.items():
             dependency_key = dependency.value
             dependencies = [dependency_key] + dependency.variants if dependency_key is not None else dependency.variants
             for dep in dependencies:
@@ -1068,52 +993,6 @@ class Registry:
                     cls.load_registrations(directory=cls._MODULE_MAPPING[dep.namespace])
 
         return registration_key
-
-    @classmethod
-    def register_configuration_from_variant(
-            cls,
-            config_class: Type[cinnamon.configuration.Configuration],
-            name: str,
-            namespace: str,
-            variant_kwargs: Dict[str, Any],
-            tags: Tags = None,
-            config_constructor: Optional[Constructor] = None,
-            component_class: Optional[Type[cinnamon.component.Component]] = None,
-            build_recursively: bool = True
-    ):
-        """
-        Registers a configuration from its variant key:value dict.
-
-        Args:
-            config_class: the class of the ``Configuration``
-            name: the ``name`` field of ``RegistrationKey``
-            namespace: the ``namespace`` field of ``RegistrationKey``
-            variant_kwargs: the key:value dict containing parameter names and their variant values.
-            tags: the ``tags`` field of ``RegistrationKey``
-            config_constructor: the constructor method to build the ``Configuration`` instance from its class
-            component_class: component class to perform binding, if any
-            build_recursively: if True, children are automatically built iteratively.
-
-        Returns:
-            The built ``RegistrationKey`` instance that can be used to retrieve the registered ``ConfigurationInfo``.
-
-        Raises:
-            ``NotExpandedException``: if the dependency DAG has not been expanded yet.
-
-            ``AlreadyRegisteredException``: if the ``RegistrationKey`` is already used
-
-            ``NamespaceNotFoundException``: if one of the dependencies of ``RegistrationKey`` belongs to a
-            namespace not covered.
-        """
-
-        config_constructor = config_constructor if config_constructor is not None else config_class.default
-        return cls.register_configuration(config_class=config_class,
-                                          name=name,
-                                          namespace=namespace,
-                                          tags=tags,
-                                          config_constructor=lambda: config_constructor().delta_copy(**variant_kwargs),
-                                          component_class=component_class,
-                                          build_recursively=build_recursively)
 
     @classmethod
     def retrieve_configuration(
@@ -1136,17 +1015,16 @@ class Registry:
             config: the built configuration instance
         """
 
-        registration_key = RegistrationKey.parse(registration_key=registration_key,
-                                                 name=name,
-                                                 tags=tags,
-                                                 namespace=namespace)
+        registration_key: RegistrationKey = RegistrationKey.parse(registration_key=registration_key,
+                                                                  name=name,
+                                                                  tags=tags,
+                                                                  namespace=namespace)
 
         if not cls.in_registry(registration_key=registration_key):
             raise NotRegisteredException(registration_key=registration_key)
 
         config_info = cls._REGISTRY[registration_key]
-        config = config_info.constructor()
-        return config
+        return config_info.config
 
     @classmethod
     def retrieve_configuration_info(
@@ -1172,10 +1050,10 @@ class Registry:
             ``NotRegisteredException``: if the provided ``RegistrationKey`` is not in the registry.
         """
 
-        registration_key = RegistrationKey.parse(registration_key=registration_key,
-                                                 name=name,
-                                                 tags=tags,
-                                                 namespace=namespace)
+        registration_key: RegistrationKey = RegistrationKey.parse(registration_key=registration_key,
+                                                                  name=name,
+                                                                  tags=tags,
+                                                                  namespace=namespace)
 
         if cls.in_registry(registration_key=registration_key):
             return cls._REGISTRY[registration_key]

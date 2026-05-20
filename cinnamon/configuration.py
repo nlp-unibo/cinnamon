@@ -4,7 +4,8 @@ import logging
 import os
 from copy import deepcopy
 from functools import partial
-from typing import Dict, Any, Callable, Optional, TypeVar, Sized, List, Set, Union, Type, Tuple
+from typing import Dict, Any, Callable, Optional, TypeVar, List, Set, Union, Type, Tuple
+
 from pandas import json_normalize
 
 import cinnamon.component
@@ -152,6 +153,10 @@ class Configuration:
             self
     ):
         self.__add_state = False
+        self.add(name='expanded',
+                 value=False,
+                 type_hint=bool,
+                 description='Whether the Registry has resolved its dependencies or not')
 
     def __setattr__(
             self,
@@ -179,7 +184,6 @@ class Configuration:
     ) -> str:
         return str(self.to_value_dict())
 
-    # TODO: should we consider conditions as well here?
     def __eq__(
             self,
             other: C
@@ -198,21 +202,21 @@ class Configuration:
             self
     ) -> Dict[str, P]:
         return {key: param for key, param in self.__dict__.items() if
-                isinstance(param, Param) and ('condition' in param.tags or 'pre-condition' in param.tags)}
+                isinstance(param, Param) and 'condition' in param.tags}
 
     @property
     def params(
             self
     ) -> Dict[str, P]:
         return {key: param for key, param in self.__dict__.items()
-                if isinstance(param, Param) and param.tags.intersection({'condition', 'pre-condition'}) == set()}
+                if isinstance(param, Param) and param.tags.intersection({'condition'}) == set() and key != 'expanded'}
 
     @property
     def values(
             self
     ) -> Dict[str, Any]:
         return {key: param.value for key, param in self.__dict__.items()
-                if isinstance(param, Param) and param.tags.intersection({'condition', 'pre-condition'}) == set()}
+                if isinstance(param, Param) and param.tags.intersection({'condition'}) == set() and key != 'expanded'}
 
     # Note: this property works only prior resolution
     @property
@@ -240,7 +244,7 @@ class Configuration:
             tags: Optional[Set[str]] = None,
             allowed_range: Optional[Callable[[Any], bool]] = None,
             is_required: bool = True,
-            variants: Optional[Sized] = None,
+            variants: Optional[List] = None,
     ):
         """
         Adds a Parameter to the Configuration.
@@ -317,10 +321,10 @@ class Configuration:
                  tags=tags,
                  is_required=False)
 
-    def _validate(
+
+    def validate(
             self,
-            conditions: List[Param],
-            strict: bool = True,
+            strict: bool = True
     ) -> ValidationResult:
         """
        Validates all provided conditions related to the ``Configuration`` instance.
@@ -336,10 +340,16 @@ class Configuration:
             ``ValidationFailureException``: if ``strict = True`` and the validation process failed
         """
 
-        for condition in conditions:
+        for dependency_name, dependency in self.dependencies.items():
+            if isinstance(dependency.value, Configuration):
+                child_validation = dependency.value.validate(strict=strict)
+                if not child_validation.passed:
+                    return child_validation
+
+        for condition_name, condition in self.conditions.items():
             if not condition.value(self):
                 validation_result = ValidationResult(passed=False,
-                                                     error_message=f'Condition {condition.name} failed!',
+                                                     error_message=f'Condition {condition_name} failed!',
                                                      source=self.__class__.__name__)
                 if strict:
                     raise ValidationFailureException(validation_result=validation_result)
@@ -347,56 +357,6 @@ class Configuration:
                 return validation_result
 
         return ValidationResult(passed=True, source=self.__class__.__name__)
-
-    # TODO: what if we have a pre-condition on dependencies (e.g., on tags) which are built before validate()?
-    # We should not execute pre-condition here
-    def validate(
-            self,
-            strict: bool = True
-    ) -> ValidationResult:
-        """
-        Calls all conditions to assess the correctness of the current ``Configuration``.
-
-        Args:
-            strict: if True, a failed validation process will raise ``InvalidConfigurationException``
-
-        Returns:
-            A ``ValidationResult`` object that stores the boolean result of the validation process along with
-            an error message if the result is ``False``.
-
-        Raises:
-            ``ValidationFailureException``: if ``strict = True`` and the validation process failed
-        """
-
-        for child_name, child in self.dependencies.items():
-            if isinstance(child.value, Configuration):
-                child_validation = child.value.validate(strict=strict)
-                if not child_validation.passed:
-                    return child_validation
-
-        conditions = self.search_condition_by_tag(tags={'post-condition'}, exact_match=False)
-        return self._validate(conditions=conditions, strict=strict)
-
-    def pre_validate(
-            self,
-            strict: bool = True
-    ) -> ValidationResult:
-        """
-        Calls all pre-built conditions to assess the correctness of the current ``Configuration``.
-
-        Args:
-            strict: if True, a failed validation process will raise ``InvalidConfigurationException``
-
-        Returns:
-            A ``ValidationResult`` object that stores the boolean result of the validation process along with
-            an error message if the result is ``False``.
-
-        Raises:
-            ``ValidationFailureException``: if ``strict = True`` and the validation process failed
-        """
-
-        conditions = self.search_condition_by_tag(tags={'pre-condition'}, exact_match=False)
-        return self._validate(conditions=conditions, strict=strict)
 
     def delta_copy(
             self: type[C],
@@ -419,7 +379,7 @@ class Configuration:
                 value = deepcopy(param.value)
 
             copy.add(name=param_name,
-                     value=deepcopy(value),
+                     value=value,
                      type_hint=param.type_hint,
                      description=param.description,
                      is_required=param.is_required,
@@ -483,6 +443,18 @@ class Configuration:
         return False
 
     @property
+    def has_at_least_two_variants(
+            self
+    ) -> bool:
+        params_with_variants = 0
+        for param_key, param in self.params.items():
+            if len(param.variants):
+                params_with_variants += 1
+            if params_with_variants >= 2:
+                return True
+        return False
+
+    @property
     def variants(
             self,
     ) -> Tuple[List[Dict[str, Any]], List[Dict[str, int]]]:
@@ -496,9 +468,7 @@ class Configuration:
             Indexes refer to variant index in variants list.
         """
 
-        has_variants = self.has_variants
-
-        if not has_variants:
+        if not self.has_variants:
             return [], []
 
         parameters = {}
@@ -506,7 +476,7 @@ class Configuration:
         for param_key, param in self.params.items():
             # Always add param.value to account for all possible combinations
             # TODO: consider defining a special value (e.g., UNSET) to allow None as a normal value
-            if has_variants:
+            if self.has_at_least_two_variants:
                 parameters.setdefault(param_key, [param.value])
 
             if param.variants is not None and len(param.variants):
@@ -557,8 +527,8 @@ class Configuration:
         Returns:
             A dictionary with ``Param.name`` as keys and ``Param`` as values
         """
-        if not type(tags) == set:
-            tags = {tags}
+        if tags is not None and type(tags) == str:
+            tags = set(tags)
 
         return self._search(buffer=self.params,
                             conditions=[
@@ -596,8 +566,8 @@ class Configuration:
         Returns:
             A dictionary with ``Param.name`` as keys and ``Param`` as values
         """
-        if not type(tags) == set:
-            tags = {tags}
+        if tags is not None and type(tags) == str:
+            tags = set(tags)
 
         return self._search(buffer=self.conditions,
                             conditions=[
