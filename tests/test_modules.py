@@ -18,7 +18,7 @@ def test_parse_configuration_files_with_register():
     Test NamespaceExtractor to retrieve 'external' namespace only from folder path
     """
     extractor = NamespaceExtractor()
-    filename = Path('.', 'external_test_repo', 'configurations', 'test.py').resolve()
+    filename = Path('.', 'tests', 'external_test_repo', 'configurations', 'test.py').resolve()
     namespaces = extractor.process(filename=filename)
     assert namespaces == ['external']
 
@@ -28,7 +28,7 @@ def test_parse_configuration_file_with_register_method():
     Test NamespaceExtractor to retrieve 'external' namespace only from folder path when using @register_config
     """
     extractor = NamespaceExtractor()
-    filename = Path('.', 'ext_repo_nested', 'configurations', 'mock.py').resolve()
+    filename = Path('.', 'tests', 'ext_repo_nested', 'configurations', 'mock.py').resolve()
     namespaces = extractor.process(filename=filename)
     assert namespaces == ['mock']
 
@@ -39,7 +39,7 @@ def test_resolve_external_directories_with_dir():
     """
 
     external_directories = [
-        Path('.', 'external_test_repo')
+        Path('.', 'tests', 'external_test_repo')
     ]
     resolved = Registry.resolve_external_directories(external_directories=external_directories)
     assert resolved == external_directories
@@ -51,7 +51,7 @@ def test_resolve_external_directories_exception():
     """
 
     external_directories = [
-        Path('.', 'fake_repo')
+        Path('.', 'tests', 'fake_repo')
     ]
     with pytest.raises(InvalidDirectoryException):
         Registry.resolve_external_directories(external_directories=external_directories)
@@ -64,7 +64,7 @@ def test_load_registrations(
     Load registration from given external directory path and check Registry
     """
 
-    directory = Path('.', 'external_test_repo')
+    directory = Path('.', 'tests', 'external_test_repo')
     Registry.load_registrations(directory=directory)
     assert Registry.in_registry(RegistrationKey(name='test', namespace='external'))
     assert Registry.in_registry(RegistrationKey(name='test2', namespace='external'))
@@ -78,7 +78,7 @@ def test_load_registrations_nested_exception(
     Trigger ExternalNamespaceNotFoundException when providing an external directory folder that has not been set up
     """
 
-    directory = Path('.', 'ext_repo_nested')
+    directory = Path('.', 'tests', 'ext_repo_nested')
     with pytest.raises(NamespaceNotFoundException):
         Registry.load_registrations(directory=directory)
 
@@ -86,7 +86,7 @@ def test_load_registrations_nested_exception(
 def test_chained_register_decorator(
         reset_registry
 ):
-    directory = Path('.', 'ext_repo_nested_dec')
+    directory = Path('.', 'tests', 'ext_repo_nested_dec')
     Registry.load_registrations(directory=directory)
     key1 = RegistrationKey(name='config', tags={'nest1'}, namespace='testing')
     key2 = RegistrationKey(name='config', tags={'nest2'}, namespace='testing')
@@ -105,7 +105,7 @@ def test_chained_register_decorator(
 def test_deeply_nested_config(
         reset_registry
 ):
-    directory = Path('.', 'deeply_nested_repo')
+    directory = Path('.', 'tests', 'deeply_nested_repo')
     Registry.load_registrations(directory=directory)
     key = RegistrationKey(name='config', namespace='testing')
     assert Registry.in_registry(key)

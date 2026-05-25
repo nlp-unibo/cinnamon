@@ -510,7 +510,7 @@ class Registry:
             cls,
             directory: Union[Path, AnyStr] = None,
             external_directories: List[Union[AnyStr, Path]] = None
-    ) -> Tuple[ResolutionInfo, ResolutionInfo]:
+    ) -> Tuple[Set[RegistrationKey], Set[RegistrationKey]]:
         """
         Main entrypoint of cinnamon.
         The registry checks provided directories for configurations to populate its internal registry and build
@@ -627,6 +627,7 @@ class Registry:
 
         return resolved_directories
 
+    # TODO: update -> we need to instantiate configuration
     @classmethod
     def load_registrations(
             cls,
@@ -678,8 +679,7 @@ class Registry:
                             method_name = key_method.func.__qualname__.split('.')[-1]
                             class_method_name = key_method.func.__qualname__.split('.')[-2]
                             class_method = module.__dict__[class_method_name]
-                            Registry.register_configuration(config_class=class_method,
-                                                            config_constructor=getattr(class_method, method_name),
+                            Registry.register_configuration(config=getattr(class_method, method_name)(),
                                                             name=key_method.name,
                                                             tags=key_method.tags,
                                                             namespace=key_method.namespace,
@@ -757,7 +757,7 @@ class Registry:
     @classmethod
     def dag_resolution(
             cls
-    ) -> Tuple[ResolutionInfo, ResolutionInfo]:
+    ) -> Tuple[Set[RegistrationKey], Set[RegistrationKey]]:
         """
         Expands and resolves dependencies in registration DAG.
         The dependency traversal is done bottom-up by recursively expanding top nodes
@@ -765,39 +765,30 @@ class Registry:
         Expanded keys are retrieved, and built for full validation.
 
         Returns:
-            valid_keys: a ``ResolutionInfo` object containing valid ``RegistrationKey``
-            invalid_keys: a ``ResolutionInfo` object containing invalid ``RegistrationKey``
+            valid_keys: the set of valid registration keys
+            invalid_keys:the set of invalid registration keys
         """
 
         cls.check_registration_graph()
 
         # Variants expansion doesn't change the topology of the graph -> no need for a re-check
-        path_keys: Set[RegistrationKey] = set()
+        valid_key_buffer: Set[RegistrationKey] = set()
+        invalid_key_buffer: Set[RegistrationKey] = set()
         for key in cls._DEPENDENCY_DAG.successors(cls._ROOT_KEY):
-            Registry.expand_configuration(key=key, key_buffer=path_keys)
+            Registry.expand_configuration(key=key,
+                                          valid_key_buffer=valid_key_buffer,
+                                          invalid_key_buffer=invalid_key_buffer)
 
         cls.expanded = True
 
-        # Validate paths
-        valid_keys = ResolutionInfo()
-        invalid_keys = ResolutionInfo()
-        for key in path_keys:
-            config = cls.retrieve_configuration(registration_key=key)
-            validation_result = config.validate(strict=False)
-            if not validation_result.passed:
-                key.metadata = validation_result.stack_trace
-                invalid_keys.add(key=key, config=config)
-                continue
-
-            valid_keys.add(key=key, config=config)
-
-        return valid_keys, invalid_keys
+        return valid_key_buffer, invalid_key_buffer
 
     @classmethod
     def expand_configuration(
             cls,
             key: RegistrationKey,
-            key_buffer: Set[RegistrationKey] = {},
+            valid_key_buffer: Set[RegistrationKey] = {},
+            invalid_key_buffer: Set[RegistrationKey] = {}
     ) -> Set[RegistrationKey]:
         config_info = cls.retrieve_configuration_info(registration_key=key)
         config = config_info.config
@@ -807,7 +798,7 @@ class Registry:
             keys = {edge[1] for edge in cls._DEPENDENCY_DAG.out_edges(key)}.union({key})
             return keys
 
-        keys = {key}
+        keys = set()
 
         # dependencies
         for dependency_name, dependency in config.dependencies.items():
@@ -815,16 +806,18 @@ class Registry:
 
             # if dependency returns multiple keys, we keep the first as the main one and the rest is moved to variants
             if dependency.value is not None and isinstance(dependency.value, RegistrationKey):
-                dependency_keys = Registry.expand_configuration(key=dependency.value)
-                dependency.value = dependency_keys.pop()
-                dependency_variants.union(dependency_keys)
+                dependency_keys = Registry.expand_configuration(key=dependency.value,
+                                                                valid_key_buffer=valid_key_buffer,
+                                                                invalid_key_buffer=invalid_key_buffer)
+                dependency_variants = dependency_variants.union(dependency_keys)
 
             for key_variant in dependency.variants:
                 if key_variant is not None and isinstance(key_variant, RegistrationKey):
-                    dependency_variants.union(Registry.expand_configuration(key=key_variant))
+                    dependency_variants = dependency_variants.union(Registry.expand_configuration(key=key_variant,
+                                                                                                  valid_key_buffer=valid_key_buffer,
+                                                                                                  invalid_key_buffer=invalid_key_buffer))
 
             config.get(dependency_name).variants = list(dependency_variants)
-            key_buffer.update(dependency_variants)
 
         # variants
         for variant_kwargs, variant_indexes in zip(*config.variants):
@@ -836,16 +829,32 @@ class Registry:
                 cls._DEPENDENCY_DAG.add_node(variant_key)
             cls._DEPENDENCY_DAG.add_edge(key, variant_key, type='variant')
 
-            cls.register_configuration(config=variant_config,
-                                       name=variant_key.name,
-                                       tags=variant_key.tags,
-                                       namespace=variant_key.namespace,
-                                       component_class=config_info.component_class,
-                                       build_recursively=config_info.build_recursively)
+            if not Registry.in_registry(variant_key):
+                cls.register_configuration(config=variant_config,
+                                           name=variant_key.name,
+                                           tags=variant_key.tags,
+                                           namespace=variant_key.namespace,
+                                           component_class=config_info.component_class,
+                                           build_recursively=config_info.build_recursively)
 
-            keys.add(variant_key)
+            variant_config = Registry.resolve_configuration(config=variant_config)
+            validation_result = variant_config.validate(strict=False)
+            if validation_result.passed:
+                keys.add(variant_key)
+                valid_key_buffer.add(variant_key)
+            else:
+                variant_key.metadata = validation_result.stack_trace
+                invalid_key_buffer.add(variant_key)
 
-        key_buffer.update(keys)
+        config = Registry.resolve_configuration(config=config)
+        validation_result = config.validate(strict=False)
+
+        if validation_result.passed:
+            valid_key_buffer.add(key)
+            keys.add(key)
+        else:
+            key.metadata = validation_result.stack_trace
+            invalid_key_buffer.add(key)
 
         config.expanded = True
 
@@ -903,10 +912,19 @@ class Registry:
 
         if config_info.build_recursively:
             for child_name, child in config.dependencies.items():
-                if child.value is None or not isinstance(child.value, RegistrationKey):
+                if child.value is None:
                     continue
 
-                child.value = cls.build_component(registration_key=child.value)
+                if isinstance(child.value, RegistrationKey):
+                    component_key = child.value
+                elif isinstance(child.value, cinnamon.configuration.Configuration):
+                    component_key = child.value.registration_key
+                else:
+                    raise AttributeError(f'Invalid child value found. '
+                                         f'Expected a RegistrationKey or Configuration instance. '
+                                         f'Got {child.value.__class__.__name__}')
+
+                child.value = cls.build_component(registration_key=component_key)
 
         component_args = {**config.values, **build_args}
         component = config_info.component_class(**component_args)
@@ -965,6 +983,9 @@ class Registry:
         if component_class is not None and issubclass(component_class, cinnamon.component.RunnableComponent):
             registration_key.special_tags.add('runnable')
 
+        # Adding key as config param for quick retrieval during build_component
+        config.registration_key = registration_key
+
         # Store configuration in registry
         # TODO: we need to store the config module and script name for when we serialize configs to python files
         cls._REGISTRY[registration_key] = ConfigurationInfo(config=config,
@@ -993,6 +1014,21 @@ class Registry:
                     cls.load_registrations(directory=cls._MODULE_MAPPING[dep.namespace])
 
         return registration_key
+
+    @classmethod
+    def resolve_configuration(
+            cls,
+            config: cinnamon.configuration.Configuration
+    ) -> cinnamon.configuration.Configuration:
+        for dependency_name, dependency in config.dependencies.items():
+            if dependency.value is not None and isinstance(dependency.value, RegistrationKey):
+                dependency.value = Registry.retrieve_configuration(registration_key=dependency.value)
+
+            dependency.variants = [Registry.retrieve_configuration(registration_key=variant_key)
+                                   if isinstance(variant_key, RegistrationKey) else variant_key
+                                   for variant_key in dependency.variants]
+
+        return config
 
     @classmethod
     def retrieve_configuration(

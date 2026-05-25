@@ -107,7 +107,7 @@ class ConfigWithVariantChild(Configuration):
             cls: Type[C]
     ) -> C:
         config = super().default()
-        config.add(name='c1', value=RegistrationKey(name='test', tags={'x=1'}, namespace='testing'))
+        config.add(name='c1', value=RegistrationKey(name='test', namespace='testing'))
         return config
 
 

@@ -4,6 +4,7 @@ from typing import List, Union, AnyStr
 
 __all__ = [
     'AlreadyExistingParameterException',
+    'NotAllowedParameterException',
     'AlreadyRegisteredException',
     'NamespaceNotFoundException',
     'NotRegisteredException',
@@ -23,6 +24,16 @@ class AlreadyExistingParameterException(Exception):
             param: "cinnamon.configuration.Param"
     ):
         super().__init__(f'Parameter {param.name} already exists! {os.linesep}'
+                         f'Parameter: {param}')
+
+
+class NotAllowedParameterException(Exception):
+
+    def __init__(
+            self,
+            param: "cinnamon.configuration.Param"
+    ):
+        super().__init__(f'Parameter {param.name} is reserved and therefore not allowed! {os.linesep}'
                          f'Parameter: {param}')
 
 

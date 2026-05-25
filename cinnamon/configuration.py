@@ -12,7 +12,8 @@ import cinnamon.component
 import cinnamon.registry
 from cinnamon.utility.configuration import get_dict_values_combinations
 from cinnamon.utility.exceptions import (
-    AlreadyExistingParameterException
+    AlreadyExistingParameterException,
+    NotAllowedParameterException
 )
 from cinnamon.utility.registration import Tags
 from cinnamon.utility.sanity import (
@@ -149,14 +150,19 @@ class Configuration:
     Configurations store parameters and allow flow control via conditions.
     """
 
+    special_params = [
+        'expanded',
+        'registration_key',
+        '__expanded',
+        '__registration_key',
+        '__dict__'
+    ]
+
     def __init__(
             self
     ):
-        self.__add_state = False
-        self.add(name='expanded',
-                 value=False,
-                 type_hint=bool,
-                 description='Whether the Registry has resolved its dependencies or not')
+        self.__expanded = False
+        self.__registration_key = None
 
     def __setattr__(
             self,
@@ -164,8 +170,9 @@ class Configuration:
             value
     ):
         if key in self.params:
-            self.params.get(key).value = value
-        elif key in ['_Configuration__add_state'] or (hasattr(self, '__add_state') and self.__add_state):
+            self.get(key).value = value
+        elif key in [f'_Configuration{special_param}' for special_param in Configuration.special_params] \
+            or key in Configuration.special_params:
             super().__setattr__(key, value)
         else:
             raise AttributeError(f'Could not set non-existing parameter: {key}.')
@@ -198,6 +205,32 @@ class Configuration:
         return True
 
     @property
+    def expanded(
+            self
+    ) -> bool:
+        return self.__expanded
+
+    @expanded.setter
+    def expanded(
+            self,
+            value: bool
+    ):
+        self.__expanded = value
+
+    @property
+    def registration_key(
+            self
+    ) -> cinnamon.registry.RegistrationKey:
+        return self.__registration_key
+
+    @registration_key.setter
+    def registration_key(
+            self,
+            value: cinnamon.registry.RegistrationKey
+    ):
+        self.__registration_key = value
+
+    @property
     def conditions(
             self
     ) -> Dict[str, P]:
@@ -209,16 +242,17 @@ class Configuration:
             self
     ) -> Dict[str, P]:
         return {key: param for key, param in self.__dict__.items()
-                if isinstance(param, Param) and param.tags.intersection({'condition'}) == set() and key != 'expanded'}
+                if isinstance(param, Param) and param.tags.intersection({'condition'}) == set()
+                and key not in Configuration.special_params}
 
     @property
     def values(
             self
     ) -> Dict[str, Any]:
         return {key: param.value for key, param in self.__dict__.items()
-                if isinstance(param, Param) and param.tags.intersection({'condition'}) == set() and key != 'expanded'}
+                if isinstance(param, Param) and param.tags.intersection({'condition'}) == set() and
+                key not in Configuration.special_params}
 
-    # Note: this property works only prior resolution
     @property
     def dependencies(
             self
@@ -266,7 +300,9 @@ class Configuration:
         if name in self.__dict__:
             raise AlreadyExistingParameterException(param=self.get(name))
 
-        self.__add_state = True
+        if name in Configuration.special_params:
+            raise NotAllowedParameterException(param=self.get(name))
+
         self.__dict__[name] = Param(name=name,
                                     value=value,
                                     type_hint=type_hint,
@@ -275,7 +311,6 @@ class Configuration:
                                     allowed_range=allowed_range,
                                     is_required=is_required,
                                     variants=variants)
-        self.__add_state = False
 
         if is_required:
             self.add_condition(name=f'{name}_is_required',
@@ -284,16 +319,14 @@ class Configuration:
         if allowed_range is not None:
             self.add_condition(name=f'{name}_allowed_range',
                                condition=partial(allowed_range_cond, name=name),
-                               description=f'Checks if {name} is in allowed range.',
-                               is_pre_condition=self.get(name).is_dependency)
+                               description=f'Checks if {name} is in allowed range.')
 
     def add_condition(
             self,
             condition: Condition,
             name: str,
             description: Optional[str] = None,
-            tags: Tags = None,
-            is_pre_condition: bool = False
+            tags: Tags = None
     ):
         """
         Adds a condition to be validated.
@@ -311,7 +344,6 @@ class Configuration:
 
         tags = set() if tags is None else tags
         tags.add('condition')
-        tags.add('pre-condition' if is_pre_condition else 'post-condition')
 
         condition_name = f'cond_{name}' if not name.startswith('cond_') else name
 
@@ -393,8 +425,7 @@ class Configuration:
                 copy.add_condition(name=name,
                                    condition=deepcopy(condition.value),
                                    description=condition.description,
-                                   tags=condition.tags,
-                                   is_pre_condition='pre-condition' in condition.tags)
+                                   tags=condition.tags)
 
         return copy
 
@@ -527,8 +558,9 @@ class Configuration:
         Returns:
             A dictionary with ``Param.name`` as keys and ``Param`` as values
         """
-        if tags is not None and type(tags) == str:
-            tags = set(tags)
+
+        if tags is not None and isinstance(tags, str):
+            tags = {tags}
 
         return self._search(buffer=self.params,
                             conditions=[
@@ -566,8 +598,9 @@ class Configuration:
         Returns:
             A dictionary with ``Param.name`` as keys and ``Param`` as values
         """
-        if tags is not None and type(tags) == str:
-            tags = set(tags)
+
+        if tags is not None and isinstance(tags, str):
+            tags = {tags}
 
         return self._search(buffer=self.conditions,
                             conditions=[

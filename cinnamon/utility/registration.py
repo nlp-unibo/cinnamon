@@ -74,9 +74,10 @@ class NamespaceExtractor(ast.NodeVisitor):
     def visit_Call(self, node):
         if self.register_flag:
             call_args = [ast.unparse(keyword) for keyword in node.keywords]
-            namespace = [item for item in call_args if item.startswith('namespace')][0].split('namespace=')[-1].strip()
-            namespace = namespace.replace('\'', '').replace("\"", '')
-            self.namespaces.append(namespace)
+            if len(call_args):
+                namespace = [item for item in call_args if item.startswith('namespace')][0].split('namespace=')[-1].strip()
+                namespace = namespace.replace('\'', '').replace("\"", '')
+                self.namespaces.append(namespace)
         self.generic_visit(node)
 
 

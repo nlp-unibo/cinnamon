@@ -23,7 +23,7 @@ def test_build_empty_component(
     Testing if we can build component from its configuration key
     """
 
-    key = Registry.register_configuration(config_class=Configuration,
+    key = Registry.register_configuration(config=Configuration.default(),
                                           component_class=Component,
                                           name='component',
                                           namespace='testing')
@@ -38,7 +38,7 @@ def test_build_component(
     """
     Build component via registered key and check parameters
     """
-    key = Registry.register_configuration(config_class=BaseConfig,
+    key = Registry.register_configuration(config=BaseConfig.default(),
                                           component_class=BaseComponent,
                                           name='component',
                                           namespace='testing')
@@ -55,7 +55,7 @@ def test_trigger_invalid_build_component(
     """
     Trigger exception when building a component with an improper configuration
     """
-    key = Registry.register_configuration(config_class=BaseConfig,
+    key = Registry.register_configuration(config=BaseConfig.default(),
                                           component_class=Component,
                                           name='component',
                                           namespace='testing')
@@ -70,11 +70,11 @@ def test_build_component_with_child(
     """
     Build component that contains another child component
     """
-    parent_key = Registry.register_configuration(config_class=ConfigWithChild,
+    parent_key = Registry.register_configuration(config=ConfigWithChild.default(),
                                                  component_class=ComponentWithChild,
                                                  name='config',
                                                  namespace='testing')
-    child_key = Registry.register_configuration(config_class=ChildConfig,
+    child_key = Registry.register_configuration(config=ChildConfig.default(),
                                                 component_class=ChildComponent,
                                                 name='test',
                                                 tags={'t2'},
@@ -94,11 +94,11 @@ def test_build_component_with_child_variants(
     """
     Build component with child component and also build one of its variant
     """
-    parent_key = Registry.register_configuration(config_class=ConfigWithChild,
+    parent_key = Registry.register_configuration(config=ConfigWithChild.default(),
                                                  component_class=ComponentWithChild,
                                                  name='config',
                                                  namespace='testing')
-    child_key = Registry.register_configuration(config_class=ChildConfig,
+    child_key = Registry.register_configuration(config=ChildConfig.default(),
                                                 component_class=ChildComponent,
                                                 name='test',
                                                 tags={'t2'},
@@ -123,7 +123,7 @@ def test_build_external_component(
     Testing Component building API for an external registration.
     """
 
-    external_path = Path().parent.resolve().joinpath('external_test_repo')
+    external_path = Path().parent.resolve().joinpath('tests', 'external_test_repo')
     Registry.load_registrations(directory=external_path)
     Registry.dag_resolution()
     component = Registry.build_component(name='test',
@@ -134,12 +134,12 @@ def test_build_external_component(
 def test_build_component_with_external_dependency(
         reset_registry
 ):
-    external_path = Path().parent.resolve().joinpath('external_test_repo')
+    external_path = Path().parent.resolve().joinpath('tests', 'external_test_repo')
 
     namespaces, mapping = Registry.parse_configuration_files(directories=[external_path])
     Registry.update_namespaces(namespaces=namespaces, module_mapping=mapping)
 
-    key = Registry.register_configuration(config_class=ConfigWithExternalDependency,
+    key = Registry.register_configuration(config=ConfigWithExternalDependency.default(),
                                           component_class=ComponentWithChild,
                                           name='config',
                                           namespace='testing')
@@ -152,9 +152,9 @@ def test_build_component_with_external_dependency(
 def test_build_after_setup(
         reset_registry
 ):
-    main_path = Path().parent.resolve().joinpath('fake_main')
+    main_path = Path().parent.resolve().joinpath('tests', 'fake_main')
     external_directories = [
-        Path().parent.resolve().joinpath('external_test_repo')
+        Path().parent.resolve().joinpath('tests', 'external_test_repo')
     ]
     Registry.build(directory=main_path,
                    external_directories=external_directories)

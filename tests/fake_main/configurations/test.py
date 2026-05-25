@@ -4,7 +4,7 @@ from tests.fixtures import ConfigWithExternalDependency, ComponentWithChild
 
 @register
 def register_configs():
-    Registry.register_configuration(config_class=ConfigWithExternalDependency,
+    Registry.register_configuration(config=ConfigWithExternalDependency.default(),
                                     component_class=ComponentWithChild,
                                     name='config',
                                     namespace='testing')

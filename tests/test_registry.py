@@ -13,7 +13,6 @@ from tests.fixtures import (
     reset_registry,
     expand_registry,
     ConfigWithChild,
-    ConfigWithVariantChild,
     ChildConfig,
     VariantConfig,
     VariantConfigWithChild,
@@ -38,7 +37,7 @@ def test_register_empty_config(
     """
     Register empty configuration and check if it is successful and if dependencies are correct
     """
-    key = Registry.register_configuration(config_class=Configuration,
+    key = Registry.register_configuration(config=Configuration.default(),
                                           name='test',
                                           namespace='testing')
     assert Registry.in_registry(key)
@@ -54,10 +53,10 @@ def test_register_two_empty_configs(
     """
     Register two empty registrations and check corresponding dependencies
     """
-    key_1 = Registry.register_configuration(config_class=Configuration,
+    key_1 = Registry.register_configuration(config=Configuration.default(),
                                             name='test',
                                             namespace='testing')
-    key_2 = Registry.register_configuration(config_class=Configuration,
+    key_2 = Registry.register_configuration(config=Configuration.default(),
                                             name='test',
                                             tags={'t2'},
                                             namespace='testing')
@@ -75,10 +74,10 @@ def test_register_empty_and_nested_config(
     Register two configurations, one with child, and check dependencies
     """
 
-    key_1 = Registry.register_configuration(config_class=ConfigWithChild,
+    key_1 = Registry.register_configuration(config=ConfigWithChild.default(),
                                             name='test',
                                             namespace='testing')
-    key_2 = Registry.register_configuration(config_class=Configuration,
+    key_2 = Registry.register_configuration(config=Configuration.default(),
                                             name='test',
                                             tags={'t2'},
                                             namespace='testing')
@@ -99,12 +98,12 @@ def test_trigger_repeated_registration_error(
     Register configuration and attempt registering it again to trigger error
     """
 
-    Registry.register_configuration(config_class=Configuration,
+    Registry.register_configuration(config=Configuration.default(),
                                     name='test',
                                     tags={'tag1'},
                                     namespace='testing')
     with pytest.raises(AlreadyRegisteredException):
-        Registry.register_configuration(config_class=Configuration,
+        Registry.register_configuration(config=Configuration.default(),
                                         name='test',
                                         tags={'tag1'},
                                         namespace='testing')
@@ -133,7 +132,7 @@ def test_retrieve_config(
     Register and retrieve configuration with success
     """
 
-    key = Registry.register_configuration(config_class=Configuration,
+    key = Registry.register_configuration(config=Configuration.default(),
                                           name='test_config',
                                           namespace='testing')
 
@@ -147,7 +146,7 @@ def test_register_and_bind_config(
     """
     Register a configuration with bounded component
     """
-    key = Registry.register_configuration(config_class=Configuration,
+    key = Registry.register_configuration(config=Configuration.default(),
                                           component_class=Component,
                                           name='test',
                                           tags={'tag'},
@@ -159,7 +158,7 @@ def test_register_and_bind_config(
 def test_register_and_bind_runnable_config(
         reset_registry
 ):
-    key = Registry.register_configuration(config_class=Configuration,
+    key = Registry.register_configuration(config=Configuration.default(),
                                           component_class=RunnableComponent,
                                           name='test',
                                           tags={'tag'},
@@ -171,7 +170,7 @@ def test_register_and_bind_runnable_config(
 def test_register_and_bind_custom_runnable_config(
         reset_registry
 ):
-    key = Registry.register_configuration(config_class=Configuration,
+    key = Registry.register_configuration(config=Configuration.default(),
                                           component_class=CustomRunnableComponent,
                                           name='test',
                                           tags={'tag'},
@@ -187,13 +186,13 @@ def test_trigger_registered_config_with_binding_error(
     Trigger exception when registering an already registered config with bounded component
     """
 
-    Registry.register_configuration(config_class=Configuration,
+    Registry.register_configuration(config=Configuration.default(),
                                     component_class=Component,
                                     name='test',
                                     tags={'tag'},
                                     namespace='testing')
     with pytest.raises(AlreadyRegisteredException):
-        Registry.register_configuration(config_class=Configuration,
+        Registry.register_configuration(config=Configuration.default(),
                                         component_class=Component,
                                         name='test',
                                         tags={'tag'},
@@ -206,7 +205,7 @@ def test_register_config_with_variants_no_expansion(
     """
     Register configuration with parameter variants and check newly created variants in dependency DAG
     """
-    key = Registry.register_configuration(config_class=VariantConfig,
+    key = Registry.register_configuration(config=VariantConfig.default(),
                                           name='test',
                                           namespace='testing')
     assert Registry.in_registry(key)
@@ -226,7 +225,7 @@ def test_register_config_with_child_and_variants_no_expansion(
     """
 
     # First avoid registering child key -- we should still see all connections
-    key = Registry.register_configuration(config_class=VariantConfigWithChild,
+    key = Registry.register_configuration(config=VariantConfigWithChild.default(),
                                           name='test',
                                           namespace='testing')
     assert Registry.in_registry(key)
@@ -238,7 +237,7 @@ def test_register_config_with_child_and_variants_no_expansion(
     assert (key, key.from_variant({'x': 3})) not in Registry._DEPENDENCY_DAG.edges
 
     # No additions should be made here
-    child_key = Registry.register_configuration(config_class=Configuration,
+    child_key = Registry.register_configuration(config=Configuration.default(),
                                                 name='test',
                                                 tags={'t2'},
                                                 namespace='testing')
@@ -255,7 +254,7 @@ def test_register_config_with_child_and_child_variants_no_expansion(
     Register configuration with child variants and parameter variants and check newly created variants in dependency DAG
     """
     # First avoid registering child key -- we should still see all connections
-    key = Registry.register_configuration(config_class=VariantConfigWithChild,
+    key = Registry.register_configuration(config=VariantConfigWithChild.default(),
                                           name='test',
                                           namespace='testing')
     assert Registry.in_registry(key)
@@ -267,7 +266,7 @@ def test_register_config_with_child_and_child_variants_no_expansion(
     assert (key, key.from_variant({'x': 3})) not in Registry._DEPENDENCY_DAG.edges
 
     # Additions are made here since child has variants
-    child_key = Registry.register_configuration(config_class=ChildConfig,
+    child_key = Registry.register_configuration(config=ChildConfig.default(),
                                                 name='test',
                                                 tags={'t2'},
                                                 namespace='testing')
@@ -289,14 +288,13 @@ def test_register_config_from_variant(
     Testing registering a configuration delta copy (and building it)
     """
 
-    Registry.register_configuration_from_variant(config_class=BaseConfig,
-                                                 component_class=Component,
-                                                 name='config',
-                                                 namespace='testing',
-                                                 variant_kwargs={
-                                                     'x': 10,
-                                                     'y': 15
-                                                 })
+    config = BaseConfig()
+    config.add(name='x', value=1)
+    config.add(name='y', value=5)
+    Registry.register_configuration(config=config.delta_copy(x=10, y=15),
+                                    component_class=Component,
+                                    name='config',
+                                    namespace='testing')
     config = Registry.retrieve_configuration(name='config',
                                              namespace='testing')
     assert config.x == 10
@@ -312,11 +310,11 @@ def test_clique(
     Testing that an exception occurs when the registration DAG contains a cycle (i.e., it is not a DAG)
     """
 
-    Registry.register_configuration(config_class=CliqueConfigA,
+    Registry.register_configuration(config=CliqueConfigA.default(),
                                     name='config',
                                     tags={'c1'},
                                     namespace='testing')
-    Registry.register_configuration(config_class=CliqueConfigB,
+    Registry.register_configuration(config=CliqueConfigB.default(),
                                     name='config',
                                     tags={'c2'},
                                     namespace='testing')
@@ -331,7 +329,7 @@ def test_resolution_one_config_valid(
     Registering a configuration with no parameters and check if resolutions returns that config key as valid
     """
 
-    key = Registry.register_configuration(config_class=Configuration,
+    key = Registry.register_configuration(config=Configuration.default(),
                                           name='config',
                                           namespace='testing')
     valid_keys, invalid_keys = Registry.dag_resolution()
@@ -347,7 +345,7 @@ def test_resolution_one_config_invalid(
     Registering a configuration with an invalid parameter value
     and check if resolutions returns that config key as invalid
     """
-    key = Registry.register_configuration(config_class=InvalidConfig,
+    key = Registry.register_configuration(config=InvalidConfig.default(),
                                           name='config',
                                           namespace='testing')
     valid_keys, invalid_keys = Registry.dag_resolution()
@@ -362,7 +360,7 @@ def test_resolution_one_config_variants(
     """
     Registering a configuration with parameter variants and check if resolutions returns all keys as valid
     """
-    key = Registry.register_configuration(config_class=VariantConfig,
+    key = Registry.register_configuration(config=VariantConfig.default(),
                                           name='config',
                                           namespace='testing')
     valid_keys, invalid_keys = Registry.dag_resolution()
@@ -379,7 +377,7 @@ def test_resolution_one_config_variants_some_invalid(
     """
     Registering a configuration with parameter variants and check if resolutions returns all keys as valid
     """
-    key = Registry.register_configuration(config_class=InvalidVariantConfig,
+    key = Registry.register_configuration(config=InvalidVariantConfig.default(),
                                           name='config',
                                           namespace='testing')
     valid_keys, invalid_keys = Registry.dag_resolution()
@@ -396,10 +394,10 @@ def test_resolution_config_with_child_and_param_variants(
     """
     Registering a configuration with parameter variants and check if resolutions returns all keys as valid
     """
-    parent_key = Registry.register_configuration(config_class=VariantConfigWithChild,
+    parent_key = Registry.register_configuration(config=VariantConfigWithChild.default(),
                                                  name='config',
                                                  namespace='testing')
-    child_key = Registry.register_configuration(config_class=ChildConfig,
+    child_key = Registry.register_configuration(config=ChildConfig.default(),
                                                 name='test',
                                                 tags={'t2'},
                                                 namespace='testing')
@@ -407,8 +405,8 @@ def test_resolution_config_with_child_and_param_variants(
     assert len(valid_keys) == 8
     assert Registry.in_registry(parent_key)
     assert Registry.in_registry(child_key)
-    assert parent_key in invalid_keys.keys
-    assert child_key in invalid_keys.keys
+    assert parent_key in invalid_keys
+    assert child_key in invalid_keys
     assert parent_key.from_variant(
         variant_kwargs={'x': 1, 'c1': child_key.from_variant(variant_kwargs={'y': False})}) in valid_keys
     assert parent_key.from_variant(
@@ -432,14 +430,14 @@ def test_resolution_config_with_child_variants_pointing_to_variants(
     We test the case where a config has a child with some variants, one of which points to another child
     DAG resolution should consider all combinations
     """
-    parent_key = Registry.register_configuration(config_class=ConfigWithChild,
+    parent_key = Registry.register_configuration(config=ConfigWithChild.default(),
                                                  name='config',
                                                  namespace='testing')
-    first_child_key = Registry.register_configuration(config_class=VariantConfigWithVariantChild,
+    first_child_key = Registry.register_configuration(config=VariantConfigWithVariantChild.default(),
                                                       name='test',
                                                       tags={'t2'},
                                                       namespace='testing')
-    second_child_key = Registry.register_configuration(config_class=VariantConfig,
+    second_child_key = Registry.register_configuration(config=VariantConfig.default(),
                                                        name='test',
                                                        tags={'t3'},
                                                        namespace='testing')
@@ -450,73 +448,55 @@ def test_resolution_config_with_child_variants_pointing_to_variants(
     assert len(valid_keys) == 15
 
 
-def test_resolution_config_with_variant_dependency(
-        reset_registry
-):
-    """
-    We test the case where a config has a child which is a variant of another config
-    """
-    Registry.register_configuration(config_class=VariantConfig,
-                                    name='test',
-                                    namespace='testing')
-    Registry.register_configuration(config_class=ConfigWithVariantChild,
-                                    name='config',
-                                    namespace='testing')
-    Registry.dag_resolution()
-
-    dep_config = Registry.build_configuration(name='config', namespace='testing')
-    assert dep_config.c1.x == 1
-
-
 def test_resolution_where_key_is_shared_in_more_than_one_path(
         reset_registry
 ):
-    first_key = Registry.register_configuration(config_class=ParentWithVariantsAndChild,
-                                                name='config',
-                                                tags={'a'},
-                                                namespace='testing')
-    second_key = Registry.register_configuration(config_class=ParentWithVariantsAndChild,
-                                                 name='config',
-                                                 tags={'b'},
-                                                 namespace='testing')
-    shared_key = Registry.register_configuration(config_class=Configuration,
-                                                 name='intermediate',
-                                                 namespace='testing')
+    Registry.register_configuration(config=ParentWithVariantsAndChild.default(),
+                                    name='config',
+                                    tags={'a'},
+                                    namespace='testing')
+    Registry.register_configuration(config=ParentWithVariantsAndChild.default(),
+                                    name='config',
+                                    tags={'b'},
+                                    namespace='testing')
+    Registry.register_configuration(config=Configuration.default(),
+                                    name='intermediate',
+                                    namespace='testing')
     valid_keys, invalid_keys = Registry.dag_resolution()
     assert len(valid_keys) == 5
-    assert len(invalid_keys) == 2
+    assert len(invalid_keys) == 4
 
 
 def test_resolution_where_key_with_variants_is_shared_in_more_than_one_path(
         reset_registry
 ):
-    first_key = Registry.register_configuration(config_class=ConfigWithChild,
-                                                name='config',
-                                                tags={'a'},
-                                                namespace='testing')
-    second_key = Registry.register_configuration(config_class=ConfigWithChild,
-                                                 name='config',
-                                                 tags={'b'},
-                                                 namespace='testing')
-    shared_key = Registry.register_configuration(config_class=VariantConfig,
-                                                 name='test',
-                                                 tags={'t2'},
-                                                 namespace='testing')
+    Registry.register_configuration(config=ConfigWithChild.default(),
+                                    name='config',
+                                    tags={'a'},
+                                    namespace='testing')
+    Registry.register_configuration(config=ConfigWithChild.default(),
+                                    name='config',
+                                    tags={'b'},
+                                    namespace='testing')
+    Registry.register_configuration(config=VariantConfig.default(),
+                                    name='test',
+                                    tags={'t2'},
+                                    namespace='testing')
     valid_keys, invalid_keys = Registry.dag_resolution()
     assert len(valid_keys) == 9
-    assert len(invalid_keys) == 3
+    assert len(invalid_keys) == 4
 
 
 def test_hierarchy_with_conflicting_parameters(
         reset_registry
 ):
-    Registry.register_configuration(config_class=ParentWithVariantsAndChild,
+    Registry.register_configuration(config=ParentWithVariantsAndChild.default(),
                                     name='parent',
                                     namespace='testing')
-    Registry.register_configuration(config_class=IntermediateWithChild,
+    Registry.register_configuration(config=IntermediateWithChild.default(),
                                     name='intermediate',
                                     namespace='testing')
-    Registry.register_configuration(config_class=LeafWithVariants,
+    Registry.register_configuration(config=LeafWithVariants.default(),
                                     name='leaf',
                                     namespace='testing')
     valid_keys, invalid_keys = Registry.dag_resolution()
@@ -526,27 +506,26 @@ def test_hierarchy_with_conflicting_parameters(
 def test_hierarchy_with_conflicting_parameters_and_custom_constructor(
         reset_registry
 ):
-    Registry.register_configuration(config_class=ParentWithVariantsAndChild,
+    Registry.register_configuration(config=ParentWithVariantsAndChild.default(),
                                     name='parent',
                                     namespace='testing')
-    Registry.register_configuration(config_class=IntermediateWithChild,
-                                    config_constructor=IntermediateWithChild.custom_method,
+    Registry.register_configuration(config=IntermediateWithChild.custom_method(),
                                     name='intermediate',
                                     namespace='testing')
-    Registry.register_configuration(config_class=LeafWithVariants,
+    Registry.register_configuration(config=LeafWithVariants.default(),
                                     name='leaf',
                                     namespace='testing')
     valid_keys, invalid_keys = Registry.dag_resolution()
     assert len(valid_keys) == 8
 
-    parent = Registry.build_configuration(name='parent', namespace='testing', tags={'x=1', 'child.child.x=1'})
+    parent = Registry.retrieve_configuration(name='parent', namespace='testing', tags={'x=1', 'child.child.x=1'})
     assert parent.child.canarin == 10
 
 
 def test_retrieve_keys(
         reset_registry
 ):
-    key = Registry.register_configuration(config_class=Configuration,
+    key = Registry.register_configuration(config=Configuration.default(),
                                           name='config',
                                           namespace='testing')
     keys = Registry.retrieve_keys(names='config')
@@ -557,10 +536,10 @@ def test_retrieve_keys(
 def test_retrieve_multiple_keys(
         reset_registry
 ):
-    a_key = Registry.register_configuration(config_class=Configuration,
+    a_key = Registry.register_configuration(config=Configuration.default(),
                                             name='config',
                                             namespace='testing')
-    b_key = Registry.register_configuration(config_class=Configuration,
+    b_key = Registry.register_configuration(config=Configuration.default(),
                                             name='config',
                                             tags={'another'},
                                             namespace='testing')
@@ -589,7 +568,7 @@ def test_retrieve_multiple_keys(
 def test_retrieve_keys_with_no_tags(
         reset_registry
 ):
-    key = Registry.register_configuration(config_class=Configuration,
+    key = Registry.register_configuration(config=Configuration.default(),
                                           name='config',
                                           namespace='testing')
 
@@ -601,11 +580,11 @@ def test_retrieve_keys_with_no_tags(
 def test_retrieve_keys_with_all_conditions(
         reset_registry
 ):
-    key = Registry.register_configuration(config_class=Configuration,
+    key = Registry.register_configuration(config=Configuration.default(),
                                           name='config',
                                           tags={'a-tag'},
                                           namespace='testing')
-    other_key = Registry.register_configuration(config_class=Configuration,
+    other_key = Registry.register_configuration(config=Configuration.default(),
                                                 name='other-config',
                                                 namespace='other-testing')
     keys = Registry.retrieve_keys(names='config',
@@ -618,15 +597,15 @@ def test_retrieve_keys_with_all_conditions(
 def test_key_tags_after_resolution(
         reset_registry
 ):
-    Registry.register_configuration(config_class=Configuration,
+    Registry.register_configuration(config=Configuration.default(),
                                     component_class=RunnableComponent,
                                     name='test',
                                     namespace='testing')
-    Registry.register_configuration(config_class=Configuration,
+    Registry.register_configuration(config=Configuration.default(),
                                     component_class=RunnableComponent,
                                     name='test2',
                                     namespace='testing')
     valid_keys, invalid_keys = Registry.dag_resolution()
 
-    for key in valid_keys.keys:
+    for key in valid_keys:
         assert 'runnable' in key.special_tags
