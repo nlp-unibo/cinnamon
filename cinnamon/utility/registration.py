@@ -98,7 +98,7 @@ class PythonSerializer:
         self.filename = filename
 
         self.imports = [
-            "from cinnamon.registry import register"
+            "from cinnamon.registry import register, Registry"
         ]
         self.configs = []
         self.key_to_function_mapping = {}
@@ -127,20 +127,23 @@ class PythonSerializer:
         serialization_string.append(f'\tconfig = {class_name}()')
         for param_name, param in config.params.items():
 
-            if param.is_dependency:
+            if isinstance(param.value, cinnamon.registry.RegistrationKey):
                 param_value = f'{self.key_to_function_mapping[param.value]}()'
             else:
+                # TODO: this does not work with custom classes
+                # we cannot recover how it was instantiated unless we check the script line where it is defined
                 value_module = inspect.getmodule(param.value.__class__)
                 value_module_name = value_module.__name__
 
                 param_value = repr(param.value)
 
+                # TODO: we could import value_module_name and then use value_module_name.param_constructor_name to avoid conflicts
                 if value_module_name != 'builtins':
                     param_constructor_name = param_value.split('(')[0]
                     self.imports.append(f'from {value_module_name.split(".")[0]} import {param_constructor_name}')
 
             serialization_string.append(
-                f'\tconfig.add(name={param_name}, value={param_value}, description={param.description})'
+                f'\tconfig.add(name={repr(param_name)}, value={param_value}, description={param.description})'
             )
 
         component_module = inspect.getmodule(component_class)
@@ -149,9 +152,9 @@ class PythonSerializer:
 
         serialization_string.append(
             f'{os.linesep}\tRegistry.register_configuration(config=config, '
-            f'name={config.registration_key.name}, '
-            f'tags={config.registration_key.tags}, '
-            f'namespace={config.registration_key.namespace}, '
+            f'name={repr(config.registration_key.name)}, '
+            f'tags={repr(config.registration_key.tags)}, '
+            f'namespace={repr(config.registration_key.namespace)}, '
             f'component_class={component_class.__name__})'
         )
 
@@ -163,11 +166,11 @@ class PythonSerializer:
             self
     ) -> str:
         return f"""
-        # Generated automatically
-        
-        {os.linesep.join(self.imports)}
-        
-        {os.linesep.join(self.configs)}
+# Generated automatically
+
+{os.linesep.join(self.imports)}
+
+{os.linesep.join(self.configs)}
 """
 
     def serialize(
