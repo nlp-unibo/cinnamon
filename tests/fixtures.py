@@ -6,8 +6,11 @@ from cinnamon.component import Component, RunnableComponent
 from cinnamon.configuration import Configuration, C
 from cinnamon.registry import (
     Registry,
-    RegistrationKey
+    RegistrationKey,
+    RegistrationFolders
 )
+from cinnamon.utility.registration import PythonSerializer
+from pathlib import Path
 
 
 @pytest.fixture
@@ -28,6 +31,15 @@ def define_configuration():
                type_hint=int,
                description='a parameter')
     return config
+
+
+@pytest.fixture
+def define_serializer():
+    filepath = Path('.')
+    filename = f'{RegistrationFolders.BUILT}.py'
+    serializer = PythonSerializer(filepath=filepath, filename=filename)
+    return serializer
+
 
 
 class BaseComponent(Component):

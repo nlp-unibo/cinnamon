@@ -12,6 +12,7 @@ from typing import Type, AnyStr, List, Dict, Any, Union, Optional, Callable, Tup
 
 import networkx as nx
 import numpy as np
+from enum import Enum
 
 import cinnamon.component
 import cinnamon.configuration
@@ -28,6 +29,7 @@ from cinnamon.utility.exceptions import (
 )
 from cinnamon.utility.registration import (
     NamespaceExtractor,
+    PythonSerializer,
     Tags,
     TAGGABLE_TYPES,
     match_tags,
@@ -52,8 +54,15 @@ __all__ = [
     'NotRegisteredException',
     'AlreadyRegisteredException',
     'InvalidDirectoryException',
-    'NamespaceNotFoundException'
+    'NamespaceNotFoundException',
+    'RegistrationFolders'
 ]
+
+
+class RegistrationFolders(Enum):
+    CONFIGURATIONS = 'configurations'
+    COMPONENTS = 'components'
+    BUILT = 'built'
 
 
 class RegistrationKey:
@@ -123,7 +132,8 @@ class RegistrationKey:
     def __repr__(
             self
     ) -> str:
-        return self.__str__()
+        return (f'{RegistrationKey.__name__}(name={self.name}, namespace={self.namespace},'
+                f' tags={self.tags}, description={self.description})')
 
     def __eq__(
             self,
@@ -627,7 +637,6 @@ class Registry:
 
         return resolved_directories
 
-    # TODO: update -> we need to instantiate configuration
     @classmethod
     def load_registrations(
             cls,
@@ -839,6 +848,7 @@ class Registry:
 
             variant_config = Registry.resolve_configuration(config=variant_config)
             validation_result = variant_config.validate(strict=False)
+
             if validation_result.passed:
                 keys.add(variant_key)
                 valid_key_buffer.add(variant_key)
