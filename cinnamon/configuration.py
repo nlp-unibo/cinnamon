@@ -94,8 +94,7 @@ class Param:
                 or type(self.value) == Optional[cinnamon.registry.RegistrationKey]
                 or self.type_hint == cinnamon.registry.RegistrationKey
                 or self.type_hint == Optional[cinnamon.registry.RegistrationKey]
-                or isinstance(self.value, Configuration)
-                or isinstance(self.value, cinnamon.component.Component))
+                or isinstance(self.value, Configuration))
 
     def short_repr(
             self

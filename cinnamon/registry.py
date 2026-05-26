@@ -4,15 +4,18 @@ import ast
 import importlib.util
 import json
 import logging
+import pickle
 import sys
 from dataclasses import dataclass
+from enum import Enum
 from logging import getLogger
 from pathlib import Path
 from typing import Type, AnyStr, List, Dict, Any, Union, Optional, Callable, Tuple, Set
+from tqdm import tqdm
 
+import dill
 import networkx as nx
 import numpy as np
-from enum import Enum
 
 import cinnamon.component
 import cinnamon.configuration
@@ -29,7 +32,6 @@ from cinnamon.utility.exceptions import (
 )
 from cinnamon.utility.registration import (
     NamespaceExtractor,
-    PythonSerializer,
     Tags,
     TAGGABLE_TYPES,
     match_tags,
@@ -49,20 +51,16 @@ __all__ = [
     'Registry',
     'Registration',
     'ConfigurationInfo',
-    'ResolutionInfo',
     'NotADAGException',
     'NotRegisteredException',
     'AlreadyRegisteredException',
     'InvalidDirectoryException',
     'NamespaceNotFoundException',
-    'RegistrationFolders'
 ]
 
 
-class RegistrationFolders(Enum):
-    CONFIGURATIONS = 'configurations'
-    COMPONENTS = 'components'
-    BUILT = 'built'
+class SpecialTags(Enum):
+    RUNNABLE = 'runnable'
 
 
 class RegistrationKey:
@@ -358,39 +356,6 @@ class ConfigurationInfo:
     component_class: Optional[Type[cinnamon.component.Component]] = None
 
 
-class ResolutionInfo:
-    """
-    Contains information about ``RegistrationKey`` and corresponding ``Configuration`` that have been retrieved after
-    Registry DAG resolution of dependencies.
-    """
-
-    def __init__(
-            self
-    ):
-        self.keys: List[RegistrationKey] = []
-        self.configs: List[cinnamon.configuration.Configuration] = []
-
-    def add(
-            self,
-            key: RegistrationKey,
-            config: cinnamon.configuration.Configuration
-    ):
-        self.keys.append(key)
-        self.configs.append(config)
-
-    def __contains__(
-            self,
-            key: RegistrationKey
-    ):
-        assert isinstance(key, RegistrationKey)
-        return key in self.keys
-
-    def __len__(
-            self
-    ):
-        return len(self.keys)
-
-
 class BufferedRegistration:
 
     def __init__(
@@ -482,6 +447,9 @@ class Registry:
     All the above functionalities require to specify a ``RegistrationKey`` (either directly or indirectly).
     """
 
+    _CONFIGURATION_FOLDER = 'configurations'
+    _REGISTRY_FILENAME = 'registry.pickle'
+
     _REGISTRY: Dict[RegistrationKey, ConfigurationInfo]
 
     _ROOT_KEY = RegistrationKey(name='root', namespace='root')
@@ -565,7 +533,26 @@ class Registry:
         cls.load_registrations(directory=directory)
         valid_keys, invalid_keys = cls.dag_resolution()
 
+        cls._REGISTRY = {key: value for key, value in cls._REGISTRY.items() if key in valid_keys}
+        cls.save_registry(filepath=directory.joinpath(cls._REGISTRY_FILENAME))
+
         return valid_keys, invalid_keys
+
+    @classmethod
+    def save_registry(
+            cls,
+            filepath: Path
+    ):
+        with open(filepath, 'wb') as f:
+            pickle.dump(cls._REGISTRY, f)
+
+    @classmethod
+    def load_registry(
+            cls,
+            filepath: Path
+    ):
+        with open(filepath, 'rb') as f:
+            cls._REGISTRY = pickle.load(f)
 
     @classmethod
     def update_namespaces(
@@ -601,7 +588,7 @@ class Registry:
         namespaces = []
         mapping = {}
         for directory in directories:
-            for config_folder in directory.rglob('configurations'):
+            for config_folder in directory.rglob(Registry._CONFIGURATION_FOLDER):
                 for python_script in config_folder.glob('*.py'):
                     dir_namespaces = extractor.process(filename=python_script)
                     namespaces.extend(dir_namespaces)
@@ -668,7 +655,7 @@ class Registry:
         cls._EXP_MODULES.append(directory)
 
         with cls.REGISTRATION_CONTEXT:
-            for config_folder in directory.rglob('configurations'):
+            for config_folder in directory.rglob(cls._CONFIGURATION_FOLDER):
                 for python_script in config_folder.rglob('*.py'):
                     spec = importlib.util.spec_from_file_location(name=python_script.name,
                                                                   location=python_script)
@@ -783,10 +770,12 @@ class Registry:
         # Variants expansion doesn't change the topology of the graph -> no need for a re-check
         valid_key_buffer: Set[RegistrationKey] = set()
         invalid_key_buffer: Set[RegistrationKey] = set()
+        tqdm_bar = tqdm(desc='Resolving configurations...', total=len(cls._REGISTRY))
         for key in cls._DEPENDENCY_DAG.successors(cls._ROOT_KEY):
             Registry.expand_configuration(key=key,
                                           valid_key_buffer=valid_key_buffer,
-                                          invalid_key_buffer=invalid_key_buffer)
+                                          invalid_key_buffer=invalid_key_buffer,
+                                          tqdm_bar=tqdm_bar)
 
         cls.expanded = True
 
@@ -797,7 +786,8 @@ class Registry:
             cls,
             key: RegistrationKey,
             valid_key_buffer: Set[RegistrationKey] = {},
-            invalid_key_buffer: Set[RegistrationKey] = {}
+            invalid_key_buffer: Set[RegistrationKey] = {},
+            tqdm_bar: tqdm = None
     ) -> Set[RegistrationKey]:
         config_info = cls.retrieve_configuration_info(registration_key=key)
         config = config_info.config
@@ -817,14 +807,16 @@ class Registry:
             if dependency.value is not None and isinstance(dependency.value, RegistrationKey):
                 dependency_keys = Registry.expand_configuration(key=dependency.value,
                                                                 valid_key_buffer=valid_key_buffer,
-                                                                invalid_key_buffer=invalid_key_buffer)
+                                                                invalid_key_buffer=invalid_key_buffer,
+                                                                tqdm_bar=tqdm_bar)
                 dependency_variants = dependency_variants.union(dependency_keys)
 
             for key_variant in dependency.variants:
                 if key_variant is not None and isinstance(key_variant, RegistrationKey):
                     dependency_variants = dependency_variants.union(Registry.expand_configuration(key=key_variant,
                                                                                                   valid_key_buffer=valid_key_buffer,
-                                                                                                  invalid_key_buffer=invalid_key_buffer))
+                                                                                                  invalid_key_buffer=invalid_key_buffer,
+                                                                                                  tqdm_bar=tqdm_bar))
 
             config.get(dependency_name).variants = list(dependency_variants)
 
@@ -867,6 +859,9 @@ class Registry:
             invalid_key_buffer.add(key)
 
         config.expanded = True
+
+        if tqdm_bar is not None:
+            tqdm_bar.update(1)
 
         return keys
 
@@ -989,9 +984,8 @@ class Registry:
         if cls.in_registry(registration_key=registration_key):
             raise AlreadyRegisteredException(registration_key=registration_key)
 
-        # TODO: define `runnable` as enum tag
         if component_class is not None and issubclass(component_class, cinnamon.component.RunnableComponent):
-            registration_key.special_tags.add('runnable')
+            registration_key.special_tags.add(SpecialTags.RUNNABLE.value)
 
         # Adding key as config param for quick retrieval during build_component
         config.registration_key = registration_key
@@ -1112,6 +1106,7 @@ class Registry:
             names: Optional[Union[List[str], str]] = None,
             namespaces: Optional[Union[List[str], str]] = None,
             tags: Tags = None,
+            special_tags: Tags = None,
             keys: List[RegistrationKey] = None
     ) -> List[RegistrationKey]:
         """
@@ -1122,6 +1117,7 @@ class Registry:
             names: a name or a list of names to filter registration keys.
             namespaces: a namespace or a list of namespaces to filter registration keys.
             tags: a tag set to filter registration keys.
+            special_tags: a special tag set to filter registration keys.
             keys: an optional list of ``RegistrationKey`` on which to apply the search.
 
         Returns:
@@ -1134,4 +1130,11 @@ class Registry:
             if match_name(name=key.name, names=names)
                and match_namespace(namespace=key.namespace, namespaces=namespaces)
                and match_tags(a_tags=key.tags, b_tags=tags)
+               and match_tags(a_tags=key.special_tags, b_tags=special_tags)
         ]
+
+    @classmethod
+    def retrieve_runnable_keys(
+            cls
+    ) -> List[RegistrationKey]:
+        return cls.retrieve_keys(special_tags={SpecialTags.RUNNABLE.value})

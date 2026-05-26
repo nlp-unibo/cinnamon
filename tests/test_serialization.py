@@ -1,164 +1,117 @@
-import os
-
-from cinnamon.component import Component
+from cinnamon.registry import Registry, RegistrationKey
 from cinnamon.configuration import Configuration
-from cinnamon.registry import RegistrationKey
-from cinnamon.utility.registration import PythonSerializer
+from cinnamon.component import Component
 from tests.fixtures import (
-    define_serializer,
+    reset_registry,
     BaseComponent
 )
+from pathlib import Path
 
-import numpy as np
 
-
-def test_serialize_configuration_empty(
-        define_serializer
+def test_save_empty_registry(
+        reset_registry
 ):
-    serializer: PythonSerializer = define_serializer
-    config = Configuration()
-    config.registration_key = RegistrationKey(name='config',
-                                              namespace='testing')
-
-    serializer.serialize_configuration(config=config,
-                                       component_class=Component)
-
-    serializer_string = serializer.build_serialization_string()
-
-    imports = [
-        'from cinnamon.registry import register, Registry',
-        'from cinnamon.configuration import Configuration',
-        'from cinnamon.component import Component',
-    ]
-
-    configs = [
-        '@register',
-        'def register_configuration_1():',
-        '\tconfig = Configuration()',
-        f"{os.linesep}\tRegistry.register_configuration(config=config, name='config', tags=set(), namespace='testing', component_class=Component)",
-    ]
-
-    expected_string = f"""
-# Generated automatically
-
-{os.linesep.join(imports)}
-
-{os.linesep.join(configs)}
-"""
-    assert serializer_string == expected_string
+    tmp_path = Path('.', Registry._REGISTRY_FILENAME).resolve()
+    Registry.save_registry(filepath=tmp_path)
+    assert tmp_path.exists()
+    tmp_path.unlink()
 
 
-def test_serialize_configuration_builtins_param(
-        define_serializer
+def test_load_empty_registry(
+        reset_registry
 ):
-    serializer: PythonSerializer = define_serializer
-    config = Configuration()
-    config.add(name='x', value=5)
-    config.registration_key = RegistrationKey(name='config',
-                                              namespace='testing')
-
-    serializer.serialize_configuration(config=config,
-                                       component_class=Component)
-
-    serializer_string = serializer.build_serialization_string()
-
-    imports = [
-        'from cinnamon.registry import register, Registry',
-        'from cinnamon.configuration import Configuration',
-        'from cinnamon.component import Component',
-    ]
-
-    configs = [
-        '@register',
-        'def register_configuration_1():',
-        '\tconfig = Configuration()',
-        "\tconfig.add(name='x', value=5, description=None)",
-        f"{os.linesep}\tRegistry.register_configuration(config=config, name='config', tags=set(), namespace='testing', component_class=Component)",
-    ]
-
-    expected_string = f"""
-# Generated automatically
-
-{os.linesep.join(imports)}
-
-{os.linesep.join(configs)}
-"""
-    assert serializer_string == expected_string
+    tmp_path = Path('.', Registry._REGISTRY_FILENAME).resolve()
+    Registry.save_registry(filepath=tmp_path)
+    Registry.load_registry(filepath=tmp_path)
+    assert len(Registry._REGISTRY) == 0
+    tmp_path.unlink()
 
 
-def test_serialize_configuration_custom_param(
-        define_serializer
+def test_save_registry_with_empty_config(
+        reset_registry
 ):
-    serializer: PythonSerializer = define_serializer
-    config = Configuration()
-    config.add(name='x', value=np.array([1, 2, 3]))
-    config.registration_key = RegistrationKey(name='config',
-                                              namespace='testing')
-
-    serializer.serialize_configuration(config=config,
-                                       component_class=Component)
-
-    serializer_string = serializer.build_serialization_string()
-
-    imports = [
-        'from cinnamon.registry import register, Registry',
-        'from cinnamon.configuration import Configuration',
-        'from numpy import array',
-        'from cinnamon.component import Component',
-    ]
-
-    configs = [
-        '@register',
-        'def register_configuration_1():',
-        '\tconfig = Configuration()',
-        "\tconfig.add(name='x', value=array([1, 2, 3]), description=None)",
-        f"{os.linesep}\tRegistry.register_configuration(config=config, name='config', tags=set(), namespace='testing', component_class=Component)",
-    ]
-
-    expected_string = f"""
-# Generated automatically
-
-{os.linesep.join(imports)}
-
-{os.linesep.join(configs)}
-"""
-    assert serializer_string == expected_string
+    tmp_path = Path('.', Registry._REGISTRY_FILENAME).resolve()
+    Registry.register_configuration(config=Configuration.default(),
+                                    name='config',
+                                    namespace='testing',
+                                    component_class=Component)
+    Registry.save_registry(filepath=tmp_path)
+    Registry.load_registry(filepath=tmp_path)
+    assert len(Registry._REGISTRY) == 1
+    tmp_path.unlink()
 
 
-def test_serialize_configuration_custom_class_param(
-        define_serializer
+def test_save_registry_with_custom_config(
+        reset_registry
 ):
-    serializer: PythonSerializer = define_serializer
-    config = Configuration()
-    config.add(name='x', value=BaseComponent(x=5, y=3))
-    config.registration_key = RegistrationKey(name='config',
-                                              namespace='testing')
+    tmp_path = Path('.', Registry._REGISTRY_FILENAME).resolve()
 
-    serializer.serialize_configuration(config=config,
-                                       component_class=Component)
+    config = Configuration.default()
+    config.add(name='x', value=1)
+    config.add(name='y', value=True)
+    Registry.register_configuration(config=config,
+                                    name='config',
+                                    namespace='testing',
+                                    component_class=Component)
+    Registry.save_registry(filepath=tmp_path)
+    Registry.load_registry(filepath=tmp_path)
+    assert len(Registry._REGISTRY) == 1
 
-    serializer_string = serializer.build_serialization_string()
+    retrieved = Registry.retrieve_configuration(name='config', namespace='testing')
+    assert retrieved == config
+    assert retrieved.x == 1
+    assert retrieved.y is True
 
-    imports = [
-        'from cinnamon.registry import register, Registry',
-        'from cinnamon.configuration import Configuration',
-        'from tests.fixtures import BaseComponent',
-        'from cinnamon.component import Component',
-    ]
+    tmp_path.unlink()
 
-    configs = [
-        '@register',
-        'def register_configuration_1():',
-        '\tconfig = Configuration()',
-        "\tconfig.add(name='x', value=BaseComponent(x=5, y=3), description=None)",
-        f"{os.linesep}\tRegistry.register_configuration(config=config, name='config', tags=set(), namespace='testing', component_class=Component)",
-    ]
 
-    expected_string = f"""
-# Generated automatically
+def test_save_registry_with_dependencies(
+        reset_registry
+):
+    tmp_path = Path('.', Registry._REGISTRY_FILENAME).resolve()
 
-{os.linesep.join(imports)}
+    parent_config = Configuration.default()
+    parent_config.add(name='x', value=1)
+    parent_config.add(name='c1', value=RegistrationKey(name='child', namespace='testing'))
+    Registry.register_configuration(config=parent_config,
+                                    name='config',
+                                    namespace='testing',
+                                    component_class=Component)
 
-{os.linesep.join(configs)}
-"""
-    assert serializer_string == expected_string
+    child_config = Configuration.default()
+    child_config.add(name='z', value=[1, 2, 3])
+    Registry.register_configuration(config=child_config,
+                                    name='child',
+                                    namespace='testing',
+                                    component_class=Component)
+
+    Registry.dag_resolution()
+    Registry.save_registry(filepath=tmp_path)
+    Registry.load_registry(filepath=tmp_path)
+    assert len(Registry._REGISTRY) == 2
+
+    retrieved = Registry.retrieve_configuration(name='config', namespace='testing')
+    assert retrieved.x == 1
+    assert retrieved.c1 == child_config
+
+
+def test_save_registry_with_config_with_custom_classes(
+        reset_registry
+):
+    tmp_path = Path('.', Registry._REGISTRY_FILENAME).resolve()
+
+    config = Configuration.default()
+    config.add(name='x', value=1)
+    config.add(name='y', value=BaseComponent(x=5, y=2))
+    Registry.register_configuration(config=config,
+                                    name='config',
+                                    namespace='testing',
+                                    component_class=Component)
+    Registry.save_registry(filepath=tmp_path)
+    Registry.load_registry(filepath=tmp_path)
+    assert len(Registry._REGISTRY) == 1
+
+    retrieved = Registry.retrieve_configuration(name='config', namespace='testing')
+    assert retrieved.x == 1
+    assert retrieved.y.x == 5
+    assert retrieved.y.y == 2
