@@ -16,7 +16,7 @@ with requirements_path.open('r') as f:
 
 setup(
     name='cinnamon',
-    version='1.0',
+    version='1.1',
     author='Federico Ruggeri',
     author_email='federico.ruggeri6@unibo.it',
     description='A simple high-level framework for research',
@@ -39,7 +39,7 @@ setup(
     python_requires=">=3.8",
     entry_points={
         'console_scripts': [
-            'cmn-setup=cinnamon.command_line:setup',
+            'cmn-build=cinnamon.command_line:build',
             'cmn-run=cinnamon.command_line:run',
         ]
     }

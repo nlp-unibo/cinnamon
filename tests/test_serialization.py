@@ -94,6 +94,8 @@ def test_save_registry_with_dependencies(
     assert retrieved.x == 1
     assert retrieved.c1 == child_config
 
+    tmp_path.unlink()
+
 
 def test_save_registry_with_config_with_custom_classes(
         reset_registry
@@ -115,3 +117,5 @@ def test_save_registry_with_config_with_custom_classes(
     assert retrieved.x == 1
     assert retrieved.y.x == 5
     assert retrieved.y.y == 2
+
+    tmp_path.unlink()
