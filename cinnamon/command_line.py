@@ -94,7 +94,7 @@ def run():
     # add to PYTHONPATH
     sys.path.insert(0, directory.as_posix())
 
-    Registry.load_registry(filepath=directory)
+    Registry.load_registry(directory=directory)
     keys = Registry.retrieve_runnable_keys()
 
     if not len(keys):

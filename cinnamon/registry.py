@@ -4,18 +4,17 @@ import ast
 import importlib.util
 import json
 import logging
-import pickle
 import sys
 from dataclasses import dataclass
 from enum import Enum
 from logging import getLogger
 from pathlib import Path
 from typing import Type, AnyStr, List, Dict, Any, Union, Optional, Callable, Tuple, Set
-from tqdm import tqdm
 
 import dill
 import networkx as nx
 import numpy as np
+from tqdm import tqdm
 
 import cinnamon.component
 import cinnamon.configuration
@@ -534,25 +533,27 @@ class Registry:
         valid_keys, invalid_keys = cls.dag_resolution()
 
         cls._REGISTRY = {key: value for key, value in cls._REGISTRY.items() if key in valid_keys}
-        cls.save_registry(filepath=directory.joinpath(cls._REGISTRY_FILENAME))
+        cls.save_registry(directory=directory)
 
         return valid_keys, invalid_keys
 
     @classmethod
     def save_registry(
             cls,
-            filepath: Path
+            directory: Path
     ):
-        with open(filepath, 'wb') as f:
-            pickle.dump(cls._REGISTRY, f)
+        with open(directory, 'wb') as f:
+            dill.dump(cls._REGISTRY, f)
 
     @classmethod
     def load_registry(
             cls,
-            filepath: Path
+            directory: Path
     ):
-        with open(filepath, 'rb') as f:
-            cls._REGISTRY = pickle.load(f)
+        with open(directory.joinpath(Registry._REGISTRY_FILENAME), 'rb') as f:
+            cls._REGISTRY = dill.load(f)
+
+        cls.expanded = True
 
     @classmethod
     def update_namespaces(

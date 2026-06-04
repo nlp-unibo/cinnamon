@@ -119,3 +119,51 @@ def test_save_registry_with_config_with_custom_classes(
     assert retrieved.y.y == 2
 
     tmp_path.unlink()
+
+
+def test_save_registry_with_articulated_custom_config(
+        reset_registry
+):
+    tmp_path = Path('.', Registry._REGISTRY_FILENAME).resolve()
+
+    config = Configuration.default()
+    config.add(name='pretrained_model_name', value='nlpaueb/legal-bert-base-uncased')
+    config.add(name='data_dir', value=Path(__file__).parent.parent.resolve().joinpath('data'))
+    config.add(name='category', value=None, variants=['A', 'CH', 'CR', 'LTD', 'TER'])
+    config.add(name='tokenization_args', value={})
+    config.add(name='batch_size', value=32)
+
+    Registry.register_configuration(config=config,
+                                    name='config',
+                                    namespace='testing')
+    Registry.save_registry(filepath=tmp_path)
+    Registry.load_registry(filepath=tmp_path)
+
+    retrieved = Registry.retrieve_configuration(name='config', namespace='testing')
+    assert retrieved.pretrained_model_name == 'nlpaueb/legal-bert-base-uncased'
+    assert retrieved.data_dir == Path(__file__).parent.parent.resolve().joinpath('data')
+    assert retrieved.category is None
+    assert retrieved.get('category').variants == ['A', 'CH', 'CR', 'LTD', 'TER']
+    assert retrieved.tokenization_args == {}
+    assert retrieved.batch_size == 32
+
+    tmp_path.unlink()
+
+
+def test_save_registry_with_external_config(
+        reset_registry
+):
+    tmp_path = Path('.', Registry._REGISTRY_FILENAME).resolve()
+
+    directory = Path('.', 'tests', 'ext_repo_nested_dec')
+    Registry.load_registrations(directory=directory)
+
+    Registry.save_registry(filepath=tmp_path)
+    Registry.load_registry(filepath=tmp_path)
+
+    retrieved = Registry.retrieve_configuration(name='config', tags={'nest1'}, namespace='testing')
+
+    tmp_path.unlink()
+
+
+# Test building component of loaded registry -> we might need to store DAG and other stuff
