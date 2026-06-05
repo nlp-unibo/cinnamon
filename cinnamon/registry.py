@@ -14,7 +14,6 @@ from typing import Type, AnyStr, List, Dict, Any, Union, Optional, Callable, Tup
 import dill
 import networkx as nx
 import numpy as np
-from tqdm import tqdm
 
 import cinnamon.component
 import cinnamon.configuration
@@ -379,6 +378,8 @@ class BufferedRegistration:
         pass
 
 
+# TODO: add setup decorator to use on __init__ methods for runnables (syntactic sugar for cinnamon setup)
+
 def register_method(
         name: str,
         namespace: str,
@@ -542,7 +543,7 @@ class Registry:
             cls,
             directory: Path
     ):
-        with open(directory, 'wb') as f:
+        with open(directory.joinpath(Registry._REGISTRY_FILENAME), 'wb') as f:
             dill.dump(cls._REGISTRY, f)
 
     @classmethod
@@ -771,12 +772,11 @@ class Registry:
         # Variants expansion doesn't change the topology of the graph -> no need for a re-check
         valid_key_buffer: Set[RegistrationKey] = set()
         invalid_key_buffer: Set[RegistrationKey] = set()
-        tqdm_bar = tqdm(desc='Resolving configurations...', total=len(cls._REGISTRY))
+        print(f'Resolving {len(cls._REGISTRY)} configurations...')
         for key in cls._DEPENDENCY_DAG.successors(cls._ROOT_KEY):
             Registry.expand_configuration(key=key,
                                           valid_key_buffer=valid_key_buffer,
-                                          invalid_key_buffer=invalid_key_buffer,
-                                          tqdm_bar=tqdm_bar)
+                                          invalid_key_buffer=invalid_key_buffer)
 
         cls.expanded = True
 
@@ -788,7 +788,6 @@ class Registry:
             key: RegistrationKey,
             valid_key_buffer: Set[RegistrationKey] = {},
             invalid_key_buffer: Set[RegistrationKey] = {},
-            tqdm_bar: tqdm = None
     ) -> Set[RegistrationKey]:
         config_info = cls.retrieve_configuration_info(registration_key=key)
         config = config_info.config
@@ -808,16 +807,14 @@ class Registry:
             if dependency.value is not None and isinstance(dependency.value, RegistrationKey):
                 dependency_keys = Registry.expand_configuration(key=dependency.value,
                                                                 valid_key_buffer=valid_key_buffer,
-                                                                invalid_key_buffer=invalid_key_buffer,
-                                                                tqdm_bar=tqdm_bar)
+                                                                invalid_key_buffer=invalid_key_buffer)
                 dependency_variants = dependency_variants.union(dependency_keys)
 
             for key_variant in dependency.variants:
                 if key_variant is not None and isinstance(key_variant, RegistrationKey):
                     dependency_variants = dependency_variants.union(Registry.expand_configuration(key=key_variant,
                                                                                                   valid_key_buffer=valid_key_buffer,
-                                                                                                  invalid_key_buffer=invalid_key_buffer,
-                                                                                                  tqdm_bar=tqdm_bar))
+                                                                                                  invalid_key_buffer=invalid_key_buffer))
 
             config.get(dependency_name).variants = list(dependency_variants)
 
@@ -860,9 +857,6 @@ class Registry:
             invalid_key_buffer.add(key)
 
         config.expanded = True
-
-        if tqdm_bar is not None:
-            tqdm_bar.update(1)
 
         return keys
 
