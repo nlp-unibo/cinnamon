@@ -179,7 +179,6 @@ def test_save_registry_with_external_config(
     tmp_path.joinpath(Registry._REGISTRY_FILENAME).unlink()
 
 
-# Test building component of loaded registry -> we might need to store DAG and other stuff
 def test_save_registry_build_component(
         reset_registry
 ):

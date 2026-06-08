@@ -5,7 +5,11 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Union, List, Optional
+from functools import wraps
+import time
+from logging import getLogger
 
+logger = getLogger(__name__)
 
 def check_directory(
         directory_path: Union[Path, str] = None
@@ -93,3 +97,13 @@ def allowed_range_cond(
         return False
     return True
 
+
+def time_it(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        start = time.perf_counter()
+        result = func(*args, **kwargs)
+        end = time.perf_counter()
+        logger.info(f"[{func.__name__}] executed in {end - start:.6f} seconds")
+        return result
+    return wrapper

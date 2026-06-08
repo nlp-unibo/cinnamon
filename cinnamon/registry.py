@@ -36,6 +36,7 @@ from cinnamon.utility.registration import (
     match_name,
     match_namespace
 )
+from cinnamon.utility.sanity import time_it
 
 logger = getLogger(__name__)
 
@@ -459,7 +460,7 @@ class Registry:
     expanded: bool = False
 
     _MODULES: List[Union[AnyStr, Path]]
-    _EXP_MODULES: List[str]
+    _EXP_MODULES: Set[str]
     _MODULE_MAPPING: Dict[str, str]
     _EXP_NAMESPACES: List[str]
 
@@ -474,7 +475,7 @@ class Registry:
 
         cls.REGISTRATION_METHODS = {}
         cls.REGISTRATION_CONTEXT = RegistrationContext()
-        cls._EXP_MODULES = []
+        cls._EXP_MODULES = set()
         cls._MODULE_MAPPING = {}
         cls._EXP_NAMESPACES = []
 
@@ -484,6 +485,7 @@ class Registry:
         cls._DEPENDENCY_DAG.add_node(cls._ROOT_KEY)
 
     @classmethod
+    @time_it
     def build(
             cls,
             directory: Union[Path, AnyStr] = None,
@@ -557,6 +559,7 @@ class Registry:
         cls.expanded = True
 
     @classmethod
+    @time_it
     def update_namespaces(
             cls,
             namespaces: List[str],
@@ -570,6 +573,7 @@ class Registry:
         cls._MODULE_MAPPING = {**cls._MODULE_MAPPING, **module_mapping}
 
     @classmethod
+    @time_it
     def parse_configuration_files(
             cls,
             directories: List[Path]
@@ -600,6 +604,7 @@ class Registry:
         return namespaces, mapping
 
     @classmethod
+    @time_it
     def resolve_external_directories(
             cls,
             external_directories: List[Union[AnyStr, Path]],
@@ -627,6 +632,7 @@ class Registry:
         return resolved_directories
 
     @classmethod
+    @time_it
     def load_registrations(
             cls,
             directory: Union[AnyStr, Path],
@@ -643,7 +649,7 @@ class Registry:
         Raises:
             ``InvalidDirectoryException``: if the provided directory is not a directory or does not exist.
         """
-        directory = Path(directory) if type(directory) != Path else directory
+        directory = Path(directory)
 
         if not directory.exists() or not directory.is_dir():
             raise InvalidDirectoryException(directory=directory)
@@ -654,37 +660,50 @@ class Registry:
         # Add directory to PYTHONPATH
         sys.path.insert(0, directory)
 
-        cls._EXP_MODULES.append(directory)
+        cls._EXP_MODULES.add(directory)
 
         with cls.REGISTRATION_CONTEXT:
-            for config_folder in directory.rglob(cls._CONFIGURATION_FOLDER):
-                for python_script in config_folder.rglob('*.py'):
-                    spec = importlib.util.spec_from_file_location(name=python_script.name,
-                                                                  location=python_script)
+            for python_script in directory.rglob('*.py'):
+                if cls._CONFIGURATION_FOLDER not in python_script.parts:
+                    continue
 
-                    if spec is None:
-                        logging.warning(f'Could not load {python_script}. Skipping...')
-                        continue
+                spec = importlib.util.spec_from_file_location(name=python_script.name,
+                                                              location=python_script)
 
-                    # import module and run registration methods
-                    current_keys = set(cls.REGISTRATION_METHODS.keys())
+                if spec is None:
+                    logging.warning(f'Could not load {python_script}. Skipping...')
+                    continue
+
+                # import module and run registration methods
+                current_keys = set(cls.REGISTRATION_METHODS.keys())
+
+                try:
                     module = importlib.util.module_from_spec(spec=spec)
                     spec.loader.exec_module(module)
-                    new_keys = set(cls.REGISTRATION_METHODS.keys()).difference(current_keys)
-                    for key in new_keys:
-                        key_method = cls.REGISTRATION_METHODS[key]
-                        if isinstance(key_method, BufferedRegistration):
-                            method_name = key_method.func.__qualname__.split('.')[-1]
-                            class_method_name = key_method.func.__qualname__.split('.')[-2]
-                            class_method = module.__dict__[class_method_name]
-                            Registry.register_configuration(config=getattr(class_method, method_name)(),
-                                                            name=key_method.name,
-                                                            tags=key_method.tags,
-                                                            namespace=key_method.namespace,
-                                                            component_class=key_method.component_class,
-                                                            build_recursively=key_method.build_recursively)
-                        else:
-                            cls.REGISTRATION_METHODS[key]()
+                except Exception as e:
+                    logging.error(f'Failed to execute module {python_script.name}. {e}')
+                    continue
+
+                new_keys = set(cls.REGISTRATION_METHODS.keys()).difference(current_keys)
+
+                module_dict = module.__dict__
+                for key in new_keys:
+                    key_method = cls.REGISTRATION_METHODS[key]
+                    if isinstance(key_method, BufferedRegistration):
+                        qual_parts = key_method.func.__qualname__.split('.')
+                        method_name = qual_parts[-1]
+                        class_method_name = qual_parts[-2]
+
+                        class_method = module_dict[class_method_name]
+
+                        Registry.register_configuration(config=getattr(class_method, method_name)(),
+                                                        name=key_method.name,
+                                                        tags=key_method.tags,
+                                                        namespace=key_method.namespace,
+                                                        component_class=key_method.component_class,
+                                                        build_recursively=key_method.build_recursively)
+                    else:
+                        cls.REGISTRATION_METHODS[key]()
 
     @classmethod
     def in_registry(
@@ -753,6 +772,7 @@ class Registry:
     #       It is up to the user, right now, to determine when a DAG should be computed based on their code changes
     # TODO: avoid re-expanding already traversed keys -> we might use a special tag to retrieve variants edges from DAG
     @classmethod
+    @time_it
     def dag_resolution(
             cls
     ) -> Tuple[Set[RegistrationKey], Set[RegistrationKey]]:
