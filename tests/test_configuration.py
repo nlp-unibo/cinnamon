@@ -320,7 +320,7 @@ def test_to_value_dict():
     config.add(name='child',
                value=RegistrationKey(name='component', namespace='testing')
                )
-    value_dict = config.to_value_dict()
+    value_dict = config.to_dict()
     assert value_dict == {
         'x': 10,
         'child': config.child
@@ -370,5 +370,3 @@ def test_configuration_with_multiple_variant_keys():
         assert len(variant_key.tags) == 2
         assert f'x{key.KEY_VALUE_SEPARATOR}{variant_kwargs["x"]}' in variant_key.tags
         assert f'z{key.KEY_VALUE_SEPARATOR}{variant_kwargs["z"]}' in variant_key.tags
-
-# TODO: add test that combines pre- and post-conditions

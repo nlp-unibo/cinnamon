@@ -5,11 +5,9 @@ import importlib.util
 import json
 import logging
 import sys
-from dataclasses import dataclass
-from enum import Enum
 from logging import getLogger
 from pathlib import Path
-from typing import Type, AnyStr, List, Dict, Any, Union, Optional, Callable, Tuple, Set
+from typing import AnyStr, List, Dict, Any, Union, Optional, Callable, Tuple, Set
 
 import dill
 import networkx as nx
@@ -19,14 +17,13 @@ import cinnamon.component
 import cinnamon.configuration
 from cinnamon.utility.exceptions import (
     NotRegisteredException,
-    NotBoundException,
     AlreadyRegisteredException,
     AlreadyExpandedException,
-    NotExpandedException,
     DisconnectedGraphException,
     NotADAGException,
     InvalidDirectoryException,
-    NamespaceNotFoundException
+    NamespaceNotFoundException,
+    NotExpandedException
 )
 from cinnamon.utility.registration import (
     NamespaceExtractor,
@@ -49,17 +46,12 @@ __all__ = [
     'register_method',
     'Registry',
     'Registration',
-    'ConfigurationInfo',
     'NotADAGException',
     'NotRegisteredException',
     'AlreadyRegisteredException',
     'InvalidDirectoryException',
     'NamespaceNotFoundException',
 ]
-
-
-class SpecialTags(Enum):
-    RUNNABLE = 'runnable'
 
 
 class RegistrationKey:
@@ -336,25 +328,6 @@ class RegistrationKey:
         )
 
 
-@dataclass
-class ConfigurationInfo:
-    """
-    Utility dataclass used for registration.
-    Behind the curtains, the ``Configuration`` class is stored in the Registry via its corresponding
-    ``ConfigurationInfo`` wrapper.
-
-    This wrapper contains:
-        - config: ``Configuration`` instance
-        - component_class: the ``Component`` class type
-        - build_recursively: whether the ``Configuration`` or its bound ``Component`` dependencies
-        should be built recursively or not.
-    """
-
-    config: cinnamon.configuration.Configuration
-    build_recursively: bool
-    component_class: Optional[Type[cinnamon.component.Component]] = None
-
-
 class BufferedRegistration:
 
     def __init__(
@@ -363,15 +336,11 @@ class BufferedRegistration:
             name: str,
             namespace: str,
             tags: Tags = None,
-            component_class: Optional[Type[cinnamon.component.Component]] = None,
-            build_recursively: bool = True
     ):
         self.func = func
         self.name = name
         self.namespace = namespace
         self.tags = tags
-        self.component_class = component_class
-        self.build_recursively = build_recursively
 
     def __call__(
             self,
@@ -385,8 +354,6 @@ def register_method(
         name: str,
         namespace: str,
         tags: Tags = None,
-        component_class: Optional[Type[cinnamon.component.Component]] = None,
-        build_recursively: bool = True
 ) -> Callable:
     def register_wrapper(func):
         key = RegistrationKey(name=name, tags=tags, namespace=namespace)
@@ -397,9 +364,7 @@ def register_method(
                 func=func,
                 name=name,
                 tags=tags,
-                namespace=namespace,
-                component_class=component_class,
-                build_recursively=build_recursively
+                namespace=namespace
             )
         return func
 
@@ -451,7 +416,7 @@ class Registry:
     _CONFIGURATION_FOLDER = 'configurations'
     _REGISTRY_FILENAME = 'registry.pickle'
 
-    _REGISTRY: Dict[RegistrationKey, ConfigurationInfo]
+    _REGISTRY: Dict[RegistrationKey, cinnamon.configuration.Configuration]
 
     _ROOT_KEY = RegistrationKey(name='root', namespace='root')
     _DEPENDENCY_DAG: nx.DiGraph
@@ -488,7 +453,7 @@ class Registry:
     @time_it
     def build(
             cls,
-            directory: Union[Path, AnyStr] = None,
+            directory: Union[Path, AnyStr],
             external_directories: List[Union[AnyStr, Path]] = None
     ) -> Tuple[Set[RegistrationKey], Set[RegistrationKey]]:
         """
@@ -519,7 +484,7 @@ class Registry:
            is carried out.
         """
 
-        directory = Path(directory).resolve() if type(directory) != Path else directory
+        directory = Path(directory).resolve()
 
         cls.initialize()
 
@@ -536,27 +501,8 @@ class Registry:
         valid_keys, invalid_keys = cls.dag_resolution()
 
         cls._REGISTRY = {key: value for key, value in cls._REGISTRY.items() if key in valid_keys}
-        cls.save_registry(directory=directory)
 
         return valid_keys, invalid_keys
-
-    @classmethod
-    def save_registry(
-            cls,
-            directory: Path
-    ):
-        with open(directory.joinpath(Registry._REGISTRY_FILENAME), 'wb') as f:
-            dill.dump(cls._REGISTRY, f)
-
-    @classmethod
-    def load_registry(
-            cls,
-            directory: Path
-    ):
-        with open(directory.joinpath(Registry._REGISTRY_FILENAME), 'rb') as f:
-            cls._REGISTRY = dill.load(f)
-
-        cls.expanded = True
 
     @classmethod
     @time_it
@@ -624,7 +570,7 @@ class Registry:
 
         resolved_directories = []
         for directory in external_directories:
-            directory = Path(directory) if type(directory) != Path else directory
+            directory = Path(directory)
             if not directory.exists() or not directory.is_dir():
                 raise InvalidDirectoryException(directory=directory)
             resolved_directories.append(directory)
@@ -699,9 +645,7 @@ class Registry:
                         Registry.register_configuration(config=getattr(class_method, method_name)(),
                                                         name=key_method.name,
                                                         tags=key_method.tags,
-                                                        namespace=key_method.namespace,
-                                                        component_class=key_method.component_class,
-                                                        build_recursively=key_method.build_recursively)
+                                                        namespace=key_method.namespace)
                     else:
                         cls.REGISTRATION_METHODS[key]()
 
@@ -766,11 +710,6 @@ class Registry:
 
         return True
 
-    # TODO: check runtime execution and DAG traversal
-    #       This function needs to be efficient since cinnamon cannot be a bottleneck here
-    #       Possibly, add option to store DAG to avoid re-execution and --force option to re-compute it
-    #       It is up to the user, right now, to determine when a DAG should be computed based on their code changes
-    # TODO: avoid re-expanding already traversed keys -> we might use a special tag to retrieve variants edges from DAG
     @classmethod
     @time_it
     def dag_resolution(
@@ -809,8 +748,7 @@ class Registry:
             valid_key_buffer: Set[RegistrationKey] = {},
             invalid_key_buffer: Set[RegistrationKey] = {},
     ) -> Set[RegistrationKey]:
-        config_info = cls.retrieve_configuration_info(registration_key=key)
-        config = config_info.config
+        config = cls.retrieve_configuration(registration_key=key)
 
         # If already expanded, we retrieve all keys related to input key through dependency DAG
         if config.expanded:
@@ -852,9 +790,7 @@ class Registry:
                 cls.register_configuration(config=variant_config,
                                            name=variant_key.name,
                                            tags=variant_key.tags,
-                                           namespace=variant_key.namespace,
-                                           component_class=config_info.component_class,
-                                           build_recursively=config_info.build_recursively)
+                                           namespace=variant_key.namespace)
 
             variant_config = Registry.resolve_configuration(config=variant_config)
             validation_result = variant_config.validate(strict=False)
@@ -885,8 +821,9 @@ class Registry:
     # Component
 
     @classmethod
-    def build_component(
+    def instantiate_component(
             cls,
+            component_class: type,
             registration_key: Optional[Registration] = None,
             name: Optional[str] = None,
             namespace: Optional[str] = None,
@@ -897,6 +834,7 @@ class Registry:
         Builds a ``Component`` instance from its bounded ``Configuration`` via the implicit ``RegistrationKey``.
 
         Args:
+            component_class: component class type to instantiate
             registration_key: the ``RegistrationKey`` used to register the ``Configuration`` class.
             name: the ``name`` attribute of ``RegistrationKey``
             tags: the ``tags`` attribute of ``RegistrationKey``
@@ -924,46 +862,22 @@ class Registry:
         if not cls.in_registry(registration_key=registration_key):
             raise NotRegisteredException(registration_key=registration_key)
 
-        config_info = cls._REGISTRY[registration_key]
-        config = config_info.config.delta_copy()
-
-        if config_info.component_class is None:
-            raise NotBoundException(registration_key=registration_key)
-
-        if config_info.build_recursively:
-            for child_name, child in config.dependencies.items():
-                if child.value is None:
-                    continue
-
-                if isinstance(child.value, RegistrationKey):
-                    component_key = child.value
-                elif isinstance(child.value, cinnamon.configuration.Configuration):
-                    component_key = child.value.registration_key
-                else:
-                    raise AttributeError(f'Invalid child value found. '
-                                         f'Expected a RegistrationKey or Configuration instance. '
-                                         f'Got {child.value.__class__.__name__}')
-
-                child.value = cls.build_component(registration_key=component_key)
+        config = cls._REGISTRY[registration_key]
 
         component_args = {**config.values, **build_args}
-        component = config_info.component_class(**component_args)
+        component = component_class(**component_args)
 
         return component
 
     # Configuration
 
-    # TODO: build_recursively should be an attribute of Param so that we can know if a Component is built automatically
-    # from that config. Moreover, we should rename it to build_automatically
     @classmethod
     def register_configuration(
             cls,
             config: cinnamon.configuration.Configuration,
             name: str,
             namespace: str,
-            tags: Tags = None,
-            component_class: Optional[Type[cinnamon.component.Component]] = None,
-            build_recursively: bool = True
+            tags: Tags = None
     ):
         """
         Registers a ``Configuration`` in the registry.
@@ -974,8 +888,6 @@ class Registry:
             name: the ``name`` field of ``RegistrationKey``
             namespace: the ``namespace`` field of ``RegistrationKey``
             tags: the ``tags`` field of ``RegistrationKey``
-            component_class: component class to perform binding, if any
-            build_recursively: if True, children are automatically built iteratively.
 
         Returns:
             The built ``RegistrationKey`` instance that can be used to retrieve the registered ``ConfigurationInfo``.
@@ -999,17 +911,8 @@ class Registry:
         if cls.in_registry(registration_key=registration_key):
             raise AlreadyRegisteredException(registration_key=registration_key)
 
-        if component_class is not None and issubclass(component_class, cinnamon.component.RunnableComponent):
-            registration_key.special_tags.add(SpecialTags.RUNNABLE.value)
-
-        # Adding key as config param for quick retrieval during build_component
-        config.registration_key = registration_key
-
         # Store configuration in registry
-        # TODO: we need to store the config module and script name for when we serialize configs to python files
-        cls._REGISTRY[registration_key] = ConfigurationInfo(config=config,
-                                                            component_class=component_class,
-                                                            build_recursively=build_recursively)
+        cls._REGISTRY[registration_key] = config
 
         # Add to dependency graph
         cls._DEPENDENCY_DAG.add_node(registration_key)
@@ -1078,42 +981,8 @@ class Registry:
         if not cls.in_registry(registration_key=registration_key):
             raise NotRegisteredException(registration_key=registration_key)
 
-        config_info = cls._REGISTRY[registration_key]
-        return config_info.config
-
-    @classmethod
-    def retrieve_configuration_info(
-            cls,
-            registration_key: Optional[RegistrationKey] = None,
-            name: Optional[str] = None,
-            namespace: Optional[str] = None,
-            tags: Tags = None,
-    ) -> ConfigurationInfo:
-        """
-            Retrieves a ``ConfigurationInfo`` from the registry via its ``RegistrationKey``.
-
-        Args:
-            registration_key: key used to register the configuration
-            name: the ``name`` field of ``RegistrationKey``
-            namespace: the ``namespace`` field of ``RegistrationKey``
-            tags: the ``tags`` field of ``RegistrationKey``
-
-        Returns:
-            The ``ConfigurationInfo`` instance
-
-        Raises:
-            ``NotRegisteredException``: if the provided ``RegistrationKey`` is not in the registry.
-        """
-
-        registration_key: RegistrationKey = RegistrationKey.parse(registration_key=registration_key,
-                                                                  name=name,
-                                                                  tags=tags,
-                                                                  namespace=namespace)
-
-        if cls.in_registry(registration_key=registration_key):
-            return cls._REGISTRY[registration_key]
-        else:
-            raise NotRegisteredException(registration_key=registration_key)
+        config = cls._REGISTRY[registration_key]
+        return config
 
     @classmethod
     def retrieve_keys(
@@ -1147,9 +1016,3 @@ class Registry:
                and match_tags(a_tags=key.tags, b_tags=tags)
                and match_tags(a_tags=key.special_tags, b_tags=special_tags)
         ]
-
-    @classmethod
-    def retrieve_runnable_keys(
-            cls
-    ) -> List[RegistrationKey]:
-        return cls.retrieve_keys(special_tags={SpecialTags.RUNNABLE.value})

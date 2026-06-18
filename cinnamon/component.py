@@ -9,7 +9,6 @@ C = TypeVar('C', bound='Component')
 
 __all__ = [
     'Component',
-    'RunnableComponent'
 ]
 
 
@@ -19,7 +18,7 @@ class Component:
     """
 
     @classmethod
-    def build_component(
+    def instantiate_component(
             cls: Type[C],
             registration_key: Optional[cinnamon.registry.Registration] = None,
             name: Optional[str] = None,
@@ -28,7 +27,7 @@ class Component:
             **build_args
     ) -> C:
         """
-        Syntactic sugar for building a ``Component`` from a ``RegistrationKey`` in implicit format.
+        Syntactic sugar for instantiating a ``Component`` from a ``RegistrationKey`` in implicit format.
 
         Args:
             registration_key: the ``RegistrationKey`` used to register the ``Configuration`` class.
@@ -47,27 +46,9 @@ class Component:
 
             ``NotBoundException``: if the ``Configuration`` is not bound to any ``Component``.
         """
-        return cinnamon.registry.Registry.build_component(registration_key=registration_key,
-                                                          name=name,
-                                                          tags=tags,
-                                                          namespace=namespace,
-                                                          **build_args)
-
-
-class RunnableComponent(Component):
-    """
-    A Component that can be executed as standalone through command-line.
-    """
-
-    def run(
-            self,
-            config: Optional[cinnamon.configuration.Configuration] = None
-    ):
-        """
-
-        Args:
-            config: optionally, the cinnamon configuration of the ``Component``.
-
-        Run interface to execute components.
-        """
-        raise NotImplementedError(f"A {RunnableComponent} instance must implement the `run` method.")
+        return cinnamon.registry.Registry.instantiate_component(component_class=cls,
+                                                                registration_key=registration_key,
+                                                                name=name,
+                                                                tags=tags,
+                                                                namespace=namespace,
+                                                                **build_args)

@@ -1,6 +1,7 @@
 import os
+from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Union, AnyStr
+from typing import List, Union, AnyStr, Optional
 
 __all__ = [
     'AlreadyExistingParameterException',
@@ -13,7 +14,9 @@ __all__ = [
     'NotADAGException',
     'AlreadyExpandedException',
     'NotExpandedException',
-    'InvalidDirectoryException'
+    'InvalidDirectoryException',
+    'ValidationResult',
+    'ValidationFailureException'
 ]
 
 
@@ -138,3 +141,39 @@ class InvalidDirectoryException(Exception):
     ):
         super().__init__(f'The provided directory path does not exist or is not a directory. {os.linesep}'
                          f'Path: {directory}')
+
+
+@dataclass
+class ValidationResult:
+    """
+    Stores conditions evaluation result (see ``Configuration.validate()``).
+
+    Args:
+        passed: True if all conditions are True
+        error_message: a string message reporting which condition failed during the evaluation process.
+    """
+
+    passed: bool
+    source: str
+    error_message: Optional[str] = None
+
+    @property
+    def stack_trace(
+            self
+    ):
+        return f"""
+            Source: {self.source}. 
+            Message: {self.error_message}
+        """
+
+
+class ValidationFailureException(Exception):
+
+    def __init__(
+            self,
+            validation_result: ValidationResult
+    ):
+        super().__init__(f'Source: {validation_result.source}{os.linesep}'
+                         f'The validation process has failed!{os.linesep}'
+                         f'Passed: {validation_result.passed}{os.linesep}'
+                         f'Error message: {validation_result.error_message}')

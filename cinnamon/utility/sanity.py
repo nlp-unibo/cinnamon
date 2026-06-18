@@ -1,15 +1,14 @@
 from __future__ import annotations
 
 import json
-import os
-from dataclasses import dataclass
-from pathlib import Path
-from typing import Union, List, Optional
-from functools import wraps
 import time
+from functools import wraps
 from logging import getLogger
+from pathlib import Path
+from typing import Union, List
 
 logger = getLogger(__name__)
+
 
 def check_directory(
         directory_path: Union[Path, str] = None
@@ -44,42 +43,6 @@ def check_external_json_path(
     return data
 
 
-@dataclass
-class ValidationResult:
-    """
-    Stores conditions evaluation result (see ``Configuration.validate()``).
-
-    Args:
-        passed: True if all conditions are True
-        error_message: a string message reporting which condition failed during the evaluation process.
-    """
-
-    passed: bool
-    source: str
-    error_message: Optional[str] = None
-
-    @property
-    def stack_trace(
-            self
-    ):
-        return f"""
-            Source: {self.source}. 
-            Message: {self.error_message}
-        """
-
-
-class ValidationFailureException(Exception):
-
-    def __init__(
-            self,
-            validation_result: ValidationResult
-    ):
-        super().__init__(f'Source: {validation_result.source}{os.linesep}'
-                         f'The validation process has failed!{os.linesep}'
-                         f'Passed: {validation_result.passed}{os.linesep}'
-                         f'Error message: {validation_result.error_message}')
-
-
 def is_required_cond(
         config: "cinnamon.configuration.Configuration",
         name: str
@@ -106,4 +69,5 @@ def time_it(func):
         end = time.perf_counter()
         logger.info(f"[{func.__name__}] executed in {end - start:.6f} seconds")
         return result
+
     return wrapper

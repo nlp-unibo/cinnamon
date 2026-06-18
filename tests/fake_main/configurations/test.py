@@ -1,10 +1,9 @@
 from cinnamon.registry import Registry, register
-from tests.fixtures import ConfigWithExternalDependency, ComponentWithChild
+from tests.fixtures import ConfigWithExternalDependency
 
 
 @register
 def register_configs():
     Registry.register_configuration(config=ConfigWithExternalDependency.default(),
-                                    component_class=ComponentWithChild,
                                     name='config',
                                     namespace='testing')

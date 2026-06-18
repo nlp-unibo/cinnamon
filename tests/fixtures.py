@@ -2,7 +2,7 @@ from typing import Type
 
 import pytest
 
-from cinnamon.component import Component, RunnableComponent
+from cinnamon.component import Component
 from cinnamon.configuration import Configuration, C
 from cinnamon.registry import (
     Registry,
@@ -250,11 +250,3 @@ class LeafWithVariants(Configuration):
         config.add(name='x', variants=[1, 2])
 
         return config
-
-
-class CustomRunnableComponent(RunnableComponent):
-
-    def run(
-            self
-    ):
-        pass

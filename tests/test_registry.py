@@ -1,6 +1,5 @@
 import pytest
 
-from cinnamon.component import Component, RunnableComponent
 from cinnamon.configuration import Configuration
 from cinnamon.registry import (
     Registry,
@@ -24,8 +23,7 @@ from tests.fixtures import (
     CliqueConfigB,
     ParentWithVariantsAndChild,
     IntermediateWithChild,
-    LeafWithVariants,
-    CustomRunnableComponent
+    LeafWithVariants
 )
 
 
@@ -140,45 +138,6 @@ def test_retrieve_config(
     Registry.retrieve_configuration(registration_key=key)
 
 
-def test_register_and_bind_config(
-        reset_registry
-):
-    """
-    Register a configuration with bounded component
-    """
-    key = Registry.register_configuration(config=Configuration.default(),
-                                          component_class=Component,
-                                          name='test',
-                                          tags={'tag'},
-                                          namespace='testing')
-    info = Registry.retrieve_configuration_info(key)
-    assert info.component_class is not None
-
-
-def test_register_and_bind_runnable_config(
-        reset_registry
-):
-    key = Registry.register_configuration(config=Configuration.default(),
-                                          component_class=RunnableComponent,
-                                          name='test',
-                                          tags={'tag'},
-                                          namespace='testing')
-    assert 'tag' in key.tags
-    assert 'runnable' in key.special_tags
-
-
-def test_register_and_bind_custom_runnable_config(
-        reset_registry
-):
-    key = Registry.register_configuration(config=Configuration.default(),
-                                          component_class=CustomRunnableComponent,
-                                          name='test',
-                                          tags={'tag'},
-                                          namespace='testing')
-    assert 'tag' in key.tags
-    assert 'runnable' in key.special_tags
-
-
 def test_trigger_registered_config_with_binding_error(
         reset_registry
 ):
@@ -187,13 +146,11 @@ def test_trigger_registered_config_with_binding_error(
     """
 
     Registry.register_configuration(config=Configuration.default(),
-                                    component_class=Component,
                                     name='test',
                                     tags={'tag'},
                                     namespace='testing')
     with pytest.raises(AlreadyRegisteredException):
         Registry.register_configuration(config=Configuration.default(),
-                                        component_class=Component,
                                         name='test',
                                         tags={'tag'},
                                         namespace='testing')
@@ -292,7 +249,6 @@ def test_register_config_from_variant(
     config.add(name='x', value=1)
     config.add(name='y', value=5)
     Registry.register_configuration(config=config.delta_copy(x=10, y=15),
-                                    component_class=Component,
                                     name='config',
                                     namespace='testing')
     config = Registry.retrieve_configuration(name='config',
@@ -592,20 +548,3 @@ def test_retrieve_keys_with_all_conditions(
     assert len(keys) == 1
     assert key in keys
     assert other_key not in keys
-
-
-def test_key_tags_after_resolution(
-        reset_registry
-):
-    Registry.register_configuration(config=Configuration.default(),
-                                    component_class=RunnableComponent,
-                                    name='test',
-                                    namespace='testing')
-    Registry.register_configuration(config=Configuration.default(),
-                                    component_class=RunnableComponent,
-                                    name='test2',
-                                    namespace='testing')
-    valid_keys, invalid_keys = Registry.dag_resolution()
-
-    for key in valid_keys:
-        assert 'runnable' in key.special_tags

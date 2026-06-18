@@ -8,17 +8,16 @@ from typing import Dict, Any, Callable, Optional, TypeVar, List, Set, Union, Typ
 
 from pandas import json_normalize
 
-import cinnamon.component
 import cinnamon.registry
 from cinnamon.utility.configuration import get_dict_values_combinations
 from cinnamon.utility.exceptions import (
     AlreadyExistingParameterException,
-    NotAllowedParameterException
+    NotAllowedParameterException,
+    ValidationResult,
+    ValidationFailureException,
 )
 from cinnamon.utility.registration import Tags
 from cinnamon.utility.sanity import (
-    ValidationResult,
-    ValidationFailureException,
     is_required_cond,
     allowed_range_cond,
 )
@@ -33,8 +32,7 @@ __all__ = [
     'Configuration',
     'C',
     'P',
-    'Param',
-    'ValidationFailureException'
+    'Param'
 ]
 
 logger = logging.getLogger(__name__)
@@ -151,9 +149,7 @@ class Configuration:
 
     special_params = [
         'expanded',
-        'registration_key',
         '__expanded',
-        '__registration_key',
         '__dict__'
     ]
 
@@ -161,7 +157,6 @@ class Configuration:
             self
     ):
         self.__expanded = False
-        self.__registration_key = None
 
     def __setattr__(
             self,
@@ -188,7 +183,7 @@ class Configuration:
     def __str__(
             self
     ) -> str:
-        return str(self.to_value_dict())
+        return str(self.to_dict())
 
     def __eq__(
             self,
@@ -215,19 +210,6 @@ class Configuration:
             value: bool
     ):
         self.__expanded = value
-
-    @property
-    def registration_key(
-            self
-    ) -> cinnamon.registry.RegistrationKey:
-        return self.__registration_key
-
-    @registration_key.setter
-    def registration_key(
-            self,
-            value: cinnamon.registry.RegistrationKey
-    ):
-        self.__registration_key = value
 
     @property
     def conditions(
@@ -440,7 +422,7 @@ class Configuration:
         """
         return cls()
 
-    def to_value_dict(
+    def to_dict(
             self
     ) -> Dict[str, Any]:
         """
@@ -454,7 +436,7 @@ class Configuration:
         value_dict = {}
         for param_name, param in self.params.items():
             if isinstance(param.value, Configuration):
-                value_dict[param_name] = param.value.to_value_dict()
+                value_dict[param_name] = param.value.to_dict()
             else:
                 value_dict[param_name] = param.value
 
@@ -527,7 +509,7 @@ class Configuration:
         Displays ``Configuration`` parameters.
         """
         logger.info(f'Displaying {self.__class__.__name__} parameters...')
-        to_show = json_normalize(self.to_value_dict()).to_dict(orient='records')
+        to_show = json_normalize(self.to_dict()).to_dict(orient='records')
         if len(to_show):
             to_show = to_show[0]
 
