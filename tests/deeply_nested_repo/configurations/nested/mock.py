@@ -7,7 +7,7 @@ from cinnamon.registry import register_method
 class MockConfig(Configuration):
 
     @classmethod
-    @register_method(name='config', namespace='testing')
+    @register_method(name='config', namespace='testing', component='cinnamon.Component')
     def default(
             cls: Type[C]
     ) -> C:

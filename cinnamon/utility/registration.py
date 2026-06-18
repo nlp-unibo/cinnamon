@@ -1,8 +1,7 @@
 from __future__ import annotations
-import os
-import inspect
 
 import ast
+import importlib
 import types
 from copy import deepcopy
 from enum import Enum
@@ -15,7 +14,8 @@ __all__ = [
     'TAGGABLE_TYPES',
     'match_name',
     'match_namespace',
-    'match_tags'
+    'match_tags',
+    'import_class_from_string'
 ]
 
 import cinnamon
@@ -127,3 +127,11 @@ def match_tags(
         return True
 
     return False
+
+
+def import_class_from_string(
+        path: str
+):
+    module_path, class_name = path.rsplit('.', 1)
+    module = importlib.import_module(module_path)
+    return getattr(module, class_name)

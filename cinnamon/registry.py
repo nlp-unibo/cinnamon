@@ -22,7 +22,8 @@ from cinnamon.utility.exceptions import (
     NotADAGException,
     InvalidDirectoryException,
     NamespaceNotFoundException,
-    NotExpandedException
+    NotExpandedException,
+    NotBoundException
 )
 from cinnamon.utility.registration import (
     NamespaceExtractor,
@@ -30,7 +31,8 @@ from cinnamon.utility.registration import (
     TAGGABLE_TYPES,
     match_tags,
     match_name,
-    match_namespace
+    match_namespace,
+    import_class_from_string
 )
 from cinnamon.utility.sanity import time_it
 
@@ -70,7 +72,8 @@ class RegistrationKey:
             tags: Tags = None,
             description: Optional[str] = None,
             metadata: Optional[str] = None,
-            special_tags: Tags = None
+            special_tags: Tags = None,
+            resolve_automatically: bool = True
     ):
         """
 
@@ -98,6 +101,7 @@ class RegistrationKey:
         self.description = description
         self.metadata = metadata
         self.special_tags = special_tags if special_tags is not None else set()
+        self.resolve_automatically = resolve_automatically
 
     def __hash__(
             self
@@ -194,7 +198,8 @@ class RegistrationKey:
                                namespace=self.namespace,
                                special_tags=self.special_tags,
                                description=self.description,
-                               metadata=self.metadata)
+                               metadata=self.metadata,
+                               resolve_automatically=self.resolve_automatically)
 
     def from_tags_simplification(
             self,
@@ -335,11 +340,13 @@ class BufferedRegistration:
             name: str,
             namespace: str,
             tags: Tags = None,
+            component: Optional[str] = None
     ):
         self.func = func
         self.name = name
         self.namespace = namespace
         self.tags = tags
+        self.component = component
 
     def __call__(
             self,
@@ -353,6 +360,7 @@ def register_method(
         name: str,
         namespace: str,
         tags: Tags = None,
+        component: Optional[str] = None
 ) -> Callable:
     def register_wrapper(func):
         key = RegistrationKey(name=name, tags=tags, namespace=namespace)
@@ -363,7 +371,8 @@ def register_method(
                 func=func,
                 name=name,
                 tags=tags,
-                namespace=namespace
+                namespace=namespace,
+                component=component
             )
         return func
 
@@ -398,6 +407,17 @@ class RegistrationContext:
         self.is_registering = False
 
 
+class ConfigurationInfo:
+
+    def __init__(
+            self,
+            config: cinnamon.configuration.Configuration,
+            component: Optional[str] = None
+    ):
+        self.config = config
+        self.component = component
+
+
 class Registry:
     """
     The registration registry.
@@ -413,9 +433,8 @@ class Registry:
     """
 
     _CONFIGURATION_FOLDER = 'configurations'
-    _REGISTRY_FILENAME = 'registry.pickle'
 
-    _REGISTRY: Dict[RegistrationKey, cinnamon.configuration.Configuration]
+    _REGISTRY: Dict[RegistrationKey, ConfigurationInfo]
 
     _ROOT_KEY = RegistrationKey(name='root', namespace='root')
     _DEPENDENCY_DAG: nx.DiGraph
@@ -616,8 +635,7 @@ class Registry:
                                                               location=python_script)
 
                 if spec is None:
-                    logging.warning(f'Could not load {python_script}. Skipping...')
-                    continue
+                    logging.error(f'Could not load {python_script}. Skipping...')
 
                 # import module and run registration methods
                 current_keys = set(cls.REGISTRATION_METHODS.keys())
@@ -627,7 +645,7 @@ class Registry:
                     spec.loader.exec_module(module)
                 except Exception as e:
                     logging.error(f'Failed to execute module {python_script.name}. {e}')
-                    continue
+                    raise RuntimeError(f'Failed to execute module {python_script.name}. {e}')
 
                 new_keys = set(cls.REGISTRATION_METHODS.keys()).difference(current_keys)
 
@@ -644,7 +662,8 @@ class Registry:
                         Registry.register_configuration(config=getattr(class_method, method_name)(),
                                                         name=key_method.name,
                                                         tags=key_method.tags,
-                                                        namespace=key_method.namespace)
+                                                        namespace=key_method.namespace,
+                                                        component=key_method.component)
                     else:
                         cls.REGISTRATION_METHODS[key]()
 
@@ -791,7 +810,8 @@ class Registry:
                                            tags=variant_key.tags,
                                            namespace=variant_key.namespace)
 
-            variant_config = Registry.resolve_configuration(config=variant_config)
+            if variant_key.resolve_automatically:
+                variant_config = Registry.resolve_configuration(config=variant_config)
             validation_result = variant_config.validate(strict=False)
 
             if validation_result.passed:
@@ -801,7 +821,8 @@ class Registry:
                 variant_key.metadata = validation_result.stack_trace
                 invalid_key_buffer.add(variant_key)
 
-        config = Registry.resolve_configuration(config=config)
+        if key.resolve_automatically:
+            config = Registry.resolve_configuration(config=config)
         validation_result = config.validate(strict=False)
 
         if validation_result.passed:
@@ -822,23 +843,23 @@ class Registry:
     @classmethod
     def instantiate_component(
             cls,
-            component_class: type,
             registration_key: Optional[Registration] = None,
             name: Optional[str] = None,
             namespace: Optional[str] = None,
             tags: Tags = None,
+            component: Optional[type] = None,
             **build_args
     ) -> cinnamon.component.Component:
         """
         Builds a ``Component`` instance from its bounded ``Configuration`` via the implicit ``RegistrationKey``.
 
         Args:
-            component_class: component class type to instantiate
             registration_key: the ``RegistrationKey`` used to register the ``Configuration`` class.
             name: the ``name`` attribute of ``RegistrationKey``
             tags: the ``tags`` attribute of ``RegistrationKey``
             namespace: the ``namespace`` attribute of ``RegistrationKey``
             build_args: additional custom component constructor args
+            component: Component class type
 
         Returns:
             The built ``Component`` instance
@@ -861,9 +882,19 @@ class Registry:
         if not cls.in_registry(registration_key=registration_key):
             raise NotRegisteredException(registration_key=registration_key)
 
-        config = cls._REGISTRY[registration_key]
+        config_info: ConfigurationInfo = cls._REGISTRY[registration_key]
+        config = config_info.config
 
+        if component is None and config_info.component is None:
+            raise NotBoundException(registration_key=registration_key)
+
+        component = component if component is not None else config_info.component
         component_args = {**config.values, **build_args}
+
+        if type(component) == str:
+            component_class = import_class_from_string(component)
+        else:
+            component_class = component
         component = component_class(**component_args)
 
         return component
@@ -876,7 +907,9 @@ class Registry:
             config: cinnamon.configuration.Configuration,
             name: str,
             namespace: str,
-            tags: Tags = None
+            tags: Tags = None,
+            component: Optional[str] = None,
+            resolve_automatically: bool = True
     ):
         """
         Registers a ``Configuration`` in the registry.
@@ -886,7 +919,9 @@ class Registry:
             config: `Configuration`` instance
             name: the ``name`` field of ``RegistrationKey``
             namespace: the ``namespace`` field of ``RegistrationKey``
-            tags: the ``tags`` field of ``RegistrationKey``
+            tags: the ``tags`` field of ``RegistrationKey``,
+            component: Component module path as string
+            resolve_automatically: whether the RegistrationKey has to be resolved automatically during DAG resolution or not
 
         Returns:
             The built ``RegistrationKey`` instance that can be used to retrieve the registered ``ConfigurationInfo``.
@@ -904,14 +939,16 @@ class Registry:
 
         registration_key = RegistrationKey(name=name,
                                            tags=tags,
-                                           namespace=namespace)
+                                           namespace=namespace,
+                                           resolve_automatically=resolve_automatically)
 
         # Check if already registered
         if cls.in_registry(registration_key=registration_key):
             raise AlreadyRegisteredException(registration_key=registration_key)
 
         # Store configuration in registry
-        cls._REGISTRY[registration_key] = config
+        cls._REGISTRY[registration_key] = ConfigurationInfo(config=config,
+                                                            component=component)
 
         # Add to dependency graph
         cls._DEPENDENCY_DAG.add_node(registration_key)
@@ -952,15 +989,15 @@ class Registry:
         return config
 
     @classmethod
-    def retrieve_configuration(
+    def _retrieve(
             cls,
             registration_key: Optional[Registration] = None,
             name: Optional[str] = None,
             namespace: Optional[str] = None,
             tags: Tags = None,
-    ) -> cinnamon.configuration.Configuration:
+    ) -> ConfigurationInfo:
         """
-            Retrieves a ``Configuration`` instance from the registry via its ``RegistrationKey``.
+            Retrieves a ``ConfigurationInfo`` instance from the registry via its ``RegistrationKey``.
 
         Args:
             registration_key: key used to register the configuration
@@ -980,8 +1017,55 @@ class Registry:
         if not cls.in_registry(registration_key=registration_key):
             raise NotRegisteredException(registration_key=registration_key)
 
-        config = cls._REGISTRY[registration_key]
-        return config
+        config_info: ConfigurationInfo = cls._REGISTRY[registration_key]
+        return config_info
+
+    @classmethod
+    def retrieve_configuration(
+            cls,
+            registration_key: Optional[Registration] = None,
+            name: Optional[str] = None,
+            namespace: Optional[str] = None,
+            tags: Tags = None,
+    ) -> cinnamon.configuration.Configuration:
+        """
+            Retrieves a ``Configuration`` instance from the registry via its ``RegistrationKey``.
+
+        Args:
+            registration_key: key used to register the configuration
+            name: the ``name`` field of ``RegistrationKey``
+            namespace: the ``namespace`` field of ``RegistrationKey``
+            tags: the ``tags`` field of ``RegistrationKey``
+
+        Returns:
+            config: the built configuration instance
+        """
+        return cls._retrieve(registration_key=registration_key,
+                             name=name,
+                             namespace=namespace,
+                             tags=tags).config
+
+    @classmethod
+    def retrieve_configuration_info(
+            cls,
+            registration_key: Optional[Registration] = None,
+            name: Optional[str] = None,
+            namespace: Optional[str] = None,
+            tags: Tags = None,
+    ) -> ConfigurationInfo:
+        """
+            Retrieves a ``Configuration`` instance from the registry via its ``RegistrationKey``.
+
+        Args:
+            registration_key: key used to register the configuration
+            name: the ``name`` field of ``RegistrationKey``
+            namespace: the ``namespace`` field of ``RegistrationKey``
+            tags: the ``tags`` field of ``RegistrationKey``
+
+        Returns:
+            config: the built configuration instance
+        """
+        return cls._retrieve(registration_key=registration_key, name=name, namespace=namespace, tags=tags)
 
     @classmethod
     def retrieve_keys(

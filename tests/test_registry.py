@@ -138,6 +138,22 @@ def test_retrieve_config(
     Registry.retrieve_configuration(registration_key=key)
 
 
+def test_register_and_bind_config(
+        reset_registry
+):
+    """
+    Register a configuration with bounded component
+    """
+    key = Registry.register_configuration(config=Configuration.default(),
+                                          component='cinnamon.component.Component',
+                                          name='test',
+                                          tags={'tag'},
+                                          namespace='testing')
+    info = Registry.retrieve_configuration_info(key)
+    assert 'tag' in key.tags
+    assert info.component is not None
+
+
 def test_trigger_registered_config_with_binding_error(
         reset_registry
 ):
@@ -548,3 +564,47 @@ def test_retrieve_keys_with_all_conditions(
     assert len(keys) == 1
     assert key in keys
     assert other_key not in keys
+
+
+def test_dag_resolution_resolve_automatically_false(
+        reset_registry
+):
+    config = Configuration.default()
+    config.add(name='c1', value=RegistrationKey(name='intermediate', namespace='testing'))
+
+    Registry.register_configuration(config=config,
+                                    name='config',
+                                    namespace='testing',
+                                    resolve_automatically=False)
+    Registry.register_configuration(config=Configuration.default(),
+                                    name='intermediate',
+                                    namespace='testing')
+
+    Registry.dag_resolution()
+
+    retrieved = Registry.retrieve_configuration(name='config', namespace='testing')
+    assert isinstance(retrieved.c1, RegistrationKey)
+
+
+def test_dag_resolution_resolve_automatically_false_with_variants(
+        reset_registry
+):
+    config = Configuration.default()
+    config.add(name='x', variants=[1, 2])
+    config.add(name='c1', value=RegistrationKey(name='intermediate', namespace='testing'))
+
+    Registry.register_configuration(config=config,
+                                    name='config',
+                                    namespace='testing',
+                                    resolve_automatically=False)
+    Registry.register_configuration(config=Configuration.default(),
+                                    name='intermediate',
+                                    namespace='testing')
+
+    Registry.dag_resolution()
+
+    retrieved = Registry.retrieve_configuration(name='config', namespace='testing')
+    assert isinstance(retrieved.c1, RegistrationKey)
+
+    variant = Registry.retrieve_configuration(name='config', tags={'x=1'}, namespace='testing')
+    assert isinstance(variant.c1, RegistrationKey)

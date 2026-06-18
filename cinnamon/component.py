@@ -46,7 +46,7 @@ class Component:
 
             ``NotBoundException``: if the ``Configuration`` is not bound to any ``Component``.
         """
-        return cinnamon.registry.Registry.instantiate_component(component_class=cls,
+        return cinnamon.registry.Registry.instantiate_component(component=cls,
                                                                 registration_key=registration_key,
                                                                 name=name,
                                                                 tags=tags,

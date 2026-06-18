@@ -6,7 +6,8 @@ from cinnamon.registry import Registry, register
 def register_configurations():
     Registry.register_configuration(config=Configuration.default(),
                                     name='test',
-                                    namespace='external')
+                                    namespace='external',
+                                    component='cinnamon.Component')
 
 
 def deprecated_configurations():

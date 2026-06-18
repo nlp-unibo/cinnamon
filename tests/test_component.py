@@ -1,5 +1,6 @@
 import pytest
 
+from cinnamon.component import Component
 from cinnamon.configuration import Configuration
 from cinnamon.registry import Registry, RegistrationKey
 from tests.fixtures import (
@@ -14,6 +15,22 @@ from tests.fixtures import (
 from pathlib import Path
 
 
+def test_build_empty_component(
+        reset_registry
+):
+    """
+    Testing if we can build component from its configuration key
+    """
+
+    key = Registry.register_configuration(config=Configuration.default(),
+                                          component='cinnamon.component.Component',
+                                          name='component',
+                                          namespace='testing')
+    Registry.expanded = True
+    component = Registry.instantiate_component(registration_key=key)
+    assert type(component) == Component
+
+
 def test_build_component(
         reset_registry
 ):
@@ -21,11 +38,17 @@ def test_build_component(
     Build component via registered key and check parameters
     """
     key = Registry.register_configuration(config=BaseConfig.default(),
+                                          component='tests.fixtures.BaseComponent',
                                           name='component',
                                           namespace='testing')
     Registry.expanded = True
 
     component = BaseComponent.instantiate_component(registration_key=key)
+    assert type(component) == BaseComponent
+    assert component.x == 5
+    assert component.y == 10
+
+    component = Registry.instantiate_component(registration_key=key)
     assert type(component) == BaseComponent
     assert component.x == 5
     assert component.y == 10
@@ -38,11 +61,12 @@ def test_trigger_invalid_build_component(
     Trigger exception when building a component with an improper configuration
     """
     key = Registry.register_configuration(config=Configuration.default(),
+                                          component='tests.fixtures.BaseComponent',
                                           name='component',
                                           namespace='testing')
     Registry.expanded = True
     with pytest.raises(TypeError):
-        BaseComponent.instantiate_component(registration_key=key)
+        Registry.instantiate_component(registration_key=key)
 
 
 def test_build_component_with_child(

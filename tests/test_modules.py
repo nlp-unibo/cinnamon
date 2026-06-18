@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from cinnamon.configuration import Configuration
+from cinnamon.component import Component
 from cinnamon.registry import (
     Registry,
     InvalidDirectoryException,
@@ -95,11 +95,11 @@ def test_chained_register_decorator(
 
     Registry.dag_resolution()
 
-    config1 = Registry.retrieve_configuration(registration_key=key1)
-    assert isinstance(config1, Configuration)
+    c1 = Registry.instantiate_component(registration_key=key1)
+    assert isinstance(c1, Component)
 
-    config2 = Registry.retrieve_configuration(registration_key=key2)
-    assert isinstance(config2, Configuration)
+    c2 = Registry.instantiate_component(registration_key=key2)
+    assert isinstance(c2, Component)
 
 
 def test_deeply_nested_config(

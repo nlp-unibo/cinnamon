@@ -6,4 +6,5 @@ from cinnamon.configuration import Configuration
 def register_configurations():
     Registry.register_configuration(config=Configuration.default(),
                                     name='test',
-                                    namespace='dep')
+                                    namespace='dep',
+                                    component='cinnamon.Component')
