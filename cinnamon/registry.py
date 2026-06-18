@@ -771,7 +771,8 @@ class Registry:
             valid_key_buffer: Set[RegistrationKey] = {},
             invalid_key_buffer: Set[RegistrationKey] = {},
     ) -> Set[RegistrationKey]:
-        config = cls.retrieve_configuration(registration_key=key)
+        config_info = cls.retrieve_configuration_info(registration_key=key)
+        config = config_info.config
 
         # If already expanded, we retrieve all keys related to input key through dependency DAG
         if config.expanded:
@@ -813,7 +814,8 @@ class Registry:
                 cls.register_configuration(config=variant_config,
                                            name=variant_key.name,
                                            tags=variant_key.tags,
-                                           namespace=variant_key.namespace)
+                                           namespace=variant_key.namespace,
+                                           component=config_info.component)
 
             if variant_key.resolve_automatically:
                 variant_config = Registry.resolve_configuration(config=variant_config)
