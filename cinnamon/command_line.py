@@ -138,7 +138,7 @@ def generate():
     if not action:
         return
 
-    code_keys = ','.join([str(key) for key in valid_keys])
+    code_keys = f',{os.linesep}'.join([f'"{str(key)}"' for key in filtered_keys])
 
     code_template = f"""
 # Automatically generated via cmn-generate
@@ -147,17 +147,19 @@ from pathlib import Path
 from cinnamon.registry import Registry, RegistrationKey
 
 if __name__ == '__main__':
-    Registry.build(directory=Path({run_directory})
+    Registry.build(directory=Path('{run_directory}'))
     logging.basicConfig()
     
-    keys = [{code_keys}]
+    keys = [
+        {code_keys}
+]
     
     # Use RegistrationKey.fromstring() to retrieve the RegistrationKey instance from string
     """
 
-    script_path = run_directory.joinpath(f'{args.name}.py')
+    script_path = run_directory.joinpath(f'{args.filename}.py')
     if script_path.exists():
-        response = input(f'Script path {script_path} already exists. Do you want to overwrite it? Y/N')
+        response = input(f'Script path {script_path} already exists. Do you want to overwrite it? Y/N ')
         if response.strip().casefold() != 'y':
             logger.info('Aborting...')
             return
