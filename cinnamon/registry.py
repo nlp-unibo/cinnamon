@@ -817,9 +817,14 @@ class Registry:
                                            namespace=variant_key.namespace,
                                            component=config_info.component)
 
-            if variant_key.resolve_automatically:
+            # If resolve_automatically is enabled we still have to resolve a copy of it to check its validity
+            # Otherwise, we risk in registering keys that are invalid as valid
+            if not variant_key.resolve_automatically:
+                resolved_config = Registry.resolve_configuration(config=variant_config.delta_copy())
+                validation_result = resolved_config.validate(strict=False)
+            else:
                 variant_config = Registry.resolve_configuration(config=variant_config)
-            validation_result = variant_config.validate(strict=False)
+                validation_result = variant_config.validate(strict=False)
 
             if validation_result.passed:
                 keys.add(variant_key)
@@ -828,9 +833,12 @@ class Registry:
                 variant_key.metadata = validation_result.stack_trace
                 invalid_key_buffer.add(variant_key)
 
-        if key.resolve_automatically:
+        if not key.resolve_automatically:
+            resolved_config = Registry.resolve_configuration(config=config.delta_copy())
+            validation_result = resolved_config.validate(strict=False)
+        else:
             config = Registry.resolve_configuration(config=config)
-        validation_result = config.validate(strict=False)
+            validation_result = config.validate(strict=False)
 
         if validation_result.passed:
             valid_key_buffer.add(key)

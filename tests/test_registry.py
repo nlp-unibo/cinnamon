@@ -608,3 +608,30 @@ def test_dag_resolution_resolve_automatically_false_with_variants(
 
     variant = Registry.retrieve_configuration(name='config', tags={'x=1'}, namespace='testing')
     assert isinstance(variant.c1, RegistrationKey)
+
+def test_dag_resolution_resolve_automatically_false_with_invalid_variants(
+        reset_registry
+):
+    config = Configuration.default()
+    config.add(name='x', variants=[1, 2])
+    config.add(name='c1', value=RegistrationKey(name='intermediate', namespace='testing'))
+
+    child_config = Configuration.default()
+    child_config.add(name='y', variants=['a', 'b'])
+
+    Registry.register_configuration(config=config,
+                                    name='config',
+                                    namespace='testing',
+                                    resolve_automatically=False)
+    Registry.register_configuration(config=child_config,
+                                    name='intermediate',
+                                    namespace='testing')
+
+    valid_keys, invalid_keys = Registry.dag_resolution()
+    assert len(valid_keys) == 6
+
+    retrieved = Registry.retrieve_configuration(name='config', namespace='testing')
+    assert isinstance(retrieved.c1, RegistrationKey)
+
+    variant = Registry.retrieve_configuration(name='config', tags={'x=1'}, namespace='testing')
+    assert isinstance(variant.c1, RegistrationKey)
