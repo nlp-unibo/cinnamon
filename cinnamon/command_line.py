@@ -1,12 +1,15 @@
 import argparse
 import logging
+import os
 import sys
 from logging import getLogger
 from typing import Optional
 
 import pandas as pd
+from InquirerPy import inquirer
 
 from cinnamon.registry import Registry
+from cinnamon.utility.inquirer import filter_keys
 from cinnamon.utility.sanity import check_directory, check_external_json_path
 
 logging.basicConfig(
@@ -18,6 +21,7 @@ logger = getLogger(__name__)
 
 # TODO: make command to generate runnable script from registration key
 
+# TODO: make interactive
 def build():
     parser = argparse.ArgumentParser()
     parser.add_argument('-dir',
@@ -75,3 +79,88 @@ def build():
     logger.info('Invalid registration keys:')
     for key in invalid_keys:
         logger.info(key)
+
+
+def generate():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-dir',
+                        '--directory',
+                        type=str,
+                        help='Directory containing cinnamon registrations')
+    parser.add_argument('-run-dir',
+                        '--run-directory',
+                        type=str,
+                        help='Directory where to generate script')
+    parser.add_argument('-name',
+                        '--filename',
+                        type=str,
+                        help='Generated script filename')
+    parser.add_argument('-ext',
+                        '--external-path',
+                        type=Optional[str],
+                        default=None,
+                        help="Path to file containing all external directories")
+    args = parser.parse_args()
+
+    directory = check_directory(directory_path=args.directory)
+    run_directory = check_directory(directory_path=args.run_directory)
+    external_directories = None
+
+    if args.external_path is not None:
+        external_directories = check_external_json_path(jsonpath=args.external_path)
+
+    logger.info(f"""Loading cinnamon registrations using:
+            Directory: {directory}
+            External directories: {external_directories}
+        """)
+
+    # add to PYTHONPATH
+    sys.path.insert(0, directory.as_posix())
+
+    valid_keys, invalid_keys = Registry.build(
+        directory=directory,
+        external_directories=external_directories
+    )
+
+    if not len(valid_keys):
+        logger.info(f'Could not find any registered runnable component. Aborting...')
+        return
+
+    filtered_keys = []
+    while not len(filtered_keys):
+        filtered_keys = filter_keys(keys=list(valid_keys))
+
+    logger.info(f'You have selected the following keys to execute: {os.linesep}'
+                f'{os.linesep.join([f"{idx + 1}. {str(item)}" for idx, item in enumerate(filtered_keys)])}')
+
+    action = inquirer.confirm(message='Proceed?', default=True).execute()
+
+    if not action:
+        return
+
+    code_keys = ','.join([str(key) for key in valid_keys])
+
+    code_template = f"""
+# Automatically generated via cmn-generate
+import logging
+from pathlib import Path
+from cinnamon.registry import Registry, RegistrationKey
+
+if __name__ == '__main__':
+    Registry.build(directory=Path({run_directory})
+    logging.basicConfig()
+    
+    keys = [{code_keys}]
+    
+    # Use RegistrationKey.fromstring() to retrieve the RegistrationKey instance from string
+    """
+
+    script_path = run_directory.joinpath(f'{args.name}.py')
+    if script_path.exists():
+        response = input(f'Script path {script_path} already exists. Do you want to overwrite it? Y/N')
+        if response.strip().casefold() != 'y':
+            logger.info('Aborting...')
+            return
+
+    with open(script_path, 'w') as f:
+        f.write(code_template)

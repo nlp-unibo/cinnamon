@@ -40,6 +40,7 @@ setup(
     entry_points={
         'console_scripts': [
             'cmn-build=cinnamon.command_line:build',
+            'cmn-generate=cinnamon.command_line:generate',
         ]
     }
 )

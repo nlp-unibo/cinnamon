@@ -9,7 +9,6 @@ from logging import getLogger
 from pathlib import Path
 from typing import AnyStr, List, Dict, Any, Union, Optional, Callable, Tuple, Set
 
-import dill
 import networkx as nx
 import numpy as np
 
