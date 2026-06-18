@@ -27,7 +27,7 @@ def test_build_empty_component(
                                           name='component',
                                           namespace='testing')
     Registry.expanded = True
-    component = Registry.instantiate_component(registration_key=key)
+    component = Component.instantiate_component(registration_key=key)
     assert type(component) == Component
 
 
@@ -48,7 +48,7 @@ def test_build_component(
     assert component.x == 5
     assert component.y == 10
 
-    component = Registry.instantiate_component(registration_key=key)
+    component = Component.instantiate_component(registration_key=key)
     assert type(component) == BaseComponent
     assert component.x == 5
     assert component.y == 10
@@ -76,12 +76,14 @@ def test_build_component_with_child(
     Build component that contains another child component
     """
     parent_key = Registry.register_configuration(config=ConfigWithChild.default(),
+                                                 component='tests.fixtures.ComponentWithChild',
                                                  name='config',
                                                  namespace='testing')
     Registry.register_configuration(config=ChildConfig.default(),
-                                                name='test',
-                                                tags={'t2'},
-                                                namespace='testing')
+                                    component='tests.fixtures.ChildComponent',
+                                    name='test',
+                                    tags={'t2'},
+                                    namespace='testing')
     Registry.dag_resolution()
 
     parent_component = ComponentWithChild.instantiate_component(registration_key=parent_key)
@@ -97,9 +99,11 @@ def test_build_component_with_child_variants(
     Build component with child component and also build one of its variant
     """
     parent_key = Registry.register_configuration(config=ConfigWithChild.default(),
+                                                 component='tests.fixtures.ComponentWithChild',
                                                  name='config',
                                                  namespace='testing')
     child_key = Registry.register_configuration(config=ChildConfig.default(),
+                                                component='tests.fixtures.ChildComponent',
                                                 name='test',
                                                 tags={'t2'},
                                                 namespace='testing')
@@ -109,7 +113,8 @@ def test_build_component_with_child_variants(
     assert isinstance(parent_component.c1, ChildConfig)
     assert parent_component.c1.y is None
 
-    variant_parent_config = Registry.retrieve_configuration(registration_key=parent_key.from_variant({'c1': child_key.from_variant({'y': True})}))
+    variant_parent_config = Registry.retrieve_configuration(
+        registration_key=parent_key.from_variant({'c1': child_key.from_variant({'y': True})}))
     assert variant_parent_config.c1.y is True
 
 
@@ -137,6 +142,7 @@ def test_build_component_with_external_dependency(
     Registry.update_namespaces(namespaces=namespaces, module_mapping=mapping)
 
     key = Registry.register_configuration(config=ConfigWithExternalDependency.default(),
+                                          component='tests.fixtures.ComponentWithChild',
                                           name='config',
                                           namespace='testing')
     Registry.dag_resolution()

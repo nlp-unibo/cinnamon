@@ -862,7 +862,6 @@ class Registry:
             name: Optional[str] = None,
             namespace: Optional[str] = None,
             tags: Tags = None,
-            component: Optional[type] = None,
             **build_args
     ) -> cinnamon.component.Component:
         """
@@ -874,7 +873,6 @@ class Registry:
             tags: the ``tags`` attribute of ``RegistrationKey``
             namespace: the ``namespace`` attribute of ``RegistrationKey``
             build_args: additional custom component constructor args
-            component: Component class type
 
         Returns:
             The built ``Component`` instance
@@ -900,16 +898,11 @@ class Registry:
         config_info: ConfigurationInfo = cls._REGISTRY[registration_key]
         config = config_info.config
 
-        if component is None and config_info.component is None:
+        if config_info.component is None:
             raise NotBoundException(registration_key=registration_key)
 
-        component = component if component is not None else config_info.component
         component_args = {**config.values, **build_args}
-
-        if type(component) == str:
-            component_class = import_class_from_string(component)
-        else:
-            component_class = component
+        component_class = import_class_from_string(config_info.component)
         component = component_class(**component_args)
 
         return component

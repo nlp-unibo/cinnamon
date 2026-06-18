@@ -46,9 +46,12 @@ class Component:
 
             ``NotBoundException``: if the ``Configuration`` is not bound to any ``Component``.
         """
-        return cinnamon.registry.Registry.instantiate_component(component=cls,
-                                                                registration_key=registration_key,
-                                                                name=name,
-                                                                tags=tags,
-                                                                namespace=namespace,
-                                                                **build_args)
+        component = cinnamon.registry.Registry.instantiate_component(registration_key=registration_key,
+                                                                     name=name,
+                                                                     tags=tags,
+                                                                     namespace=namespace,
+                                                                     **build_args)
+        if not isinstance(component, cls):
+            raise RuntimeError(f'The instantiated component is not an instance of {cls}. Got {type(component)}')
+
+        return component

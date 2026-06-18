@@ -7,7 +7,7 @@ def register_configurations():
     Registry.register_configuration(config=Configuration.default(),
                                     name='test',
                                     namespace='external',
-                                    component='cinnamon.Component')
+                                    component='cinnamon.component.Component')
 
 
 def deprecated_configurations():
