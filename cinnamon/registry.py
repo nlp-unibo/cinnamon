@@ -342,6 +342,7 @@ class BufferedRegistration:
             namespace: str,
             tags: Tags = None,
             component: Optional[str] = None,
+            run_method: Optional[str] = None,
             resolve_automatically: bool = True
     ):
         self.func = func
@@ -349,6 +350,7 @@ class BufferedRegistration:
         self.namespace = namespace
         self.tags = tags
         self.component = component
+        self.run_method = run_method
         self.resolve_automatically = resolve_automatically
 
     def __call__(
@@ -364,6 +366,7 @@ def register_method(
         namespace: str,
         tags: Tags = None,
         component: Optional[str] = None,
+        run_method: Optional[str] = None,
         resolve_automatically: bool = True
 ) -> Callable:
     def register_wrapper(func):
@@ -377,6 +380,7 @@ def register_method(
                 tags=tags,
                 namespace=namespace,
                 component=component,
+                run_method=run_method,
                 resolve_automatically=resolve_automatically
             )
         return func
@@ -675,6 +679,7 @@ class Registry:
                                                         tags=key_method.tags,
                                                         namespace=key_method.namespace,
                                                         component=key_method.component,
+                                                        run_method=key_method.run_method,
                                                         resolve_automatically=key_method.resolve_automatically)
                     else:
                         cls.REGISTRATION_METHODS[key]()
