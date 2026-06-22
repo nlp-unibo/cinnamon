@@ -27,7 +27,7 @@ def test_build_empty_component(
                                           name='component',
                                           namespace='testing')
     Registry.expanded = True
-    component = Component.instantiate_component(registration_key=key)
+    component = Component.instantiate(registration_key=key)
     assert type(component) == Component
 
 
@@ -43,12 +43,12 @@ def test_build_component(
                                           namespace='testing')
     Registry.expanded = True
 
-    component = BaseComponent.instantiate_component(registration_key=key)
+    component = BaseComponent.instantiate(registration_key=key)
     assert type(component) == BaseComponent
     assert component.x == 5
     assert component.y == 10
 
-    component = Component.instantiate_component(registration_key=key)
+    component = Component.instantiate(registration_key=key)
     assert type(component) == BaseComponent
     assert component.x == 5
     assert component.y == 10
@@ -86,7 +86,7 @@ def test_build_component_with_child(
                                     namespace='testing')
     Registry.dag_resolution()
 
-    parent_component = ComponentWithChild.instantiate_component(registration_key=parent_key)
+    parent_component = ComponentWithChild.instantiate(registration_key=parent_key)
 
     assert isinstance(parent_component.c1, ChildConfig)
     assert parent_component.c1.y is None
@@ -109,7 +109,7 @@ def test_build_component_with_child_variants(
                                                 namespace='testing')
     Registry.dag_resolution()
 
-    parent_component = ComponentWithChild.instantiate_component(registration_key=parent_key)
+    parent_component = ComponentWithChild.instantiate(registration_key=parent_key)
     assert isinstance(parent_component.c1, ChildConfig)
     assert parent_component.c1.y is None
 
@@ -147,7 +147,7 @@ def test_build_component_with_external_dependency(
                                           namespace='testing')
     Registry.dag_resolution()
 
-    component = ComponentWithChild.instantiate_component(registration_key=key)
+    component = ComponentWithChild.instantiate(registration_key=key)
     assert type(component.c1) == Configuration
 
 
@@ -162,5 +162,5 @@ def test_build_after_setup(
                    external_directories=external_directories)
     key = RegistrationKey(name='config', namespace='testing')
 
-    component = ComponentWithChild.instantiate_component(registration_key=key)
+    component = ComponentWithChild.instantiate(registration_key=key)
     assert type(component.c1) == Configuration

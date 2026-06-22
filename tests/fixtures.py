@@ -250,3 +250,11 @@ class LeafWithVariants(Configuration):
         config.add(name='x', variants=[1, 2])
 
         return config
+
+
+class CustomRunnableComponent(Component):
+
+    def run(
+            self
+    ):
+        return "this is a mock runnable component"

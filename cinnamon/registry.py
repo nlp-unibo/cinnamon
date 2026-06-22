@@ -5,6 +5,7 @@ import importlib.util
 import json
 import logging
 import sys
+from dataclasses import dataclass
 from logging import getLogger
 from pathlib import Path
 from typing import AnyStr, List, Dict, Any, Union, Optional, Callable, Tuple, Set
@@ -411,15 +412,21 @@ class RegistrationContext:
         self.is_registering = False
 
 
+@dataclass
 class ConfigurationInfo:
+    """
+    Utility dataclass used for registration.
+    The ``Configuration`` class is stored in the Registry via its corresponding ``ConfigurationInfo`` wrapper.
 
-    def __init__(
-            self,
-            config: cinnamon.configuration.Configuration,
-            component: Optional[str] = None
-    ):
-        self.config = config
-        self.component = component
+    This wrapper contains:
+        - config: ``Configuration`` instance
+        - component: the ``Component`` class type as string
+        - run_method: if any, the ``Component`` method to execute when instantiating the ``Component`` as runnable
+    """
+
+    config: cinnamon.configuration.Configuration
+    component: Optional[str] = None
+    run_method: Optional[str] = None
 
 
 class Registry:
@@ -810,12 +817,15 @@ class Registry:
                 cls._DEPENDENCY_DAG.add_node(variant_key)
             cls._DEPENDENCY_DAG.add_edge(key, variant_key, type='variant')
 
+            # TODO: we could call here register_configuration_from_key to avoid double key creation
             if not Registry.in_registry(variant_key):
                 cls.register_configuration(config=variant_config,
                                            name=variant_key.name,
                                            tags=variant_key.tags,
                                            namespace=variant_key.namespace,
-                                           component=config_info.component)
+                                           component=config_info.component,
+                                           run_method=config_info.run_method,
+                                           resolve_automatically=variant_key.resolve_automatically)
 
             # If resolve_automatically is enabled we still have to resolve a copy of it to check its validity
             # Otherwise, we risk in registering keys that are invalid as valid
@@ -917,7 +927,8 @@ class Registry:
             namespace: str,
             tags: Tags = None,
             component: Optional[str] = None,
-            resolve_automatically: bool = True
+            resolve_automatically: bool = True,
+            run_method: Optional[str] = None
     ):
         """
         Registers a ``Configuration`` in the registry.
@@ -928,8 +939,10 @@ class Registry:
             name: the ``name`` field of ``RegistrationKey``
             namespace: the ``namespace`` field of ``RegistrationKey``
             tags: the ``tags`` field of ``RegistrationKey``,
-            component: Component module path as string
-            resolve_automatically: whether the RegistrationKey has to be resolved automatically during DAG resolution or not
+            component: ``Component`` module path as string
+            resolve_automatically: whether the RegistrationKey has to be resolved automatically during DAG resolution
+            or not
+            run_method: ``Component`` method to run when instantiating the ``Component`` as runnable
 
         Returns:
             The built ``RegistrationKey`` instance that can be used to retrieve the registered ``ConfigurationInfo``.
@@ -956,7 +969,10 @@ class Registry:
 
         # Store configuration in registry
         cls._REGISTRY[registration_key] = ConfigurationInfo(config=config,
-                                                            component=component)
+                                                            component=component,
+                                                            run_method=run_method)
+        if run_method is not None:
+            registration_key.special_tags.add('__runnable')
 
         # Add to dependency graph
         cls._DEPENDENCY_DAG.add_node(registration_key)
@@ -1107,3 +1123,10 @@ class Registry:
                and match_tags(a_tags=key.tags, b_tags=tags)
                and match_tags(a_tags=key.special_tags, b_tags=special_tags)
         ]
+
+    @classmethod
+    def retrieve_runnable_keys(
+            cls
+    ) -> List[RegistrationKey]:
+        return cls.retrieve_keys(special_tags={'__runnable'})
+

@@ -18,7 +18,7 @@ class Component:
     """
 
     @classmethod
-    def instantiate_component(
+    def instantiate(
             cls: Type[C],
             registration_key: Optional[cinnamon.registry.Registration] = None,
             name: Optional[str] = None,

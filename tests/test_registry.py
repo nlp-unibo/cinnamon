@@ -23,7 +23,8 @@ from tests.fixtures import (
     CliqueConfigB,
     ParentWithVariantsAndChild,
     IntermediateWithChild,
-    LeafWithVariants
+    LeafWithVariants,
+    CustomRunnableComponent
 )
 
 
@@ -609,6 +610,7 @@ def test_dag_resolution_resolve_automatically_false_with_variants(
     variant = Registry.retrieve_configuration(name='config', tags={'x=1'}, namespace='testing')
     assert isinstance(variant.c1, RegistrationKey)
 
+
 def test_dag_resolution_resolve_automatically_false_with_invalid_variants(
         reset_registry
 ):
@@ -635,3 +637,49 @@ def test_dag_resolution_resolve_automatically_false_with_invalid_variants(
 
     variant = Registry.retrieve_configuration(name='config', tags={'x=1'}, namespace='testing')
     assert isinstance(variant.c1, RegistrationKey)
+
+
+def test_register_and_bind_runnable_component(
+        reset_registry
+):
+    key = Registry.register_configuration(config=Configuration.default(),
+                                          name='test',
+                                          tags={'tag'},
+                                          namespace='testing',
+                                          component='cinnamon.component.Component',
+                                          run_method='__call__')
+    assert 'tag' in key.tags
+    assert '__runnable' in key.special_tags
+
+
+def test_register_and_bind_custom_runnable_component(
+        reset_registry
+):
+    key = Registry.register_configuration(config=Configuration.default(),
+                                          name='test',
+                                          tags={'tag'},
+                                          namespace='testing',
+                                          component='tests.fixtures.CustomRunnableComponent',
+                                          run_method='run')
+    assert 'tag' in key.tags
+    assert '__runnable' in key.special_tags
+
+def test_retrieve_custom_runnable_component(
+        reset_registry
+):
+    key = Registry.register_configuration(config=Configuration.default(),
+                                          name='test',
+                                          tags={'tag'},
+                                          namespace='testing',
+                                          component='tests.fixtures.CustomRunnableComponent',
+                                          run_method='run')
+    Registry.dag_resolution()
+
+    config_info = Registry.retrieve_configuration_info(registration_key=key)
+    component = CustomRunnableComponent.instantiate(registration_key=key)
+
+    assert hasattr(component, config_info.run_method)
+    assert getattr(component, config_info.run_method)() == 'this is a mock runnable component'
+
+
+# TODO: tests when we create variants of config bounded to a runnable component

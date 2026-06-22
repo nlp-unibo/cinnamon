@@ -18,10 +18,6 @@ logging.basicConfig(
 )
 logger = getLogger(__name__)
 
-
-# TODO: make command to generate runnable script from registration key
-
-# TODO: make interactive
 def build():
     parser = argparse.ArgumentParser()
     parser.add_argument('-dir',
@@ -81,6 +77,69 @@ def build():
         logger.info(key)
 
 
+def run():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-dir',
+                        '--directory',
+                        type=str,
+                        help='Directory containing cinnamon registrations')
+    parser.add_argument('-ext',
+                        '--external-path',
+                        type=Optional[str],
+                        default=None,
+                        help="Path to file containing all external directories")
+    args = parser.parse_args()
+
+    directory = check_directory(directory_path=args.directory)
+    external_directories = None
+
+    if args.external_path is not None:
+        external_directories = check_external_json_path(jsonpath=args.external_path)
+
+    logger.info(f"""Loading cinnamon registrations using:
+        Directory: {directory}
+        External directories: {external_directories}
+    """)
+
+    # add to PYTHONPATH
+    sys.path.insert(0, directory.as_posix())
+
+    Registry.build(
+        directory=directory,
+        external_directories=external_directories
+    )
+    keys = Registry.retrieve_runnable_keys()
+
+    if not len(keys):
+        logger.info(f'Could not find any registered runnable component. Aborting...')
+        return
+
+    filtered_keys = []
+    while not len(filtered_keys):
+        filtered_keys = filter_keys(keys=list(keys))
+
+    logger.info(f'You have selected the following keys to execute: {os.linesep}'
+                f'{os.linesep.join([f"{idx + 1}. {str(item)}" for idx, item in enumerate(filtered_keys)])}')
+
+    action = inquirer.confirm(message='Proceed?', default=True).execute()
+
+    if not action:
+        return
+
+    for key in filtered_keys:
+        logging.info(f'Executing {key}')
+
+        config_info = Registry.retrieve_configuration_info(registration_key=key)
+        component = Registry.instantiate_component(registration_key=key)
+
+        # config_info.run_method is not None here
+        if hasattr(component, config_info.run_method):
+            getattr(component, config_info.run_method)()
+        else:
+            logging.error(f'Component {component} has not method {config_info.run_method}! Aborting...')
+            raise RuntimeError(f'Component {component} has not method {config_info.run_method}! Aborting...')
+
+
 def generate():
     parser = argparse.ArgumentParser()
     parser.add_argument('-dir',
@@ -94,7 +153,8 @@ def generate():
     parser.add_argument('-name',
                         '--filename',
                         type=str,
-                        help='Generated script filename')
+                        help='Generated script filename',
+                        required=True)
     parser.add_argument('-ext',
                         '--external-path',
                         type=Optional[str],
