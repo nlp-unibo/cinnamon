@@ -130,6 +130,8 @@ def run():
         logging.info(f'Executing {key}')
 
         config_info = Registry.retrieve_configuration_info(registration_key=key)
+        config_info.config.show()
+
         component = Registry.instantiate_component(registration_key=key)
 
         # config_info.run_method is not None here
