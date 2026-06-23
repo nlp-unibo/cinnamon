@@ -217,6 +217,16 @@ if __name__ == '__main__':
 ]
     
     # Use RegistrationKey.fromstring() to retrieve the RegistrationKey instance from string
+    for key in keys:
+        key = RegistrationKey.fromstring(key)
+
+        config_info = Registry.retrieve_configuration_info(registration_key=key)
+        config_info.config.show()
+
+        component = Registry.instantiate_component(registration_key=key)
+
+        if hasattr(component, config_info.run_method):
+            getattr(component, config_info.run_method)()
     """
 
     script_path = run_directory.joinpath(f'{args.filename}.py')

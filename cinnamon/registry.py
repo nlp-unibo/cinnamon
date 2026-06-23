@@ -47,12 +47,7 @@ __all__ = [
     'register',
     'register_method',
     'Registry',
-    'Registration',
-    'NotADAGException',
-    'NotRegisteredException',
-    'AlreadyRegisteredException',
-    'InvalidDirectoryException',
-    'NamespaceNotFoundException',
+    'Registration'
 ]
 
 
