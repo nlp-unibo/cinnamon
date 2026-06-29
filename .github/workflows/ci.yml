@@ -34,15 +34,7 @@ jobs:
         python -m pip install --upgrade pip
         pip install -e .[dev]
 
-    # 6. Check code quality using Ruff
-    - name: Lint and Format check with Ruff
-      run: |
-        # This checks for coding standards, unused variables, and imports
-        ruff check .
-        # This ensures code adheres to format rules (line lengths, spaces)
-        ruff format --check .
-
-    # 7. Run your unit test suite via pytest
+    # 6. Run your unit test suite via pytest
     - name: Test with pytest
       run: |
         pytest

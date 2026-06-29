@@ -103,7 +103,7 @@ def select_tags(keys: List[cinnamon.registry.RegistrationKey]):
 
         current_tag = inquirer.select(
             message=f"Select a tag (total = {len(tags)}) "
-                    f"\nCurrent selection: {selected_tags}",
+            f"\nCurrent selection: {selected_tags}",
             choices=choices,
             default=None,
             mandatory=True,
@@ -135,7 +135,7 @@ def select_keys(
 
     selected_indexes = inquirer.checkbox(
         message=f"Select one or more keys to execute (total = {len(keys)})"
-                f" \nSelected tags: {selected_tags}",
+        f" \nSelected tags: {selected_tags}",
         choices=[
             Choice(
                 name=f"{idx + 1}. {key.from_tags_simplification(tags=selected_tags).to_pretty_string()}",  # noqa: E501

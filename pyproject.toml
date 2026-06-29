@@ -47,4 +47,4 @@ version = { attr = "cinnamon.__version__" }
 # Target Python 3.8+ compatibility
 target-version = "py38"
 line-length = 88
-select = ["E", "F", "I", "W"] # Basic styles, Pyflakes, and Import sorting
+lint.select = ["E", "F", "I", "W"] # Basic styles, Pyflakes, and Import sorting
