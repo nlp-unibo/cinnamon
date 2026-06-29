@@ -1,0 +1,50 @@
+[build-system]
+requires = ["setuptools>=61.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cinnamon"
+dynamic = ["version"]
+description = "A simple framework for general-purpose configuration and code logic de-coupling."
+readme = "README.md"
+authors = [
+    { name = "Federico Ruggeri", email = "federico.ruggeri6@unibo.it" }
+]
+license = { text = "MIT" }
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+# Adjust your minimum Python version requirement here if needed
+requires-python = ">=3.8"
+dependencies = [
+    "InquirerPy>=0.3.4",
+    "networkx>=3.4.2",
+    "pandas>=2.2.3",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "ruff>=0.15.20",
+    "mypy>=1.0.0"
+]
+
+[project.scripts]
+cmn-build = "cinnamon.cli:build"
+cmn-run = "cinnamon.cli:run"
+cmn-generate = "cinnamon.cli:generate"
+
+[tool.setuptools]
+packages = ["cinnamon"]
+
+[tool.setuptools.dynamic]
+version = { attr = "cinnamon.__version__" }
+
+[tool.ruff]
+# Target Python 3.8+ compatibility
+target-version = "py38"
+line-length = 88
+select = ["E", "F", "I", "W"] # Basic styles, Pyflakes, and Import sorting

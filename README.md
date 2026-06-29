@@ -1,6 +1,6 @@
 # Cinnamon
 
-Cinnamon is a simple framework for general-purpose configuration and code logic de-coupling.
+Cinnamon is a simple library for general-purpose configuration and code logic de-coupling.
 It was developed to offer two main functionalities:
 
 **De-coupling**
@@ -12,7 +12,7 @@ It was developed to offer two main functionalities:
 ## Features
 
 #### General-purpose
-   ``cinnamon`` is meant to **simplify** your code organization for better **re-use**.
+``cinnamon`` is meant to **simplify** your code organization for better **re-use**.
 
 #### Simple
 ``cinnamon`` is a small library that acts as a **high-level wrapper** for your projects.
@@ -35,10 +35,6 @@ The following projects have been developed with ``cinnamon``
 - [``cinnamon-examples``](https://github.com/nlp-unibo/cinnamon_examples)
 
 ## Motivation
-
-We describe a simple example to motivate cinnamon.
-
-### Traditional approach
 
 Consider a code logic that has to load some data.
 
@@ -66,7 +62,7 @@ Hypothetically, we would define multiple data loaders:
 
 Now, if the data loader code block is used in a project, we require some code modularity to avoid
 defining several versions of the same script.
-One common solution is to rely on **configuration files** (e.g., JSON file).
+One common solution is to rely on **configuration files** (e.g., JSON file) or commandline arguments.
 
 ```python
    {
@@ -80,7 +76,7 @@ The main script is modified to load our configuration file so that each code log
 
 ### Cinnamon
 
-Cinnamon keeps this <configuration, code logic> dichotomy where a configuration is written in **plain Python code**!
+Cinnamon keeps this <configuration, code logic> dichotomy where a configuration is written in **plain Python code**.
 
 ```python
 
@@ -108,21 +104,21 @@ Register the configuration via a **registration key** as <name, tags, namespace>
 
 ```python
       Registry.register_configuration(config_class=DataLoaderConfig,
-                                      component_class=DataLoader,
+                                      component='DataLoader',
                                       name='data_loader',
                                       tags={'example'},
                                       namespace='showcase')
 ```
 
-#### Build
-Build the ``DataLoader`` via the used **registration key**
+#### Instantiate
+Instantiate the ``DataLoader`` via the used **registration key**
 
    ```python
 
-      data_loader = DataLoader.build_component(name='data_loader',
+      data_loader = DataLoader.instantiate(name='data_loader',
                                                tags={'example'},
                                                namespace='showcase')
-      variant_loader = DataLoader.build_component(name='data_loader',
+      variant_loader = DataLoader.instantiate(name='data_loader',
                                                   tags={'example', 'folder_name=*folder_name1*'},
                                                   namespace='showcase')
    ```
@@ -138,7 +134,6 @@ Build the ``DataLoader`` via the used **registration key**
 
       git clone https://github.com/nlp-unibo/cinnamon
       pip install ./cinnamon
-
 
 ## Contribute
 
