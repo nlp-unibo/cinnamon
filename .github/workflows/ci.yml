@@ -1,0 +1,48 @@
+name: Continuous Integration
+
+# 1. Trigger the workflow on pushes or pull requests to your main branch
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  test-and-lint:
+    runs-on: ubuntu-latest
+
+    # 2. Matrix Strategy: Test multiple Python versions in parallel!
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+
+    steps:
+    # 3. Checkout your Cinnamon source code
+    - name: Check out repository
+      uses: actions/checkout@v4
+
+    # 4. Set up the specific Python runtime for this matrix runner
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    # 5. Upgrade pip and install the core framework + dev tools
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e .[dev]
+
+    # 6. Check code quality using Ruff
+    - name: Lint and Format check with Ruff
+      run: |
+        # This checks for coding standards, unused variables, and imports
+        ruff check .
+        # This ensures code adheres to format rules (line lengths, spaces)
+        ruff format --check .
+
+    # 7. Run your unit test suite via pytest
+    - name: Test with pytest
+      run: |
+        pytest

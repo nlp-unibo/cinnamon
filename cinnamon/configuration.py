@@ -4,36 +4,31 @@ import logging
 import os
 from copy import deepcopy
 from functools import partial
-from typing import Dict, Any, Callable, Optional, TypeVar, List, Set, Union, Type, Tuple
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type, TypeVar, Union
 
-from pandas import json_normalize
+import pandas as pd
 
 import cinnamon.registry
 from cinnamon.utility.configuration import get_dict_values_combinations
 from cinnamon.utility.exceptions import (
     AlreadyExistingParameterException,
     NotAllowedParameterException,
-    ValidationResult,
     ValidationFailureException,
+    ValidationResult,
 )
 from cinnamon.utility.registration import Tags
 from cinnamon.utility.sanity import (
-    is_required_cond,
     allowed_range_cond,
+    is_required_cond,
 )
 
-C = TypeVar('C', bound='Configuration')
-P = TypeVar('P', bound='Param')
+C = TypeVar("C", bound="Configuration")
+P = TypeVar("P", bound="Param")
 
 Constructor = Callable[[Any], C]
 Condition = Callable[["Configuration"], bool]
 
-__all__ = [
-    'Configuration',
-    'C',
-    'P',
-    'Param'
-]
+__all__ = ["Configuration", "C", "P", "Param"]
 
 logger = logging.getLogger(__name__)
 
@@ -47,15 +42,15 @@ class Param:
     """
 
     def __init__(
-            self,
-            name: str,
-            value: Any = None,
-            type_hint: Optional[Type] = None,
-            description: Optional[str] = None,
-            tags: Tags = None,
-            allowed_range: Optional[Callable[[Any], bool]] = None,
-            is_required: bool = True,
-            variants: Optional[List] = None,
+        self,
+        name: str,
+        value: Any = None,
+        type_hint: Optional[Type] = None,
+        description: Optional[str] = None,
+        tags: Tags = None,
+        allowed_range: Optional[Callable[[Any], bool]] = None,
+        is_required: bool = True,
+        variants: Optional[List] = None,
     ):
         """
         The ``Parameter`` constructor
@@ -81,54 +76,42 @@ class Param:
         self.variants = variants if variants is not None else []
 
         if self.is_dependency:
-            self.tags.add('dependency')
+            self.tags.add("dependency")
 
     @property
-    def is_dependency(
-            self
-    ) -> bool:
-        return ('dependency' in self.tags
-                or type(self.value) == cinnamon.registry.RegistrationKey
-                or type(self.value) == Optional[cinnamon.registry.RegistrationKey]
-                or self.type_hint == cinnamon.registry.RegistrationKey
-                or self.type_hint == Optional[cinnamon.registry.RegistrationKey]
-                or isinstance(self.value, Configuration))
+    def is_dependency(self) -> bool:
+        return (
+            "dependency" in self.tags
+            or isinstance(self.value, cinnamon.registry.RegistrationKey)
+            or self.type_hint == cinnamon.registry.RegistrationKey
+            or self.type_hint == Optional[cinnamon.registry.RegistrationKey]
+            or isinstance(self.value, Configuration)
+        )
 
-    def short_repr(
-            self
-    ) -> str:
-        return f'{self.value}'
+    def short_repr(self) -> str:
+        return f"{self.value}"
 
-    def long_repr(
-            self
-    ) -> str:
-        return (f'name: {self.name} {os.linesep}'
-                f'value: {self.value} {os.linesep}'
-                f'type_hint: {self.type_hint} {os.linesep}'
-                f'description: {self.description} {os.linesep}'
-                f'tags: {self.tags} {os.linesep}'
-                f'is_required: {self.is_required} {os.linesep}'
-                f'variants: {self.variants}')
+    def long_repr(self) -> str:
+        return (
+            f"name: {self.name} {os.linesep}"
+            f"value: {self.value} {os.linesep}"
+            f"type_hint: {self.type_hint} {os.linesep}"
+            f"description: {self.description} {os.linesep}"
+            f"tags: {self.tags} {os.linesep}"
+            f"is_required: {self.is_required} {os.linesep}"
+            f"variants: {self.variants}"
+        )
 
-    def __str__(
-            self
-    ) -> str:
+    def __str__(self) -> str:
         return self.short_repr()
 
-    def __repr__(
-            self
-    ) -> str:
+    def __repr__(self) -> str:
         return self.short_repr()
 
-    def __hash__(
-            self
-    ) -> int:
+    def __hash__(self) -> int:
         return hash(str(self))
 
-    def __eq__(
-            self,
-            other: type[P]
-    ) -> bool:
+    def __eq__(self, other: type[P]) -> bool:
         """
         Two ``Param`` instances are equal iff they have the same name and value.
 
@@ -138,6 +121,9 @@ class Param:
         Returns:
             True if the two ``Param`` instances are equal. False, otherwise.
         """
+        if not isinstance(other, Param):
+            return False
+
         return self.name == other.name and self.value == other.value
 
 
@@ -147,48 +133,36 @@ class Configuration:
     Configurations store parameters and allow flow control via conditions.
     """
 
-    special_params = [
-        'expanded',
-        '__expanded',
-        '__dict__'
-    ]
+    special_params = ["expanded", "__expanded", "__dict__"]
 
-    def __init__(
-            self
-    ):
+    def __init__(self):
         self.__expanded = False
 
-    def __setattr__(
-            self,
-            key,
-            value
-    ):
+    def __setattr__(self, key, value):
         if key in self.params:
             self.get(key).value = value
-        elif key in [f'_Configuration{special_param}' for special_param in Configuration.special_params] \
-            or key in Configuration.special_params:
+        elif (
+            key
+            in [
+                f"_Configuration{special_param}"
+                for special_param in Configuration.special_params
+            ]
+            or key in Configuration.special_params
+        ):
             super().__setattr__(key, value)
         else:
-            raise AttributeError(f'Could not set non-existing parameter: {key}.')
+            raise AttributeError(f"Could not set non-existing parameter: {key}.")
 
-    def __getattribute__(
-            self,
-            name
-    ):
+    def __getattribute__(self, name):
         attr = object.__getattribute__(self, name)
         if isinstance(attr, Param):
             return attr.value
         return attr
 
-    def __str__(
-            self
-    ) -> str:
+    def __str__(self) -> str:
         return str(self.to_dict())
 
-    def __eq__(
-            self,
-            other: C
-    ):
+    def __eq__(self, other: C):
         if self.params.keys() != other.params.keys():
             return False
 
@@ -199,67 +173,65 @@ class Configuration:
         return True
 
     @property
-    def expanded(
-            self
-    ) -> bool:
+    def expanded(self) -> bool:
         return self.__expanded
 
     @expanded.setter
-    def expanded(
-            self,
-            value: bool
-    ):
+    def expanded(self, value: bool):
         self.__expanded = value
 
     @property
-    def conditions(
-            self
-    ) -> Dict[str, P]:
-        return {key: param for key, param in self.__dict__.items() if
-                isinstance(param, Param) and 'condition' in param.tags}
+    def conditions(self) -> Dict[str, P]:
+        return {
+            key: param
+            for key, param in self.__dict__.items()
+            if isinstance(param, Param) and "condition" in param.tags
+        }
 
     @property
-    def params(
-            self
-    ) -> Dict[str, P]:
-        return {key: param for key, param in self.__dict__.items()
-                if isinstance(param, Param) and param.tags.intersection({'condition'}) == set()
-                and key not in Configuration.special_params}
+    def params(self) -> Dict[str, P]:
+        return {
+            key: param
+            for key, param in self.__dict__.items()
+            if isinstance(param, Param)
+            and param.tags.intersection({"condition"}) == set()
+            and key not in Configuration.special_params
+        }
 
     @property
-    def values(
-            self
-    ) -> Dict[str, Any]:
-        return {key: param.value for key, param in self.__dict__.items()
-                if isinstance(param, Param) and param.tags.intersection({'condition'}) == set() and
-                key not in Configuration.special_params}
+    def values(self) -> Dict[str, Any]:
+        return {
+            key: param.value
+            for key, param in self.__dict__.items()
+            if isinstance(param, Param)
+            and param.tags.intersection({"condition"}) == set()
+            and key not in Configuration.special_params
+        }
 
     @property
-    def dependencies(
-            self
-    ) -> Dict[str, P]:
-        return {param_key: param for param_key, param in self.params.items() if param.is_dependency}
+    def dependencies(self) -> Dict[str, P]:
+        return {
+            param_key: param
+            for param_key, param in self.params.items()
+            if param.is_dependency
+        }
 
-    def get(
-            self,
-            name: str,
-            default: Any = None
-    ) -> Optional[P]:
+    def get(self, name: str, default: Any = None) -> Optional[P]:
         try:
             return self.__dict__[name]
-        except AttributeError:
+        except KeyError:
             return default
 
     def add(
-            self,
-            name: str,
-            value: Optional[Any] = None,
-            type_hint: Optional[Type] = None,
-            description: Optional[str] = None,
-            tags: Optional[Set[str]] = None,
-            allowed_range: Optional[Callable[[Any], bool]] = None,
-            is_required: bool = True,
-            variants: Optional[List] = None,
+        self,
+        name: str,
+        value: Optional[Any] = None,
+        type_hint: Optional[Type] = None,
+        description: Optional[str] = None,
+        tags: Optional[Set[str]] = None,
+        allowed_range: Optional[Callable[[Any], bool]] = None,
+        is_required: bool = True,
+        variants: Optional[List] = None,
     ):
         """
         Adds a Parameter to the Configuration.
@@ -269,14 +241,15 @@ class Configuration:
             name: unique identifier of the Parameter
             value: value of the Parameter
             type_hint: the type hint annotation of ``value``
-            description: a string description of the ``Parameter`` for readability purposes
+            description: a description of the ``Parameter`` for readability purposes
             tags: a set of string tags to mark the ``Parameter`` instance with metadata.
             allowed_range: allowed range of values for ``value``
             is_required: if True, ``value`` cannot be None
             variants: set of variant values of ``value`` of interest
 
         Raises:
-            ``AlreadyExistingParameterException``: if the provided `name` already exists in the Configuration instance.
+            ``AlreadyExistingParameterException``: if the provided `name`
+              already exists in the Configuration instance.
         """
         if name in self.__dict__:
             raise AlreadyExistingParameterException(param=self.get(name))
@@ -284,73 +257,80 @@ class Configuration:
         if name in Configuration.special_params:
             raise NotAllowedParameterException(param=self.get(name))
 
-        self.__dict__[name] = Param(name=name,
-                                    value=value,
-                                    type_hint=type_hint,
-                                    description=description,
-                                    tags=tags,
-                                    allowed_range=allowed_range,
-                                    is_required=is_required,
-                                    variants=variants)
+        self.__dict__[name] = Param(
+            name=name,
+            value=value,
+            type_hint=type_hint,
+            description=description,
+            tags=tags,
+            allowed_range=allowed_range,
+            is_required=is_required,
+            variants=variants,
+        )
 
         if is_required:
-            self.add_condition(name=f'{name}_is_required',
-                               condition=partial(is_required_cond, name=name))
+            self.add_condition(
+                name=f"{name}_is_required",
+                condition=partial(is_required_cond, name=name),
+            )
 
         if allowed_range is not None:
-            self.add_condition(name=f'{name}_allowed_range',
-                               condition=partial(allowed_range_cond, name=name),
-                               description=f'Checks if {name} is in allowed range.')
+            self.add_condition(
+                name=f"{name}_allowed_range",
+                condition=partial(allowed_range_cond, name=name),
+                description=f"Checks if {name} is in allowed range.",
+            )
 
     def add_condition(
-            self,
-            condition: Condition,
-            name: str,
-            description: Optional[str] = None,
-            tags: Tags = None
+        self,
+        condition: Condition,
+        name: str,
+        description: Optional[str] = None,
+        tags: Tags = None,
     ):
         """
         Adds a condition to be validated.
 
         Args:
-            condition: a function that receives as input the current ``Configuration`` instance and returns a boolean.
+            condition: a function that receives as input the current
+             ``Configuration`` instance and returns a boolean.
             name: unique identifier.
             description: a string description for readability purposes.
             tags: a set of string tags to mark the condition with metadata.
-            is_pre_condition: True if the condition concerns configuration parameters before build (i.e., flat parameters)
 
         Raises:
-            ``AlreadyExistingParameterException``: if the provided `name` already exists in the Configuration instance.
+            ``AlreadyExistingParameterException``: if the provided `name`
+             already exists in the Configuration instance.
         """
 
         tags = set() if tags is None else tags
-        tags.add('condition')
+        tags.add("condition")
 
-        condition_name = f'cond_{name}' if not name.startswith('cond_') else name
+        condition_name = f"cond_{name}" if not name.startswith("cond_") else name
 
-        self.add(name=condition_name,
-                 value=condition,
-                 description=description,
-                 tags=tags,
-                 is_required=False)
+        self.add(
+            name=condition_name,
+            value=condition,
+            description=description,
+            tags=tags,
+            is_required=False,
+        )
 
-
-    def validate(
-            self,
-            strict: bool = True
-    ) -> ValidationResult:
+    def validate(self, strict: bool = True) -> ValidationResult:
         """
-       Validates all provided conditions related to the ``Configuration`` instance.
+        Validates all provided conditions related to the ``Configuration`` instance.
 
-        Args:
-            strict: if True, a failed validation process will raise ``InvalidConfigurationException``
+         Args:
+             strict: if True, a failed validation process will raise
+              ``InvalidConfigurationException``
 
-        Returns:
-            A ``ValidationResult`` object that stores the boolean result of the validation process along with
-            an error message if the result is ``False``.
+         Returns:
+             A ``ValidationResult`` that stores the boolean result of the validation
+              process along with an error message if the result is ``False``.
 
-        Raises:
-            ``ValidationFailureException``: if ``strict = True`` and the validation process failed
+         Raises:
+             ``ValidationFailureException``: if ``strict = True`` and the validation
+              process failed
         """
 
         for dependency_name, dependency in self.dependencies.items():
@@ -361,20 +341,21 @@ class Configuration:
 
         for condition_name, condition in self.conditions.items():
             if not condition.value(self):
-                validation_result = ValidationResult(passed=False,
-                                                     error_message=f'Condition {condition_name} failed!',
-                                                     source=self.__class__.__name__)
+                validation_result = ValidationResult(
+                    passed=False,
+                    error_message=f"Condition {condition_name} failed!",
+                    source=self.__class__.__name__,
+                )
                 if strict:
-                    raise ValidationFailureException(validation_result=validation_result)
+                    raise ValidationFailureException(
+                        validation_result=validation_result
+                    )
 
                 return validation_result
 
         return ValidationResult(passed=True, source=self.__class__.__name__)
 
-    def delta_copy(
-            self: type[C],
-            **kwargs
-    ) -> C:
+    def delta_copy(self: type[C], **kwargs) -> C:
         """
         Gets a delta copy of current ``Configuration``, including conditions.
 
@@ -391,29 +372,31 @@ class Configuration:
             else:
                 value = deepcopy(param.value)
 
-            copy.add(name=param_name,
-                     value=value,
-                     type_hint=param.type_hint,
-                     description=param.description,
-                     is_required=param.is_required,
-                     tags=param.tags,
-                     variants=param.variants,
-                     allowed_range=param.allowed_range)
+            copy.add(
+                name=param_name,
+                value=value,
+                type_hint=param.type_hint,
+                description=param.description,
+                is_required=param.is_required,
+                tags=param.tags,
+                variants=param.variants,
+                allowed_range=param.allowed_range,
+            )
 
         # Custom conditions
         for name, condition in self.conditions.items():
             if name not in copy.conditions:
-                copy.add_condition(name=name,
-                                   condition=deepcopy(condition.value),
-                                   description=condition.description,
-                                   tags=condition.tags)
+                copy.add_condition(
+                    name=name,
+                    condition=deepcopy(condition.value),
+                    description=condition.description,
+                    tags=condition.tags,
+                )
 
         return copy
 
     @classmethod
-    def default(
-            cls: Type[C]
-    ) -> C:
+    def default(cls: Type[C]) -> C:
         """
         Returns the default ``Configuration`` instance.
 
@@ -422,15 +405,15 @@ class Configuration:
         """
         return cls()
 
-    def to_dict(
-            self
-    ) -> Dict[str, Any]:
+    def to_dict(self) -> Dict[str, Any]:
         """
         Returns all ``Configuration`` parameters in key:value format.
-        The method supports nesting so that dependencies parameters are retrieved iteratively.
+        The method supports nesting so that dependencies parameters are
+         retrieved iteratively.
 
         Returns:
-            JSON normalized dict where keys are parameters names and values are their corresponding values.
+            JSON normalized dict where keys are parameters names and values are their
+             corresponding values.
         """
 
         value_dict = {}
@@ -446,18 +429,14 @@ class Configuration:
         return value_dict
 
     @property
-    def has_variants(
-            self
-    ) -> bool:
+    def has_variants(self) -> bool:
         for param_key, param in self.params.items():
             if len(param.variants):
                 return True
         return False
 
     @property
-    def has_at_least_two_variants(
-            self
-    ) -> bool:
+    def has_at_least_two_variants(self) -> bool:
         params_with_variants = 0
         for param_key, param in self.params.items():
             if len(param.variants):
@@ -468,16 +447,18 @@ class Configuration:
 
     @property
     def variants(
-            self,
+        self,
     ) -> Tuple[List[Dict[str, Any]], List[Dict[str, int]]]:
         """
-        Gets all possible ``Configuration`` variant combinations of current ``Configuration``
-        instance based on specified variants.
+        Gets all possible ``Configuration`` variant combinations
+         of current ``Configuration`` instance based on specified variants.
 
         Returns:
-            value_combinations: A List of all possible key:value dict combinations of parameters that have variants.
-            index_combinations: A List of all possible key:index dict combinations of parameters that have variants.
-            Indexes refer to variant index in variants list.
+            value_combinations: A List of all possible key:value dict combinations
+             of parameters that have variants.
+            index_combinations: A List of all possible key:index dict combinations
+             of parameters that have variants. Indexes refer to variant index
+              in variants list.
         """
 
         if not self.has_variants:
@@ -487,7 +468,7 @@ class Configuration:
         params_with_variants = []
         for param_key, param in self.params.items():
             # Always add param.value to account for all possible combinations
-            # TODO: consider defining a special value (e.g., UNSET) to allow None as a normal value
+            # TODO: consider defining a special value (e.g., UNSET) to allow None
             if self.has_at_least_two_variants:
                 parameters.setdefault(param_key, [param.value])
 
@@ -495,46 +476,54 @@ class Configuration:
                 parameters.setdefault(param_key, []).extend(param.variants)
                 params_with_variants.append(param_key)
 
-        value_combinations, index_combinations = get_dict_values_combinations(params_dict=parameters)
-        value_combinations = [{key: value for key, value in comb.items() if key in params_with_variants}
-                              for comb in value_combinations]
-        index_combinations = [{key: value for key, value in comb.items() if key in params_with_variants}
-                              for comb in index_combinations]
+        value_combinations, index_combinations = get_dict_values_combinations(
+            params_dict=parameters
+        )
+        value_combinations = [
+            {key: value for key, value in comb.items() if key in params_with_variants}
+            for comb in value_combinations
+        ]
+        index_combinations = [
+            {key: value for key, value in comb.items() if key in params_with_variants}
+            for comb in index_combinations
+        ]
         return value_combinations, index_combinations
 
     def show(
-            self,
+        self,
     ):
         """
         Displays ``Configuration`` parameters.
         """
-        logger.info(f'Displaying {self.__class__.__name__} parameters...')
-        to_show = json_normalize(self.to_dict()).to_dict(orient='records')
+        logger.info(f"Displaying {self.__class__.__name__} parameters...")
+        to_show = pd.json_normalize(self.to_dict()).to_dict(orient="records")
         if len(to_show):
             to_show = to_show[0]
 
         parameters_repr = os.linesep.join(
-            [f'{key}: {value}' for key, value in to_show.items()])
+            [f"{key}: {value}" for key, value in to_show.items()]
+        )
         logger.info(parameters_repr)
 
     def _search(
-            self,
-            conditions: List[Callable[[Any], bool]],
-            buffer: Dict[str, Any]
+        self, conditions: List[Callable[[Any], bool]], buffer: Dict[str, Any]
     ) -> List[Any]:
-        return [value for key, value in buffer.items() if all([condition(value) for condition in conditions])]
+        return [
+            value
+            for key, value in buffer.items()
+            if all([condition(value) for condition in conditions])
+        ]
 
     def search_param_by_tag(
-            self,
-            tags: Union[Tags, str],
-            exact_match: bool = True
+        self, tags: Union[Tags, str], exact_match: bool = True
     ) -> List[Param]:
         """
         Searches for all ``Param`` that match specified tags set.
 
         Args:
             tags: a set of string tags to look for
-            exact_match: if True, only the ``Param`` with ``Param.tags`` that exactly match ``tags`` will be returned
+            exact_match: if True, only the ``Param`` with ``Param.tags``
+             that exactly match ``tags`` will be returned
 
         Returns:
             A dictionary with ``Param.name`` as keys and ``Param`` as values
@@ -543,16 +532,17 @@ class Configuration:
         if tags is not None and isinstance(tags, str):
             tags = {tags}
 
-        return self._search(buffer=self.params,
-                            conditions=[
-                                lambda p: (p.tags == tags and exact_match) or (
-                                        not exact_match and p.tags.intersection(tags) == tags)
-                            ])
+        return self._search(
+            buffer=self.params,
+            conditions=[
+                lambda p: (
+                    (p.tags == tags and exact_match)
+                    or (not exact_match and p.tags.intersection(tags) == tags)
+                )
+            ],
+        )
 
-    def search_param(
-            self,
-            conditions: List[Callable[[P], bool]]
-    ) -> List[Param]:
+    def search_param(self, conditions: List[Callable[[P], bool]]) -> List[Param]:
         """
         Performs a custom ``Param`` search by given conditions.
 
@@ -565,16 +555,15 @@ class Configuration:
         return self._search(conditions=conditions, buffer=self.params)
 
     def search_condition_by_tag(
-            self,
-            tags: Union[Tags, str],
-            exact_match: bool = True
+        self, tags: Union[Tags, str], exact_match: bool = True
     ) -> List[Param]:
         """
         Searches for all ``Param`` that match specified tags set.
 
         Args:
             tags: a set of string tags to look for
-            exact_match: if True, only the ``Param`` with ``Param.tags`` that exactly match ``tags`` will be returned
+            exact_match: if True, only the ``Param`` with ``Param.tags``
+             that exactly match ``tags`` will be returned
 
         Returns:
             A dictionary with ``Param.name`` as keys and ``Param`` as values
@@ -583,15 +572,18 @@ class Configuration:
         if tags is not None and isinstance(tags, str):
             tags = {tags}
 
-        return self._search(buffer=self.conditions,
-                            conditions=[
-                                lambda p: (p.tags == tags and exact_match) or (
-                                        not exact_match and p.tags.intersection(tags) == tags)
-                            ])
+        return self._search(
+            buffer=self.conditions,
+            conditions=[
+                lambda p: (
+                    (p.tags == tags and exact_match)
+                    or (not exact_match and p.tags.intersection(tags) == tags)
+                )
+            ],
+        )
 
     def search_condition(
-            self,
-            conditions: List[Callable[[Condition], bool]]
+        self, conditions: List[Callable[[Condition], bool]]
     ) -> List[Param]:
         """
         Performs a custom condition search by given conditions.
@@ -600,6 +592,7 @@ class Configuration:
             conditions: list of callable filter functions
 
         Returns:
-            A dictionary with ``Param.name`` as keys and ``Param`` as values corresponding to conditions.
+            A dictionary with ``Param.name`` as keys and ``Param``
+             as values corresponding to conditions.
         """
         return self._search(conditions=conditions, buffer=self.conditions)

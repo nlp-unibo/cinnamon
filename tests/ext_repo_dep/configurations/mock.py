@@ -1,10 +1,12 @@
-from cinnamon.registry import Registry, register
 from cinnamon.configuration import Configuration
+from cinnamon.registry import Registry, register
 
 
 @register
 def register_configurations():
-    Registry.register_configuration(config=Configuration.default(),
-                                    name='test',
-                                    namespace='dep',
-                                    component='cinnamon.Component')
+    Registry.register_configuration(
+        config=Configuration.default(),
+        name="test",
+        namespace="dep",
+        component="cinnamon.Component",
+    )
