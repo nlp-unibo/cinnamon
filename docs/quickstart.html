@@ -7,8 +7,8 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Quickstart &mdash; Cinnamon</title>
-      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
-      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
@@ -83,12 +83,12 @@
   <section id="quickstart">
 <span id="id1"></span><h1>Quickstart<a class="headerlink" href="#quickstart" title="Link to this heading"></a></h1>
 <p>Let’s consider a data loader class that loads and returns some data.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">DataLoader</span><span class="p">:</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">DataLoader</span><span class="p">:</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="n">df_path</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="n">df_path</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">df_path</span> <span class="o">=</span> <span class="n">df_path</span>
 
-    <span class="k">def</span> <span class="nf">load</span><span class="p">():</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">load</span><span class="p">():</span>
         <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">df_path</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">df</span>
 
@@ -101,17 +101,17 @@
 <p>We notice that we are <strong>mixing</strong> code logic (i.e., the <code class="docutils literal notranslate"><span class="pre">DataLoader</span></code> class) with its configuration (i.e., <code class="docutils literal notranslate"><span class="pre">df_path</span></code>).</p>
 <p>We can <strong>separate</strong> code logic from configuration.</p>
 <p>Instead of relying on additional data formats (e.g., JSON), we define a <code class="docutils literal notranslate"><span class="pre">DataLoaderConfig</span></code> in python.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">DataLoaderConfig</span><span class="p">:</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">DataLoaderConfig</span><span class="p">:</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="n">df_path</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="n">df_path</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">df_path</span> <span class="o">=</span> <span class="n">df_path</span>
 
-<span class="k">class</span> <span class="nc">DataLoader</span><span class="p">:</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">DataLoader</span><span class="p">:</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="n">config</span><span class="p">:</span> <span class="n">DataLoaderConfig</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="n">config</span><span class="p">:</span> <span class="n">DataLoaderConfig</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">config</span> <span class="o">=</span> <span class="n">config</span>
 
-    <span class="k">def</span> <span class="nf">load</span><span class="p">():</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">load</span><span class="p">():</span>
         <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">df_path</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">df</span>
 
@@ -129,13 +129,13 @@
 <section id="cinnamon">
 <h2>Cinnamon<a class="headerlink" href="#cinnamon" title="Link to this heading"></a></h2>
 <p>In <code class="docutils literal notranslate"><span class="pre">cinnamon</span></code> we follow the above paradigm.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">cinnamon.configuration</span> <span class="kn">import</span> <span class="n">Configuration</span>
-<span class="kn">from</span> <span class="nn">cinnamon.component</span> <span class="kn">import</span> <span class="n">Component</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">cinnamon.configuration</span><span class="w"> </span><span class="kn">import</span> <span class="n">Configuration</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">cinnamon.component</span><span class="w"> </span><span class="kn">import</span> <span class="n">Component</span>
 
-<span class="k">class</span> <span class="nc">DataLoaderConfig</span><span class="p">(</span><span class="n">Configuration</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">DataLoaderConfig</span><span class="p">(</span><span class="n">Configuration</span><span class="p">):</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">default</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">default</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
         <span class="n">config</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">default</span><span class="p">()</span>
 
         <span class="n">config</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;df_path&#39;</span><span class="p">,</span>
@@ -146,12 +146,12 @@
         <span class="k">return</span> <span class="n">config</span>
 
 
-<span class="k">class</span> <span class="nc">DataLoader</span><span class="p">(</span><span class="n">Component</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">DataLoader</span><span class="p">(</span><span class="n">Component</span><span class="p">):</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df_path</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df_path</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">df_path</span> <span class="o">=</span> <span class="n">df_path</span>
 
-    <span class="k">def</span> <span class="nf">load</span><span class="p">():</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">load</span><span class="p">():</span>
         <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">df_path</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">df</span>
 
@@ -174,22 +174,22 @@ defines the standard template of the configuration.</p>
 <p>In <code class="docutils literal notranslate"><span class="pre">cinnamon</span></code>, we usually <strong>don’t explicitly</strong> instantiate a <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> and its corresponding <code class="docutils literal notranslate"><span class="pre">Component</span></code> as done in the previous section.</p>
 <p>Instead, <code class="docutils literal notranslate"><span class="pre">cinnamon</span></code> supports a <strong>registration, bind, and build</strong> paradigm.</p>
 <p>Once, we have defined the <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> and its corresponding <code class="docutils literal notranslate"><span class="pre">Component</span></code>, we <strong>register</strong> the <code class="docutils literal notranslate"><span class="pre">Configuration</span></code>.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">Registry</span><span class="o">.</span><span class="n">register_configuration</span><span class="p">(</span><span class="n">config_class</span><span class="o">=</span><span class="n">DataLoaderConfig</span><span class="p">,</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">Registry</span><span class="o">.</span><span class="n">register_configuration</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="n">DataLoaderConfig</span><span class="o">.</span><span class="n">default</span><span class="p">(),</span>
                            <span class="n">name</span><span class="o">=</span><span class="s1">&#39;data_loader&#39;</span><span class="p">,</span>
                            <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;test&#39;</span><span class="p">},</span>
                            <span class="n">namespace</span><span class="o">=</span><span class="s1">&#39;showcasing&#39;</span><span class="p">,</span>
-                           <span class="n">component_class</span><span class="o">=</span><span class="n">DataLoader</span><span class="p">)</span>
+                           <span class="n">component</span><span class="o">=</span><span class="s1">&#39;DataLoader&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>or</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">DataLoaderConfig</span><span class="p">(</span><span class="n">Configuration</span><span class="p">):</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">DataLoaderConfig</span><span class="p">(</span><span class="n">Configuration</span><span class="p">):</span>
 
     <span class="nd">@classmethod</span>
     <span class="nd">@register_method</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;data_loader&#39;</span><span class="p">,</span>
                      <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;test&#39;</span><span class="p">},</span>
                      <span class="n">namespace</span><span class="o">=</span><span class="s1">&#39;showcasing&#39;</span><span class="p">,</span>
-                     <span class="n">component_class</span><span class="o">=</span><span class="n">DataLoader</span><span class="p">)</span>
-    <span class="k">def</span> <span class="nf">default</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+                     <span class="n">component</span><span class="o">=</span><span class="s1">&#39;DataLoader&#39;</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">default</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
         <span class="n">config</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">default</span><span class="p">()</span>
 
         <span class="n">config</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;df_path&#39;</span><span class="p">,</span>
@@ -202,10 +202,10 @@ defines the standard template of the configuration.</p>
 </div>
 <p>We do so by using a <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code> defined as a (<code class="docutils literal notranslate"><span class="pre">name</span></code>, <code class="docutils literal notranslate"><span class="pre">tags</span></code>, <code class="docutils literal notranslate"><span class="pre">namespace</span></code>) tuple.</p>
 <p>Additionally, we <strong>bind</strong> the <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> to a <code class="docutils literal notranslate"><span class="pre">Component</span></code> so that <code class="docutils literal notranslate"><span class="pre">cinnamon</span></code> knows that we want to create <code class="docutils literal notranslate"><span class="pre">DataLoader</span></code> instances via <code class="docutils literal notranslate"><span class="pre">DataLoaderConfig</span></code>.</p>
-<p>At this point, we only need to build our first instance via the <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code>.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">loader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="o">.</span><span class="n">build_component</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;data_loader&#39;</span><span class="p">,</span>
-                                    <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;test&#39;</span><span class="p">},</span>
-                                    <span class="n">namespace</span><span class="o">=</span><span class="s1">&#39;showcasing&#39;</span><span class="p">)</span>
+<p>At this point, we only need to create our first instance via the <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">loader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="o">.</span><span class="n">instantiate</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;data_loader&#39;</span><span class="p">,</span>
+                                <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;test&#39;</span><span class="p">},</span>
+                                <span class="n">namespace</span><span class="o">=</span><span class="s1">&#39;showcasing&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>to return a <code class="docutils literal notranslate"><span class="pre">DataLoader</span></code>.</p>

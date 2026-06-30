@@ -15,7 +15,7 @@ Submodules
 cinnamon.command\_line module
 -----------------------------
 
-.. automodule:: cinnamon.command_line
+.. automodule:: cinnamon.cli
    :members:
    :undoc-members:
    :show-inheritance:

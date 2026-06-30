@@ -7,8 +7,8 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>cinnamon.utility package &mdash; Cinnamon</title>
-      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
-      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
@@ -93,17 +93,28 @@
 <section id="module-cinnamon.utility.configuration">
 <span id="cinnamon-utility-configuration-module"></span><h2>cinnamon.utility.configuration module<a class="headerlink" href="#module-cinnamon.utility.configuration" title="Link to this heading"></a></h2>
 <dl class="py function">
+<dt class="sig sig-object py" id="cinnamon.utility.configuration.batched">
+<span class="sig-prename descclassname"><span class="pre">cinnamon.utility.configuration.</span></span><span class="sig-name descname"><span class="pre">batched</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">iterable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chunk_size</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cinnamon.utility.configuration.batched" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="cinnamon.utility.configuration.get_dict_values_combinations">
 <span class="sig-prename descclassname"><span class="pre">cinnamon.utility.configuration.</span></span><span class="sig-name descname"><span class="pre">get_dict_values_combinations</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params_dict</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cinnamon.utility.configuration.get_dict_values_combinations" title="Link to this definition"></a></dt>
 <dd><p>Builds parameters combinations</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>params_dict</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Dict</span></code></span>) – dictionary that has parameter names as keys and the list of possible values as values</p>
+<dd class="field-odd"><p><strong>params_dict</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Dict</span></code></span>) – dictionary that has parameter names as keys and the
+list of possible values as values</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>A List of all possible key:value dict combinations of parameters that have variants.
-index_combinations: A List of all possible key:index dict combinations of parameters that have variants.
-Indexes refer to variant index in variants list.</p>
+<dd class="field-even"><p><dl class="simple">
+<dt>A List of all possible key:value dict combinations</dt><dd><p>of parameters that have variants.</p>
+</dd>
+<dt>index_combinations: A List of all possible key:index dict combinations</dt><dd><p>of parameters that have variants.</p>
+</dd>
+</dl>
+<p>Indexes refer to variant index in variants list.</p>
+</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>value_combinations</p>
@@ -162,6 +173,12 @@ Indexes refer to variant index in variants list.</p>
 </dd></dl>
 
 <dl class="py exception">
+<dt class="sig sig-object py" id="cinnamon.utility.exceptions.NotAllowedParameterException">
+<em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cinnamon.utility.exceptions.</span></span><span class="sig-name descname"><span class="pre">NotAllowedParameterException</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">param</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cinnamon.utility.exceptions.NotAllowedParameterException" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Exception</span></code></p>
+</dd></dl>
+
+<dl class="py exception">
 <dt class="sig sig-object py" id="cinnamon.utility.exceptions.NotBoundException">
 <em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cinnamon.utility.exceptions.</span></span><span class="sig-name descname"><span class="pre">NotBoundException</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">registration_key</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cinnamon.utility.exceptions.NotBoundException" title="Link to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Exception</span></code></p>
@@ -177,6 +194,47 @@ Indexes refer to variant index in variants list.</p>
 <dt class="sig sig-object py" id="cinnamon.utility.exceptions.NotRegisteredException">
 <em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cinnamon.utility.exceptions.</span></span><span class="sig-name descname"><span class="pre">NotRegisteredException</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">registration_key</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cinnamon.utility.exceptions.NotRegisteredException" title="Link to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Exception</span></code></p>
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="cinnamon.utility.exceptions.ValidationFailureException">
+<em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cinnamon.utility.exceptions.</span></span><span class="sig-name descname"><span class="pre">ValidationFailureException</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">validation_result</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cinnamon.utility.exceptions.ValidationFailureException" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Exception</span></code></p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="cinnamon.utility.exceptions.ValidationResult">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cinnamon.utility.exceptions.</span></span><span class="sig-name descname"><span class="pre">ValidationResult</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">passed</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">error_message</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cinnamon.utility.exceptions.ValidationResult" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Stores conditions evaluation result (see <code class="docutils literal notranslate"><span class="pre">Configuration.validate()</span></code>).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>passed</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – True if all conditions are True</p></li>
+<li><p><strong>error_message</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]</span>) – describes which condition failed during the evaluation process.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="cinnamon.utility.exceptions.ValidationResult.error_message">
+<span class="sig-name descname"><span class="pre">error_message</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code><span class="pre">[</span><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code><span class="pre">]</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#cinnamon.utility.exceptions.ValidationResult.error_message" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="cinnamon.utility.exceptions.ValidationResult.passed">
+<span class="sig-name descname"><span class="pre">passed</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></em><a class="headerlink" href="#cinnamon.utility.exceptions.ValidationResult.passed" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="cinnamon.utility.exceptions.ValidationResult.source">
+<span class="sig-name descname"><span class="pre">source</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></em><a class="headerlink" href="#cinnamon.utility.exceptions.ValidationResult.source" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="cinnamon.utility.exceptions.ValidationResult.stack_trace">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">stack_trace</span></span><a class="headerlink" href="#cinnamon.utility.exceptions.ValidationResult.stack_trace" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
 </dd></dl>
 
 </section>
@@ -238,6 +296,11 @@ Indexes refer to variant index in variants list.</p>
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="cinnamon.utility.registration.import_class_from_string">
+<span class="sig-prename descclassname"><span class="pre">cinnamon.utility.registration.</span></span><span class="sig-name descname"><span class="pre">import_class_from_string</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cinnamon.utility.registration.import_class_from_string" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="cinnamon.utility.registration.match_name">
 <span class="sig-prename descclassname"><span class="pre">cinnamon.utility.registration.</span></span><span class="sig-name descname"><span class="pre">match_name</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">names</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cinnamon.utility.registration.match_name" title="Link to this definition"></a></dt>
 <dd></dd></dl>
@@ -255,47 +318,6 @@ Indexes refer to variant index in variants list.</p>
 </section>
 <section id="module-cinnamon.utility.sanity">
 <span id="cinnamon-utility-sanity-module"></span><h2>cinnamon.utility.sanity module<a class="headerlink" href="#module-cinnamon.utility.sanity" title="Link to this heading"></a></h2>
-<dl class="py exception">
-<dt class="sig sig-object py" id="cinnamon.utility.sanity.ValidationFailureException">
-<em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cinnamon.utility.sanity.</span></span><span class="sig-name descname"><span class="pre">ValidationFailureException</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">validation_result</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cinnamon.utility.sanity.ValidationFailureException" title="Link to this definition"></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Exception</span></code></p>
-</dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="cinnamon.utility.sanity.ValidationResult">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cinnamon.utility.sanity.</span></span><span class="sig-name descname"><span class="pre">ValidationResult</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">passed</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">error_message</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cinnamon.utility.sanity.ValidationResult" title="Link to this definition"></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-<p>Stores conditions evaluation result (see <code class="docutils literal notranslate"><span class="pre">Configuration.validate()</span></code>).</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>passed</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – True if all conditions are True</p></li>
-<li><p><strong>error_message</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]</span>) – a string message reporting which condition failed during the evaluation process.</p></li>
-</ul>
-</dd>
-</dl>
-<dl class="py attribute">
-<dt class="sig sig-object py" id="cinnamon.utility.sanity.ValidationResult.error_message">
-<span class="sig-name descname"><span class="pre">error_message</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code><span class="pre">[</span><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code><span class="pre">]</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#cinnamon.utility.sanity.ValidationResult.error_message" title="Link to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="cinnamon.utility.sanity.ValidationResult.passed">
-<span class="sig-name descname"><span class="pre">passed</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></em><a class="headerlink" href="#cinnamon.utility.sanity.ValidationResult.passed" title="Link to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="cinnamon.utility.sanity.ValidationResult.source">
-<span class="sig-name descname"><span class="pre">source</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></em><a class="headerlink" href="#cinnamon.utility.sanity.ValidationResult.source" title="Link to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py property">
-<dt class="sig sig-object py" id="cinnamon.utility.sanity.ValidationResult.stack_trace">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">stack_trace</span></span><a class="headerlink" href="#cinnamon.utility.sanity.ValidationResult.stack_trace" title="Link to this definition"></a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
 <dl class="py function">
 <dt class="sig sig-object py" id="cinnamon.utility.sanity.allowed_range_cond">
 <span class="sig-prename descclassname"><span class="pre">cinnamon.utility.sanity.</span></span><span class="sig-name descname"><span class="pre">allowed_range_cond</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cinnamon.utility.sanity.allowed_range_cond" title="Link to this definition"></a></dt>
@@ -335,6 +357,11 @@ Indexes refer to variant index in variants list.</p>
 </dd>
 </dl>
 </dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cinnamon.utility.sanity.time_it">
+<span class="sig-prename descclassname"><span class="pre">cinnamon.utility.sanity.</span></span><span class="sig-name descname"><span class="pre">time_it</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cinnamon.utility.sanity.time_it" title="Link to this definition"></a></dt>
+<dd></dd></dl>
 
 </section>
 <section id="module-cinnamon.utility">

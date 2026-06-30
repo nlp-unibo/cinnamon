@@ -46,7 +46,7 @@ We can directly register a ``Configuration`` template class method via ``registe
     class CustomConfig(cinnamon.configuration.Configuration):
 
         @classmethod
-        @register_method(name='test', tags={'default'}, namespace='testing', component_class=CustomComponent)
+        @register_method(name='test', tags={'default'}, namespace='testing', component='components.CustomComponent')
         def default(cls):
             config = super(cls).default()
 
@@ -82,46 +82,8 @@ We can still carry out registration via ``register`` decorator and by relying on
         Registry.register_configuration(name='test',
                                         tags={'default'},
                                         namespace='testing',
-                                        config_class=CustomConfiguration,
-                                        component_class=CustomComponent)
-
-Unless specified, the ``default`` configuration template is considered.
-
-Alternatively, we can specify a specific constructor template.
-
-.. code-block:: python
-
-    @register
-    def custom_registration():
-        Registry.register_configuration(name='test',
-                                        tags={'default'},
-                                        namespace='testing',
-                                        config_class=CustomConfiguration,
-                                        config_constructor=CustomConfiguration.custom_constructor,
-                                        component_class=CustomComponent)
-
-where ``CustomConfiguration.custom_constructor`` could be defined as follows
-
-.. code-block:: python
-
-        class CustomConfig(cinnamon.configuration.Configuration):
-
-        @classmethod
-        def default(cls):
-            config = super(cls).default()
-
-            config.add(name='x', value=5)
-
-            return config
-
-        @classmethod
-        def custom_constructor(cls):
-            config = super(cls).default()
-
-            config.x = 42
-            config.add(name='y', value=True)
-
-            return config
+                                        config=CustomConfiguration.default(),
+                                        component='components.CustomComponent')
 
 
 =============================================
@@ -144,21 +106,21 @@ Given a ``RegistrationKey``, the same used to register a ``Configuration``, we c
 
 .. code-block:: python
 
-    config = Registry.build_configuration(name='test', tags={'default'}, namespace='testing')
+    config = Registry.retrieve_configuration(name='test', tags={'default'}, namespace='testing')
     config.x    # >>> 5
 
 Moreover, we can use the same ``RegistrationKey`` to build the bound ``Component`` instance.
 
 .. code-block:: python
 
-    component = Registry.build_component(name='test', tags={'default'}, namespace='testing')
+    component = Registry.instantiate_component(name='test', tags={'default'}, namespace='testing')
     component.x     # >>> 5
 
 Alternatively, we can rely on ``Component`` interface to build a specific component instance.
 
 .. code-block:: python
 
-    component = CustomComponent.build_component(name='test', tags={'default'}, namespace='testing')
+    component = CustomComponent.instantiate(name='test', tags={'default'}, namespace='testing')
     component.x     # >>> 5
 
 

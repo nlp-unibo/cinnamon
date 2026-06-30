@@ -57,7 +57,7 @@ Contact
 
 Don't hesitate to contact:
 
-- `Federico Ruggeri <https://www.unibo.it/sitoweb/federico.ruggeri6>`_
+- `Federico Ruggeri <https://federicoruggeri.github.io>`_
 
 for questions/doubts/issues!
 

@@ -7,8 +7,8 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Cinnamon entry points &mdash; Cinnamon</title>
-      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
-      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
@@ -83,41 +83,49 @@
   <section id="cinnamon-entry-points">
 <span id="commands"></span><h1>Cinnamon entry points<a class="headerlink" href="#cinnamon-entry-points" title="Link to this heading"></a></h1>
 <p>The cinnamon package offers console scripts to work with <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> and <code class="docutils literal notranslate"><span class="pre">Component</span></code> without requiring any custom code.</p>
-<section id="cmn-setup">
-<h2>cmn-setup<a class="headerlink" href="#cmn-setup" title="Link to this heading"></a></h2>
-<p>The <code class="docutils literal notranslate"><span class="pre">cmn-setup</span></code> command is the console script version of <code class="docutils literal notranslate"><span class="pre">Registry.setup()</span></code>.</p>
-<p>In addition to loading registrations and resolving dependencies, the <code class="docutils literal notranslate"><span class="pre">cmn-setup</span></code> command stores in csv format all valid and invalid <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code>.</p>
+<section id="cmn-build">
+<h2>cmn-build<a class="headerlink" href="#cmn-build" title="Link to this heading"></a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">cmn-build</span></code> command is the console script version of <code class="docutils literal notranslate"><span class="pre">Registry.build()</span></code>.</p>
+<p>In addition to loading registrations and resolving dependencies, the <code class="docutils literal notranslate"><span class="pre">cmn-build</span></code> command stores in csv format all valid and invalid <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code>.</p>
 <p>In particular, a <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code> is valid (invalid) if the associated <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> instance is valid (invalid).</p>
-<p>To run <code class="docutils literal notranslate"><span class="pre">cmn-setup</span></code>, do as follows</p>
+<p>To run <code class="docutils literal notranslate"><span class="pre">cmn-build</span></code>, do as follows</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>cmn-setup<span class="w"> </span>--dir<span class="w"> </span>*main-directory*<span class="w"> </span>--ext<span class="w"> </span>*ext-directory-1*<span class="w"> </span>*ext-directory-2*<span class="w"> </span>...
 </pre></div>
 </div>
-<p>By default, <code class="docutils literal notranslate"><span class="pre">cmn-setup</span></code> takes <code class="docutils literal notranslate"><span class="pre">dir=pwd</span></code>.</p>
+<p>By default, <code class="docutils literal notranslate"><span class="pre">cmn-build</span></code> takes <code class="docutils literal notranslate"><span class="pre">dir=pwd</span></code>.</p>
 <p>Thus, usually, we only require to open a terminal in our main project directory and run</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>cmn-setup
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>cmn-build
 </pre></div>
 </div>
 </section>
 <section id="cmn-run">
 <h2>cmn-run<a class="headerlink" href="#cmn-run" title="Link to this heading"></a></h2>
 <p>The <code class="docutils literal notranslate"><span class="pre">cmn-run</span></code> command allows building and executing <code class="docutils literal notranslate"><span class="pre">Component</span></code> given a <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code>.</p>
-<p>In particular, there exist a specific extension of <code class="docutils literal notranslate"><span class="pre">Component</span></code>, denoted as <code class="docutils literal notranslate"><span class="pre">RunnableComponent</span></code> that adds the <code class="docutils literal notranslate"><span class="pre">run()</span></code> method.</p>
-<p>Thus, to transform a <code class="docutils literal notranslate"><span class="pre">Component</span></code> into a <code class="docutils literal notranslate"><span class="pre">RunnableComponent</span></code>, we only need to define some code logic under <code class="docutils literal notranslate"><span class="pre">run()</span></code>.</p>
+<p>To run a <code class="docutils literal notranslate"><span class="pre">Component</span></code> we only need to specify the method to execute during registration.</p>
 <p>For instance,</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">CustomRunnable</span><span class="p">(</span><span class="n">cinnamon</span><span class="o">.</span><span class="n">component</span><span class="o">.</span><span class="n">RunnableComponent</span><span class="p">):</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">CustomComponent</span><span class="p">(</span><span class="n">cinnamon</span><span class="o">.</span><span class="n">component</span><span class="o">.</span><span class="n">Component</span><span class="p">):</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="n">x</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">y</span> <span class="o">=</span> <span class="n">y</span>
 
-    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span>
-        <span class="n">config</span><span class="p">:</span> <span class="n">cinnamon</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">Configuration</span>
-    <span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_run</span><span class="p">():</span>
         <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Running this component with x=</span><span class="si">{</span><span class="n">x</span><span class="si">}</span><span class="s2"> and y=</span><span class="si">{</span><span class="n">y</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;The configuration of the component is </span><span class="si">{</span><span class="n">config</span><span class="si">}</span><span class="s1">)</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">CustomComponentConfiguration</span><span class="p">(</span><span class="n">cinnamon</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">Configuration</span><span class="p">):</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="nd">@register_method</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;custom&#39;</span><span class="p">,</span> <span class="n">namespace</span><span class="o">=</span><span class="s1">&#39;testing&#39;</span><span class="p">,</span> <span class="n">component</span><span class="o">=</span><span class="s1">&#39;components.CustomComponent&#39;</span><span class="p">,</span> <span class="n">run_method</span><span class="o">=</span><span class="s1">&#39;to_run&#39;</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">default</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">default</span><span class="p">()</span>
+        <span class="n">config</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+        <span class="n">config</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">config</span>
 </pre></div>
 </div>
-<p>Defines a simple <code class="docutils literal notranslate"><span class="pre">RunnableComponent</span></code> that prints some information when being executed.</p>
+<p>Defines a simple <code class="docutils literal notranslate"><span class="pre">CustomComponent</span></code> that prints some information when being executed.</p>
+<p>Runnable methods must not receive any arguments.</p>
 <p>Given a <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code>, the <code class="docutils literal notranslate"><span class="pre">cmn-run</span></code> does the following:</p>
 <ul class="simple">
 <li><p>Retrieves from <code class="docutils literal notranslate"><span class="pre">Registry</span></code> the <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> info via the given <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code></p></li>
@@ -136,7 +144,7 @@
 <p>Thus, <code class="docutils literal notranslate"><span class="pre">cmn-run</span></code> allows selecting one or more of those keys to execute all corresponding components in sequence.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>Intuitively, <code class="docutils literal notranslate"><span class="pre">cmn-run</span></code> supports running one or more <code class="docutils literal notranslate"><span class="pre">RunnableComponent</span></code> in sequence given a <code class="docutils literal notranslate"><span class="pre">name</span></code>, some <code class="docutils literal notranslate"><span class="pre">tags</span></code> and a <code class="docutils literal notranslate"><span class="pre">namespace</span></code>.</p>
+<p>Intuitively, <code class="docutils literal notranslate"><span class="pre">cmn-run</span></code> supports running one or more <code class="docutils literal notranslate"><span class="pre">Component</span></code> in sequence given a <code class="docutils literal notranslate"><span class="pre">name</span></code>, some <code class="docutils literal notranslate"><span class="pre">tags</span></code> and a <code class="docutils literal notranslate"><span class="pre">namespace</span></code>.</p>
 </div>
 <div class="toctree-wrapper compound">
 </div>

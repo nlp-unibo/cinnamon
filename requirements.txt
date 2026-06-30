@@ -1,4 +1,0 @@
-InquirerPy==0.3.4
-networkx>=3.4.2
-pandas>=2.2.3
-setuptools>=44.1.1

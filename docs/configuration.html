@@ -7,8 +7,8 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Configuration &mdash; Cinnamon</title>
-      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
-      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
@@ -229,10 +229,10 @@ We require now some APIs to <strong>validate</strong> such conditions to ensure 
 <h4>Default template<a class="headerlink" href="#default-template" title="Link to this heading"></a></h4>
 <p><code class="docutils literal notranslate"><span class="pre">Configuration</span></code> are usually not defined inline as shown in the previous examples, but through class methods.</p>
 <p>In particular, the <code class="docutils literal notranslate"><span class="pre">default</span></code> method defines the default template for <code class="docutils literal notranslate"><span class="pre">Configuration</span></code>.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">MyConfig</span><span class="p">(</span><span class="n">cinnamon</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">Configuration</span><span class="p">):</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">MyConfig</span><span class="p">(</span><span class="n">cinnamon</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">Configuration</span><span class="p">):</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">default</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">default</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
         <span class="n">config</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">default</span><span class="p">()</span>
 
         <span class="n">config</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
@@ -246,10 +246,10 @@ We require now some APIs to <strong>validate</strong> such conditions to ensure 
 </pre></div>
 </div>
 <p>As any class, we can define custom template methods</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">MyConfig</span><span class="p">(</span><span class="n">cinnamon</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">Configuration</span><span class="p">):</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">MyConfig</span><span class="p">(</span><span class="n">cinnamon</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">Configuration</span><span class="p">):</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">default</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">default</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
         <span class="n">config</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">default</span><span class="p">()</span>
 
         <span class="n">config</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
@@ -257,7 +257,7 @@ We require now some APIs to <strong>validate</strong> such conditions to ensure 
         <span class="k">return</span> <span class="n">config</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">custom_template</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">custom_template</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
         <span class="n">config</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">default</span><span class="p">()</span>
 
         <span class="n">config</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="mi">20</span>
@@ -267,20 +267,20 @@ We require now some APIs to <strong>validate</strong> such conditions to ensure 
 </pre></div>
 </div>
 <p>Intuitively, since we are dealing with python classes, we can exploit inheritance to quickly define configuration extensions</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">MyConfig</span><span class="p">(</span><span class="n">cinnamon</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">Configuration</span><span class="p">):</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">MyConfig</span><span class="p">(</span><span class="n">cinnamon</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">Configuration</span><span class="p">):</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">default</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">default</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
         <span class="n">config</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">default</span><span class="p">()</span>
 
         <span class="n">config</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">config</span>
 
-<span class="k">class</span> <span class="nc">MyConfigExtension</span><span class="p">(</span><span class="n">MyConfig</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">MyConfigExtension</span><span class="p">(</span><span class="n">MyConfig</span><span class="p">):</span>
 
    <span class="nd">@classmethod</span>
-   <span class="k">def</span> <span class="nf">default</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+   <span class="k">def</span><span class="w"> </span><span class="nf">default</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
        <span class="n">config</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">default</span><span class="p">()</span>
 
        <span class="n">config</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -293,16 +293,16 @@ We require now some APIs to <strong>validate</strong> such conditions to ensure 
 <h4>Variants<a class="headerlink" href="#variants" title="Link to this heading"></a></h4>
 <p>In a project, we may have that a <code class="docutils literal notranslate"><span class="pre">Component</span></code> is bound to several <code class="docutils literal notranslate"><span class="pre">Configuration</span></code>.</p>
 <p>In some of these cases, each of these <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> are just slight parameter variations of a single <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> template.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">CustomComponent</span><span class="p">(</span><span class="n">cinnamon</span><span class="o">.</span><span class="n">component</span><span class="o">.</span><span class="n">Component</span><span class="p">):</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">CustomComponent</span><span class="p">(</span><span class="n">cinnamon</span><span class="o">.</span><span class="n">component</span><span class="o">.</span><span class="n">Component</span><span class="p">):</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="n">x</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">y</span> <span class="o">=</span> <span class="n">y</span>
 
-<span class="k">class</span> <span class="nc">CustomConfig</span><span class="p">(</span><span class="n">cinnamon</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">Configuration</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">CustomConfig</span><span class="p">(</span><span class="n">cinnamon</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">Configuration</span><span class="p">):</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">default</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">default</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
         <span class="n">config</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">default</span><span class="p">()</span>
 
         <span class="n">config</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
@@ -311,7 +311,7 @@ We require now some APIs to <strong>validate</strong> such conditions to ensure 
         <span class="k">return</span> <span class="n">config</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">variantA</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">variantA</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
         <span class="n">config</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">default</span><span class="p">()</span>
 
         <span class="n">config</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="mi">20</span>
@@ -320,7 +320,7 @@ We require now some APIs to <strong>validate</strong> such conditions to ensure 
         <span class="k">return</span> <span class="n">config</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">variantB</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">variantB</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
         <span class="n">config</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">default</span><span class="p">()</span>
 
         <span class="n">config</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="mi">42</span>
@@ -329,7 +329,7 @@ We require now some APIs to <strong>validate</strong> such conditions to ensure 
         <span class="k">return</span> <span class="n">config</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">variantC</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">variantC</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
         <span class="n">config</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">default</span><span class="p">()</span>
 
         <span class="c1"># This is allowed since there is no condition prohibiting so</span>
@@ -341,10 +341,10 @@ We require now some APIs to <strong>validate</strong> such conditions to ensure 
 <p>In cinnamon, we can avoid explicitly defining all these <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> templates and relying on the notion of <strong>configuration variant</strong>.</p>
 <p>A configuration variant is a <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> template that has at least one different parameter value.</p>
 <p>We define variants by specifying the <code class="docutils literal notranslate"><span class="pre">variants</span></code> field when adding a parameter to the <code class="docutils literal notranslate"><span class="pre">Configuration</span></code>.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">CustomConfig</span><span class="p">(</span><span class="n">cinnamon</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">Configuration</span><span class="p">):</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">CustomConfig</span><span class="p">(</span><span class="n">cinnamon</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">Configuration</span><span class="p">):</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">default</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">default</span><span class="p">(</span>
             <span class="bp">cls</span>
     <span class="p">):</span>
         <span class="n">config</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">default</span><span class="p">()</span>
@@ -384,10 +384,10 @@ Both of them specify value variants, thus, defining 8 different <code class="doc
 <h4>Nesting (i.e., adding dependencies)<a class="headerlink" href="#nesting-i-e-adding-dependencies" title="Link to this heading"></a></h4>
 <p>One core functionality of cinnamon is that <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> can be nested to build more sophisticated ones (the same applies for <code class="docutils literal notranslate"><span class="pre">Component</span></code>).</p>
 <p>Cinnamon does that via loose pointers called <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code>, a compound unique identifier associated to a specific <code class="docutils literal notranslate"><span class="pre">Configuration</span></code>.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">ParentConfig</span><span class="p">(</span><span class="n">cinnamon</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">Configuration</span><span class="p">):</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">ParentConfig</span><span class="p">(</span><span class="n">cinnamon</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">Configuration</span><span class="p">):</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">default</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">default</span><span class="p">(</span>
             <span class="bp">cls</span>
     <span class="p">):</span>
         <span class="n">config</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">default</span><span class="p">()</span>
@@ -405,10 +405,10 @@ Both of them specify value variants, thus, defining 8 different <code class="doc
         <span class="k">return</span> <span class="n">config</span>
 
 
-<span class="k">class</span> <span class="nc">NestedChild</span><span class="p">(</span><span class="n">Configuration</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">NestedChild</span><span class="p">(</span><span class="n">Configuration</span><span class="p">):</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">default</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">default</span><span class="p">(</span>
             <span class="bp">cls</span>
     <span class="p">):</span>
         <span class="n">config</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">default</span><span class="p">()</span>

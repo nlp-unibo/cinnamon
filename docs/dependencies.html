@@ -7,8 +7,8 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Registration Dependencies &mdash; Cinnamon</title>
-      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
-      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
@@ -111,18 +111,18 @@ This choice is meant to avoid unwanted code executions when checking python file
 </div>
 <p>where</p>
 <dl>
-<dt>components/data_loader.py</dt><dd><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">DataLoader</span><span class="p">(</span><span class="n">Component</span><span class="p">):</span>
+<dt>components/data_loader.py</dt><dd><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">DataLoader</span><span class="p">(</span><span class="n">Component</span><span class="p">):</span>
 
-    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="o">...</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">load</span><span class="p">(</span><span class="o">...</span><span class="p">):</span>
         <span class="o">...</span>
 </pre></div>
 </div>
 </dd>
-<dt>configurations/data_loader.py</dt><dd><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">DataLoaderConfig</span><span class="p">(</span><span class="n">Configuration</span><span class="p">):</span>
+<dt>configurations/data_loader.py</dt><dd><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">DataLoaderConfig</span><span class="p">(</span><span class="n">Configuration</span><span class="p">):</span>
 
     <span class="nd">@classmethod</span>
-    <span class="nd">@register_method</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;loader&#39;</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;default&#39;</span><span class="p">},</span> <span class="n">namespace</span><span class="o">=</span><span class="s1">&#39;testing&#39;</span><span class="p">,</span> <span class="n">component_class</span><span class="o">=</span><span class="n">DataLoader</span><span class="p">)</span>
-    <span class="k">def</span> <span class="nf">default</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="nd">@register_method</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;loader&#39;</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;default&#39;</span><span class="p">},</span> <span class="n">namespace</span><span class="o">=</span><span class="s1">&#39;testing&#39;</span><span class="p">,</span> <span class="n">component</span><span class="o">=</span><span class="s1">&#39;components.DataLoader&#39;</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">default</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
         <span class="n">config</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">default</span><span class="p">()</span>
 
         <span class="n">config</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;folder_name&#39;</span><span class="p">,</span> <span class="n">type_hint</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="s1">&#39;my_custom_folder&#39;</span><span class="p">)</span>
@@ -143,10 +143,10 @@ This choice is meant to avoid unwanted code executions when checking python file
 Furthermore, the addition of <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> variants may further exacerbate the issue.</p>
 <p>To avoid users manually ordering registrations to avoid conflicts, cinnamon dynamically builds a dependency graphs, <strong>independently</strong> of the registration order.</p>
 <p>For instance, consider the following nesting dependency between two configurations:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">ParentConfig</span><span class="p">(</span><span class="n">cinnamon</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">Configuration</span><span class="p">):</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">ParentConfig</span><span class="p">(</span><span class="n">cinnamon</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">Configuration</span><span class="p">):</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">default</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">default</span><span class="p">(</span>
             <span class="bp">cls</span>
     <span class="p">):</span>
         <span class="n">config</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">default</span><span class="p">()</span>
@@ -158,10 +158,10 @@ Furthermore, the addition of <code class="docutils literal notranslate"><span cl
         <span class="k">return</span> <span class="n">config</span>
 
 
-<span class="k">class</span> <span class="nc">NestedChild</span><span class="p">(</span><span class="n">Configuration</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">NestedChild</span><span class="p">(</span><span class="n">Configuration</span><span class="p">):</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">default</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">default</span><span class="p">(</span>
             <span class="bp">cls</span>
     <span class="p">):</span>
         <span class="n">config</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">default</span><span class="p">()</span>
@@ -173,26 +173,26 @@ Furthermore, the addition of <code class="docutils literal notranslate"><span cl
 </div>
 <p>The following registration functions produce the same dependency graph.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@register</span>
-<span class="k">def</span> <span class="nf">custom_registration</span><span class="p">():</span>
-    <span class="n">Registry</span><span class="o">.</span><span class="n">register_configuration</span><span class="p">(</span><span class="n">config_class</span><span class="o">=</span><span class="n">ParentConfig</span><span class="p">,</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">custom_registration</span><span class="p">():</span>
+    <span class="n">Registry</span><span class="o">.</span><span class="n">register_configuration</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="n">ParentConfig</span><span class="o">.</span><span class="n">default</span><span class="p">(),</span>
                                     <span class="n">name</span><span class="o">=</span><span class="s1">&#39;test&#39;</span><span class="p">,</span>
                                     <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;parent&#39;</span><span class="p">},</span>
                                     <span class="n">namespace</span><span class="o">=</span><span class="s1">&#39;testing&#39;</span><span class="p">,</span>
                                     <span class="p">)</span>
-    <span class="n">Registry</span><span class="o">.</span><span class="n">register_configuration</span><span class="p">(</span><span class="n">config_class</span><span class="o">=</span><span class="n">NestedChild</span><span class="p">,</span>
+    <span class="n">Registry</span><span class="o">.</span><span class="n">register_configuration</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="n">NestedChild</span><span class="o">.</span><span class="n">default</span><span class="p">(),</span>
                                     <span class="n">name</span><span class="o">=</span><span class="s1">&#39;test&#39;</span><span class="p">,</span>
                                     <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;nested&#39;</span><span class="p">},</span>
                                     <span class="n">namespace</span><span class="o">=</span><span class="s1">&#39;testing&#39;</span><span class="p">,</span>
                                     <span class="p">)</span>
 
 <span class="nd">@register</span>
-<span class="k">def</span> <span class="nf">custom_registration</span><span class="p">():</span>
-    <span class="n">Registry</span><span class="o">.</span><span class="n">register_configuration</span><span class="p">(</span><span class="n">config_class</span><span class="o">=</span><span class="n">NestedChild</span><span class="p">,</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">custom_registration</span><span class="p">():</span>
+    <span class="n">Registry</span><span class="o">.</span><span class="n">register_configuration</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="n">NestedChild</span><span class="o">.</span><span class="n">default</span><span class="p">(),</span>
                                     <span class="n">name</span><span class="o">=</span><span class="s1">&#39;test&#39;</span><span class="p">,</span>
                                     <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;nested&#39;</span><span class="p">},</span>
                                     <span class="n">namespace</span><span class="o">=</span><span class="s1">&#39;testing&#39;</span><span class="p">,</span>
                                     <span class="p">)</span>
-    <span class="n">Registry</span><span class="o">.</span><span class="n">register_configuration</span><span class="p">(</span><span class="n">config_class</span><span class="o">=</span><span class="n">ParentConfig</span><span class="p">,</span>
+    <span class="n">Registry</span><span class="o">.</span><span class="n">register_configuration</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="n">ParentConfig</span><span class="o">.</span><span class="n">default</span><span class="p">(),</span>
                                     <span class="n">name</span><span class="o">=</span><span class="s1">&#39;test&#39;</span><span class="p">,</span>
                                     <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;parent&#39;</span><span class="p">},</span>
                                     <span class="n">namespace</span><span class="o">=</span><span class="s1">&#39;testing&#39;</span><span class="p">,</span>
@@ -206,8 +206,8 @@ Furthermore, the addition of <code class="docutils literal notranslate"><span cl
 <p>This code organization is meant to simplify registration burden while keeping high readability.</p>
 <p>Behind the curtains, the <code class="docutils literal notranslate"><span class="pre">Registry</span></code> is issued to look for all <code class="docutils literal notranslate"><span class="pre">&#64;register</span></code> and <code class="docutils literal notranslate"><span class="pre">&#64;register_method</span></code> decorators located in <code class="docutils literal notranslate"><span class="pre">configurations</span></code> folder
 to automatically execute them.</p>
-<p>This action is handled by <code class="docutils literal notranslate"><span class="pre">Registry.setup()</span></code> method.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">Registry</span><span class="o">.</span><span class="n">setup</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">))</span>
+<p>This action is handled by <code class="docutils literal notranslate"><span class="pre">Registry.build()</span></code> method.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">Registry</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">))</span>
 </pre></div>
 </div>
 <p>Issues the <code class="docutils literal notranslate"><span class="pre">Registry</span></code> to look for all <code class="docutils literal notranslate"><span class="pre">configurations</span></code> folder(s) under the current working directory.</p>
@@ -223,10 +223,10 @@ to automatically execute them.</p>
 <p>Cinnamon supports loading registration function calls that are external to your project’s <code class="docutils literal notranslate"><span class="pre">configurations</span></code> folder.
 Moreover, you can also build your <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> and <code class="docutils literal notranslate"><span class="pre">Component</span></code> with dependencies on external ones.</p>
 <p>For instance, suppose that a <code class="docutils literal notranslate"><span class="pre">DataLoaderConfig</span></code> variant has a external dependency.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">DataLoaderConfig</span><span class="p">(</span><span class="n">Configuration</span><span class="p">):</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">DataLoaderConfig</span><span class="p">(</span><span class="n">Configuration</span><span class="p">):</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">default</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">default</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
         <span class="n">config</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">get_default</span><span class="p">()</span>
 
         <span class="n">config</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;folder_name&#39;</span><span class="p">,</span> <span class="n">type_hint</span><span class="o">=</span><span class="nb">str</span><span class="p">)</span>
@@ -235,7 +235,7 @@ Moreover, you can also build your <code class="docutils literal notranslate"><sp
 
     <span class="nd">@classmethod</span>
     <span class="nd">@register_method</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;loader&#39;</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;external&#39;</span><span class="p">},</span> <span class="n">namespace</span><span class="o">=</span><span class="s1">&#39;testing&#39;</span><span class="p">)</span>
-    <span class="k">def</span> <span class="nf">external_variant</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">external_variant</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
         <span class="n">config</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">default</span><span class="p">()</span>
 
         <span class="n">config</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;processor&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">RegistrationKey</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;processor&#39;</span><span class="p">,</span> <span class="n">namespace</span><span class="o">=</span><span class="s1">&#39;external&#39;</span><span class="p">))</span>
@@ -244,8 +244,8 @@ Moreover, you can also build your <code class="docutils literal notranslate"><sp
 </pre></div>
 </div>
 <p>In this case, to avoid incurring in errors, we need to inform the <code class="docutils literal notranslate"><span class="pre">Registry</span></code> where <code class="docutils literal notranslate"><span class="pre">RegistrationKey(name='processor',</span> <span class="pre">namespace='external')</span></code> has been declared.</p>
-<p>We do so, by specifying the main external directory when issuing <code class="docutils literal notranslate"><span class="pre">Registry.setup()</span></code>.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">Registry</span><span class="o">.</span><span class="n">setup</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">),</span> <span class="n">external_directories</span><span class="o">=</span><span class="p">[</span><span class="n">Path</span><span class="p">(</span><span class="s1">&#39;path/to/external/directory&#39;</span><span class="p">)])</span>
+<p>We do so, by specifying the main external directory when issuing <code class="docutils literal notranslate"><span class="pre">Registry.build()</span></code>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">Registry</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">),</span> <span class="n">external_directories</span><span class="o">=</span><span class="p">[</span><span class="n">Path</span><span class="p">(</span><span class="s1">&#39;path/to/external/directory&#39;</span><span class="p">)])</span>
 </pre></div>
 </div>
 <div class="toctree-wrapper compound">

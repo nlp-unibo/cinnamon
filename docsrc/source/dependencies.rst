@@ -57,7 +57,7 @@ configurations/data_loader.py
         class DataLoaderConfig(Configuration):
 
             @classmethod
-            @register_method(name='loader', tags={'default'}, namespace='testing', component_class=DataLoader)
+            @register_method(name='loader', tags={'default'}, namespace='testing', component='components.DataLoader')
             def default(cls):
                 config = super(cls).default()
 
@@ -115,12 +115,12 @@ The following registration functions produce the same dependency graph.
 
     @register
     def custom_registration():
-        Registry.register_configuration(config_class=ParentConfig,
+        Registry.register_configuration(config=ParentConfig.default(),
                                         name='test',
                                         tags={'parent'},
                                         namespace='testing',
                                         )
-        Registry.register_configuration(config_class=NestedChild,
+        Registry.register_configuration(config=NestedChild.default(),
                                         name='test',
                                         tags={'nested'},
                                         namespace='testing',
@@ -128,12 +128,12 @@ The following registration functions produce the same dependency graph.
 
     @register
     def custom_registration():
-        Registry.register_configuration(config_class=NestedChild,
+        Registry.register_configuration(config=NestedChild.default(),
                                         name='test',
                                         tags={'nested'},
                                         namespace='testing',
                                         )
-        Registry.register_configuration(config_class=ParentConfig,
+        Registry.register_configuration(config=ParentConfig.default(),
                                         name='test',
                                         tags={'parent'},
                                         namespace='testing',
@@ -147,11 +147,11 @@ This code organization is meant to simplify registration burden while keeping hi
 Behind the curtains, the ``Registry`` is issued to look for all ``@register`` and ``@register_method`` decorators located in ``configurations`` folder
 to automatically execute them.
 
-This action is handled by ``Registry.setup()`` method.
+This action is handled by ``Registry.build()`` method.
 
 .. code-block:: python
 
-    Registry.setup(directory=Path('.'))
+    Registry.build(directory=Path('.'))
 
 Issues the ``Registry`` to look for all ``configurations`` folder(s) under the current working directory.
 
@@ -194,11 +194,11 @@ For instance, suppose that a ``DataLoaderConfig`` variant has a external depende
 
 In this case, to avoid incurring in errors, we need to inform the ``Registry`` where ``RegistrationKey(name='processor', namespace='external')`` has been declared.
 
-We do so, by specifying the main external directory when issuing ``Registry.setup()``.
+We do so, by specifying the main external directory when issuing ``Registry.build()``.
 
 .. code-block:: python
 
-    Registry.setup(directory=Path('.'), external_directories=[Path('path/to/external/directory')])
+    Registry.build(directory=Path('.'), external_directories=[Path('path/to/external/directory')])
 
 
 .. toctree::

@@ -118,11 +118,11 @@ Once, we have defined the ``Configuration`` and its corresponding ``Component``,
 
 .. code-block:: python
 
-    Registry.register_configuration(config_class=DataLoaderConfig,
+    Registry.register_configuration(config=DataLoaderConfig.default(),
                                name='data_loader',
                                tags={'test'},
                                namespace='showcasing',
-                               component_class=DataLoader)
+                               component='DataLoader')
 
 or
 
@@ -134,7 +134,7 @@ or
         @register_method(name='data_loader',
                          tags={'test'},
                          namespace='showcasing',
-                         component_class=DataLoader)
+                         component='DataLoader')
         def default(cls):
             config = super().default()
 
@@ -149,13 +149,13 @@ We do so by using a ``RegistrationKey`` defined as a (``name``, ``tags``, ``name
 
 Additionally, we **bind** the ``Configuration`` to a ``Component`` so that ``cinnamon`` knows that we want to create ``DataLoader`` instances via ``DataLoaderConfig``.
 
-At this point, we only need to build our first instance via the ``RegistrationKey``.
+At this point, we only need to create our first instance via the ``RegistrationKey``.
 
 .. code-block:: python
 
-    loader = DataLoader.build_component(name='data_loader',
-                                        tags={'test'},
-                                        namespace='showcasing')
+    loader = DataLoader.instantiate(name='data_loader',
+                                    tags={'test'},
+                                    namespace='showcasing')
 
 to return a ``DataLoader``.
 
