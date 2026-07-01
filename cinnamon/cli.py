@@ -5,7 +5,6 @@ import sys
 from logging import getLogger
 
 import pandas as pd
-from InquirerPy import inquirer
 
 from cinnamon.registry import Registry
 from cinnamon.utility.inquirer import filter_keys
@@ -13,6 +12,18 @@ from cinnamon.utility.sanity import check_directory, check_external_json_path
 
 logging.basicConfig(level=logging.INFO, encoding="utf-8")
 logger = getLogger(__name__)
+
+
+def _require_inquirer():
+    try:
+        from InquirerPy import inquirer
+
+        return inquirer
+    except ImportError:
+        raise ImportError(
+            "InquirerPy is required for the CLI. "
+            "Install it with: pip install cinnamon[cli]"
+        ) from None
 
 
 def build():
@@ -82,6 +93,8 @@ def build():
 
 
 def run():
+    inquirer = _require_inquirer()
+
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "-dir",
@@ -134,7 +147,7 @@ def run():
         return
 
     for key in filtered_keys:
-        logging.info(f"Executing {key}")
+        logger.info(f"Executing {key}")
 
         config_info = Registry.retrieve_configuration_info(registration_key=key)
         config_info.config.show()
@@ -145,7 +158,7 @@ def run():
         if hasattr(component, config_info.run_method):
             getattr(component, config_info.run_method)()
         else:
-            logging.error(
+            logger.error(
                 f"Component {component} has not method {config_info.run_method}! Aborting..."
             )
             raise RuntimeError(
@@ -154,6 +167,8 @@ def run():
 
 
 def generate():
+    inquirer = _require_inquirer()
+
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "-dir",

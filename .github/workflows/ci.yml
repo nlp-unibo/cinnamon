@@ -20,11 +20,11 @@ jobs:
     steps:
     # 3. Checkout your Cinnamon source code
     - name: Check out repository
-      uses: actions/checkout@v6
+      uses: actions/checkout@v4
 
     # 4. Set up the specific Python runtime for this matrix runner
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v6
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
 

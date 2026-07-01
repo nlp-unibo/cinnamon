@@ -111,7 +111,7 @@ class Param:
     def __hash__(self) -> int:
         return hash(str(self))
 
-    def __eq__(self, other: type[P]) -> bool:
+    def __eq__(self, other: object) -> bool:
         """
         Two ``Param`` instances are equal iff they have the same name and value.
 
@@ -468,7 +468,6 @@ class Configuration:
         params_with_variants = []
         for param_key, param in self.params.items():
             # Always add param.value to account for all possible combinations
-            # TODO: consider defining a special value (e.g., UNSET) to allow None
             if self.has_at_least_two_variants:
                 parameters.setdefault(param_key, [param.value])
 

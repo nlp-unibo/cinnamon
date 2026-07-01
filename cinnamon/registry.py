@@ -4,6 +4,7 @@ import ast
 import importlib.util
 import json
 import logging
+import math
 import sys
 from dataclasses import dataclass
 from logging import getLogger
@@ -155,7 +156,6 @@ class RegistrationKey:
     def hierarchy_tags(self):
         return {tag for tag in self.tags if self.HIERARCHY_SEPARATOR in tag}
 
-    # TODO: consider adding a maximum length constraint to sanitized_tag
     def sanitize_variant_tag(
         self, param_name: str, param_index: int, param_value: Any
     ) -> str:
@@ -301,9 +301,9 @@ class RegistrationKey:
 
     def to_pretty_string(self):
         tags = list(sorted(list(self.tags)))
-        intervals = list(range(0, len(tags), RegistrationKey.MAX_TAGS_PER_LINE))
-        splits = list(batched(tags, intervals))
-        tags = "\n".join([", ".join(item.tolist()) for item in splits])
+        num_intervals = math.ceil(len(tags) / RegistrationKey.MAX_TAGS_PER_LINE)
+        splits = list(batched(tags, num_intervals))
+        tags = "\n".join([", ".join(item) for item in splits])
 
         return f"""[
                 name: {self.name}
@@ -342,9 +342,6 @@ class BufferedRegistration:
         self.component = component
         self.run_method = run_method
         self.resolve_automatically = resolve_automatically
-
-
-# TODO: add setup decorator to use on __init__ methods for runnables (syntactic sugar for cinnamon setup)
 
 
 def register_method(
@@ -445,8 +442,6 @@ class Registry:
     _ROOT_KEY = RegistrationKey(name="root", namespace="root")
     _DEPENDENCY_DAG: nx.DiGraph
 
-    # TODO: we can set this a protected and define a DEBUG_MODE flag that
-    #  allows __setattr__ of expanded
     expanded: bool = False
 
     _MODULES: List[Union[str, Path]]
@@ -846,8 +841,6 @@ class Registry:
                 cls._DEPENDENCY_DAG.add_node(variant_key)
             cls._DEPENDENCY_DAG.add_edge(key, variant_key, type="variant")
 
-            # TODO: we could call here register_configuration_from_key
-            #  to avoid double key creation
             if not Registry.in_registry(variant_key):
                 cls.register_configuration(
                     config=variant_config,

@@ -20,7 +20,6 @@ classifiers = [
 # Adjust your minimum Python version requirement here if needed
 requires-python = ">=3.10"
 dependencies = [
-    "InquirerPy>=0.3.4",
     "networkx>=3.4.2",
     "pandas>=2.2.3",
 ]
@@ -31,6 +30,9 @@ dev = [
     "ruff>=0.15.20",
     "mypy>=1.0.0"
 ]
+cli = [
+    "InquirerPy>=0.3.4"
+]
 
 [project.scripts]
 cmn-build = "cinnamon.cli:build"
@@ -38,7 +40,7 @@ cmn-run = "cinnamon.cli:run"
 cmn-generate = "cinnamon.cli:generate"
 
 [tool.setuptools]
-packages = ["cinnamon"]
+packages = ["cinnamon", "cinnamon.utility"]
 
 [tool.setuptools.dynamic]
 version = { attr = "cinnamon.__version__" }
