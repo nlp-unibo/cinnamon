@@ -1,9 +1,9 @@
-from typing import Type
+from typing import Literal, Type
 
 import pytest
 
 from cinnamon.component import Component
-from cinnamon.configuration import C, Configuration
+from cinnamon.configuration import C, Configuration, Param
 from cinnamon.registry import RegistrationKey, Registry
 
 
@@ -17,13 +17,6 @@ def expand_registry():
     Registry.expanded = True
 
 
-@pytest.fixture
-def define_configuration():
-    config = Configuration()
-    config.add(name="x", value=10, type_hint=int, description="a parameter")
-    return config
-
-
 class BaseComponent(Component):
     def __init__(self, x: int, y: int):
         self.x = x
@@ -31,29 +24,32 @@ class BaseComponent(Component):
 
 
 class BaseConfig(Configuration):
+    x: int = 5
+    y: int = 10
+
     @classmethod
     def default(cls: Type[C]) -> C:
-        config = super().default()
+        return cls(x=5, y=10)
 
-        config.add(name="x", value=5, type_hint=int)
-        config.add(name="y", value=10, type_hint=int)
-        return config
+class ConfigWithVariants(Configuration):
+    x: int = Param(1, variants=[2, 3])
+
+
+class ConfigWithNonTaggableVariants(Configuration):
+    x: list[int] = Param([1, 2, 3], variants=[[2, 2]])
+
+
+class ConfigWithMultipleVariants(Configuration):
+    x: int = Param(1, variants=[2, 3])
+    y: int = Param(2, variants=[3, 4])
 
 
 class InvalidConfig(Configuration):
-    @classmethod
-    def default(cls: Type[C]) -> C:
-        config = super().default()
-        config.add(name="x", value=5, allowed_range=lambda x: x in [2, 3])
-        return config
+    x: int = Param(5, le=3, ge=2)
 
 
 class ChildConfig(Configuration):
-    @classmethod
-    def default(cls: Type[C]) -> C:
-        config = super().default()
-        config.add(name="y", variants=[False, True])
-        return config
+    y: bool = Param(False, variants=[True])
 
 
 class ChildComponent(Component):
@@ -61,23 +57,17 @@ class ChildComponent(Component):
         self.y = y
 
 
+class NestedConfig(Configuration):
+    x: int = 10
+    child: BaseConfig = BaseConfig.default()
+
+
 class ConfigWithChild(Configuration):
-    @classmethod
-    def default(cls: Type[C]) -> C:
-        config = super().default()
-        config.add(
-            name="c1",
-            value=RegistrationKey(name="test", tags={"t2"}, namespace="testing"),
-        )
-        return config
+    c1: RegistrationKey = RegistrationKey(name="test", tags={"t2"}, namespace="testing")
 
 
 class ConfigWithVariantChild(Configuration):
-    @classmethod
-    def default(cls: Type[C]) -> C:
-        config = super().default()
-        config.add(name="c1", value=RegistrationKey(name="test", namespace="testing"))
-        return config
+    c1: RegistrationKey = RegistrationKey(name="test", namespace="testing")
 
 
 class ComponentWithChild(Component):
@@ -85,125 +75,52 @@ class ComponentWithChild(Component):
         self.c1 = c1
 
 
-class VariantConfig(Configuration):
-    @classmethod
-    def default(cls: Type[C]) -> C:
-        config = super().default()
-        config.add(name="x", variants=[1, 2, 3])
-        return config
-
-
 class InvalidVariantConfig(Configuration):
-    @classmethod
-    def default(cls: Type[C]) -> C:
-        config = super().default()
-        config.add(
-            name="x",
-            value=5,
-            variants=[1, 2, 3],
-            allowed_range=lambda x: x in [1, 2, 5],
-        )
-        return config
+    x: Literal[1, 2, 5] = Param(5, variants=[1, 2, 3])
 
 
 class VariantConfigWithChild(Configuration):
-    @classmethod
-    def default(cls: Type[C]) -> C:
-        config = super().default()
-        config.add(name="x", variants=[1, 2, 3])
-        config.add(
-            name="c1",
-            value=RegistrationKey(name="test", tags={"t2"}, namespace="testing"),
-        )
-        return config
+    x: int = Param(1, variants=[2, 3])
+    c1: RegistrationKey = RegistrationKey(name="test", tags={"t2"}, namespace="testing")
 
 
 class VariantConfigWithVariantChild(Configuration):
-    @classmethod
-    def default(cls: Type[C]) -> C:
-        config = super().default()
-        config.add(name="y", variants=["a", "b"], is_required=True)
-        config.add(
-            name="c1",
-            type_hint=RegistrationKey,
-            variants=[RegistrationKey(name="test", tags={"t3"}, namespace="testing")],
-            is_required=True,
-        )
-        return config
+    y: str = Param("a", variants=["b"])
+    c1: RegistrationKey = RegistrationKey(name="test", tags={"t3"}, namespace="testing")
 
 
 class CliqueConfigA(Configuration):
-    @classmethod
-    def default(cls: Type[C]) -> C:
-        config = super().default()
-        config.add(
-            name="child",
-            value=RegistrationKey(name="config", tags={"c2"}, namespace="testing"),
-        )
-        return config
+    child: RegistrationKey = RegistrationKey(
+        name="config", tags={"c2"}, namespace="testing"
+    )
 
 
 class CliqueConfigB(Configuration):
-    @classmethod
-    def default(cls: Type[C]) -> C:
-        config = super().default()
-        config.add(
-            name="child",
-            value=RegistrationKey(name="config", tags={"c1"}, namespace="testing"),
-        )
-        return config
+    child: RegistrationKey = RegistrationKey(
+        name="config", tags={"c1"}, namespace="testing"
+    )
 
 
 class ConfigWithExternalDependency(Configuration):
-    @classmethod
-    def default(cls: Type[C]) -> C:
-        config = super().default()
-        config.add(name="c1", value=RegistrationKey(name="test", namespace="external"))
-        return config
+    c1: RegistrationKey = RegistrationKey(name="test", namespace="external")
 
 
 class ParentWithVariantsAndChild(Configuration):
-    @classmethod
-    def default(cls: Type[C]) -> C:
-        config = super().default()
-        config.add(name="x", variants=[1, 2])
-        config.add(
-            name="child",
-            value=RegistrationKey(name="intermediate", namespace="testing"),
-        )
-
-        return config
+    x: int = Param(1, variants=[2])
+    child: RegistrationKey = RegistrationKey(name="intermediate", namespace="testing")
 
 
 class IntermediateWithChild(Configuration):
-    @classmethod
-    def default(cls: Type[C]) -> C:
-        config = super().default()
-
-        config.add(name="canarin", value=4)
-        config.add(
-            name="child", value=RegistrationKey(name="leaf", namespace="testing")
-        )
-
-        return config
+    canarin: int = 4
+    child: RegistrationKey = RegistrationKey(name="leaf", namespace="testing")
 
     @classmethod
     def custom_method(cls) -> C:
-        config = cls.default()
-
-        config.canarin = 10
-
-        return config
+        return cls(canarin=10)
 
 
 class LeafWithVariants(Configuration):
-    @classmethod
-    def default(cls: Type[C]) -> C:
-        config = super().default()
-
-        config.add(name="x", variants=[1, 2])
-
-        return config
+    x: int = Param(1, variants=[2])
 
 
 class CustomRunnableComponent(Component):

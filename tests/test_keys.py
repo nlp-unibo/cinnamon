@@ -1,8 +1,8 @@
 import json
 from pathlib import Path
 
-from cinnamon.configuration import Configuration
 from cinnamon.registry import RegistrationKey
+from tests.fixtures import ConfigWithNonTaggableVariants, ConfigWithVariants
 
 
 def test_key_to_json():
@@ -63,26 +63,29 @@ def test_from_variant_with_multiple_keys():
 
 
 def test_from_config_variants_with_taggable_params():
-    config = Configuration()
-    config.add(name="x", value=5, variants=[1])
+    config = ConfigWithVariants.default()
     config_key = RegistrationKey(name="config", namespace="testing")
 
-    for variant_kwargs, variant_indexes in zip(*config.variants):
+    for variant_info in config.variants:
         variant_key = config_key.from_variant(
-            variant_kwargs=variant_kwargs, variant_indexes=variant_indexes
+            variant_kwargs=variant_info['values'],
+            variant_indexes=variant_info['indexes']
         )
 
-        assert variant_key.tags == {f"x{config_key.KEY_VALUE_SEPARATOR}1"}
+        if variant_info['indexes']['x'] != 0:
+            assert variant_key.tags == {
+                f"x{config_key.KEY_VALUE_SEPARATOR}{variant_info['values']['x']}"
+            }
 
 
 def test_from_config_variants_with_non_taggable_params():
-    config = Configuration()
-    config.add(name="x", value=[1, 2, 3], variants=[[2, 2]])
+    config = ConfigWithNonTaggableVariants.default()
     config_key = RegistrationKey(name="config", namespace="testing")
 
-    for variant_kwargs, variant_indexes in zip(*config.variants):
+    for variant_info in config.variants:
         variant_key = config_key.from_variant(
-            variant_kwargs=variant_kwargs, variant_indexes=variant_indexes
+            variant_kwargs=variant_info['values'],
+            variant_indexes=variant_info['indexes']
         )
 
         assert variant_key.tags == {f"x{config_key.KEY_VALUE_SEPARATOR}variant-1"}

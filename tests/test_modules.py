@@ -76,6 +76,7 @@ def test_load_registrations(reset_registry):
     )
 
 
+# TODO: update
 def test_load_registrations_nested_exception(reset_registry):
     """
     Trigger ExternalNamespaceNotFoundException when providing an external
@@ -86,7 +87,7 @@ def test_load_registrations_nested_exception(reset_registry):
     with pytest.raises(NamespaceNotFoundException):
         Registry.load_registrations(directory=directory)
 
-
+# TODO: update
 def test_chained_register_decorator(reset_registry):
     directory = Path(".", "tests", "ext_repo_nested_dec")
     Registry.load_registrations(directory=directory)
@@ -103,7 +104,7 @@ def test_chained_register_decorator(reset_registry):
     c2 = Registry.instantiate_component(registration_key=key2)
     assert isinstance(c2, Component)
 
-
+# TODO: update
 def test_deeply_nested_config(reset_registry):
     directory = Path(".", "tests", "deeply_nested_repo")
     Registry.load_registrations(directory=directory)

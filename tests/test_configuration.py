@@ -1,335 +1,179 @@
-from copy import deepcopy
-from typing import Callable, List
+from typing import Callable
 
+import pydantic
 import pytest
 
-from cinnamon.configuration import Configuration, Param
+from cinnamon.configuration import Configuration
 from cinnamon.registry import RegistrationKey
 from cinnamon.utility.exceptions import ValidationFailureException
-from tests.fixtures import define_configuration
+from tests.fixtures import (
+    BaseConfig,
+    ConfigWithMultipleVariants,
+    ConfigWithVariants,
+    InvalidConfig,
+    NestedConfig,
+)
 
 
-def test_adding_param():
-    """
-    Add parameter to config and retrieve it
-    """
-
-    config = Configuration()
-    config.add(name="x", value=50, type_hint=int, description="test description")
-    assert config.x == 50
-    assert config.get("x").value == 50
-    assert isinstance(config.get("x"), Param)
+def test_empty_configuration():
+    config = Configuration.default()
+    assert len(config._conditions) == 0
+    assert len(config.dependencies) == 0
 
 
-def test_set_param_from_config():
-    """
-    Configuration parameters are mutable
-    We attempt to change a parameter value from a config
-    """
-
-    config = Configuration()
-    config.add(name="x", value=50, type_hint=int, description="test description")
-    config.x = 20
-    assert config.x == 20
-    assert config.get("x").value == 20
+def test_one_field_configuration():
+    config = BaseConfig.default()
+    assert config.x == 5
+    assert config.y == 10
 
 
-def test_set_param_from_param():
-    """
-    Parameters are immutable.
-    Raise an exception when we attempt to change a parameter value
-    """
-    param = Param(name="x", value=50)
-    param.value = 20
-    assert param.value == 20
+def test_invalid_configuration():
+    with pytest.raises(pydantic.ValidationError):
+        InvalidConfig.default()
 
 
 def test_add_condition():
     """
-    Add condition to configuration and validate it, both with valid and invalid parameter values.
+    Add condition to configuration and validate it,
+    both with valid and invalid parameter values.
     """
-
-    config = Configuration()
-    config.add(
-        name="x", value=[1, 2, 3], type_hint=List[int], description="test description"
-    )
-    config.add(
-        name="y", value=[2, 2, 2], type_hint=List[int], description="test description"
-    )
-    config.add_condition(condition=lambda c: len(c.x) == len(c.y), name="x_y_pairing")
-    config.validate()
+    config = BaseConfig.default()
+    config.add_condition(name="x_y_pairing", condition=lambda c: c.x == c.y / 2)
+    config.validate_conditions()
 
     with pytest.raises(ValidationFailureException):
-        config.x.append(5)
-        config.validate()
+        copy_config = config.model_copy(update={"x": 10})
+        copy_config.validate_conditions()
 
 
 def test_add_condition_conflicting_name():
-    config = Configuration()
-    config.add(name="x", value=[1, 2, 3])
-
-    config.add_condition(name="x", condition=lambda c: len(c.x) > 1)
+    config = BaseConfig.default()
+    config.add_condition(name="x", condition=lambda c: c.x > 1)
 
 
-def test_search_by_tag():
-    """
-    Search parameter by tag for quick retrieval
-    """
-
-    config = Configuration()
-    config.add(name="x", value=5, tags={"number"})
-    config.add(name="y", value=10, tags={"number"})
-    config.add(name="z", value="z", tags={"letter"})
-
-    result = config.search_param_by_tag(tags="number")
-    assert any(p.name == "y" for p in result)
-    assert any(p.name == "x" for p in result)
-    assert all(isinstance(p.value, int) for p in result)
-
-
-def test_search():
-    """
-    Search parameter via custom condition for quick retrieval
-    """
-    config = Configuration()
-    config.add(name="x", value=5, tags={"number"})
-    config.add(name="y", value=10, tags={"number"})
-    config.add(name="z", value="z", tags={"letter"})
-
-    result = config.search_param(conditions=[lambda param: "number" in param.tags])
-    assert any(p.name == "y" for p in result)
-    assert all(isinstance(p.value, int) for p in result)
-
-
-def test_define_configuration(define_configuration):
-    """
-    Define configuration via class and retrieve parameters
-    """
-
-    config = define_configuration
-    assert config.x == 10
-    assert config.get("x").value == 10
-    assert config.get("x").name == "x"
-
-
-def test_modify_existing_configuration(define_configuration):
-    """
-    A simple way to define new configurations is to modify existing ones
-    """
-
-    config = define_configuration
-    config.x = 20
-    assert config.x == 20
-    assert config.get("x").value == 20
-
-
-def test_validate_empty(define_configuration):
+def test_validate_empty():
     """
     Validate empty configuration successfully
     """
-
-    config = define_configuration
-    result = config.validate()
+    config = Configuration.default()
+    result = config.validate_conditions()
     assert result.passed is True
 
 
-def test_modify_invalid_param():
-    config = Configuration()
-    config.add(name="x", value=10)
+def test_variants():
+    config = ConfigWithMultipleVariants.default()
 
-    assert config.x == 10
-    with pytest.raises(AttributeError):
-        config.y = 50
-
-
-def test_modify_variants():
-    config = Configuration()
-    config.add(name="x", variants=[5, 10])
-    config.get("x").variants = [2]
-
-    assert config.get("x").variants == [2]
-    assert len(config.variants) == 2
-
-    with pytest.raises(ValidationFailureException):
-        config.validate()
-
-    v_combinations = config.variants[0]
+    v_combinations = config.variants
+    assert len(v_combinations) == 8
     for comb in v_combinations:
-        alt_config = config.delta_copy(**comb)
-        if alt_config.x is None:
-            with pytest.raises(ValidationFailureException):
-                alt_config.validate()
-
-
-def test_required_validation():
-    """
-    Testing that 'is_required' parameter attribute triggers an
-     exception when parameter.value is None
-    """
-
-    config = Configuration()
-    config.add(name="x", type_hint=int, description="a parameter")
-    with pytest.raises(ValidationFailureException):
-        config.validate()
-
-
-def test_allowed_range_validation():
-    """
-    Testing that configuration triggers an exception when parameter.value
-     is not in parameter.allowed_range
-    """
-
-    config = Configuration()
-    config.add(
-        name="x",
-        value=10,
-        is_required=True,
-        type_hint=int,
-        allowed_range=lambda value: value in [1, 2, 3, 4, 5],
-        description="a parameter",
-    )
-    assert config.validate(strict=False).passed is False
-
-
-def test_copy():
-    """
-    Testing that a Config can be deep copied
-    """
-
-    config = Configuration()
-    config.add(name="x", value=[1, 2, 3])
-    dep_config = Configuration()
-    dep_config.add(name="z", value=5)
-    config.add(name="y", value=dep_config)
-    copy = deepcopy(config)
-    copy.x.append(5)
-
-    assert config.x == [1, 2, 3]
-    assert copy.x == [1, 2, 3, 5]
+        alt_config = config.model_copy(update=comb)
+        for key, value in comb.items():
+            assert getattr(alt_config, key) == value
 
 
 def test_copy_with_custom_condition():
-    config = Configuration()
-    config.add(name="x", value=[1, 2, 3])
+    config = Configuration.default()
+    config.add_condition(name="test-condition", condition=lambda c: True)
+    assert "test-condition" in config._conditions
+    assert config._conditions["test-condition"].condition(config) is True
+    assert isinstance(config._conditions["test-condition"].condition, Callable)
 
-    config.add_condition(name="test_condition", condition=lambda c: len(c.x) == 3)
-
-    copy_config = deepcopy(config)
-    assert isinstance(copy_config.cond_test_condition, Callable)
-    assert isinstance(config.cond_test_condition, Callable)
+    copy_config = config.model_copy(deep=True)
+    assert "test-condition" in copy_config._conditions
+    assert copy_config._conditions["test-condition"].condition(copy_config) is True
+    assert isinstance(copy_config._conditions["test-condition"].condition, Callable)
 
 
 def test_get_delta_copy_built():
     """
     Testing configuration.get_delta_copy()
     """
-
-    config = Configuration()
-    config.add(name="x", value=10, type_hint=int, description="a parameter")
-    delta_copy = config.delta_copy(x=5)
-    assert config.x == 10
-    assert delta_copy.x == 5
-    assert isinstance(delta_copy, Configuration)
-
-    other_copy = delta_copy.delta_copy(x=15)
-    assert other_copy.x == 15
-    assert delta_copy.x == 5
-    assert config.x == 10
-    assert isinstance(other_copy, Configuration)
-
-    other_copy.add(name="y", value=0)
-    assert "y" not in config.params
-    assert "y" not in delta_copy.params
-    assert other_copy.y == 0
+    config = BaseConfig.default()
+    copy_config = config.model_copy(update={"x": 10})
+    assert copy_config.x == 10
+    copy_config.x = 20
+    assert config.x == 5
+    assert copy_config.x == 20
 
 
 def test_get_delta_copy_built_nested():
     """
     Delta copy is not meant for hierarchy propagation
     """
+    config = NestedConfig.default()
+    copy_config = config.model_copy(deep=True)
+    assert config.x == 10
+    assert copy_config.x == 10
+    assert id(config.child) != id(copy_config.child)
 
-    parent = Configuration()
-    parent.add(name="x", value=5)
-    child = Configuration()
-    child.add(name="y", value=10)
-    child.add(name="child", value=RegistrationKey(name="config", namespace="testing"))
-    parent.add(name="child", value=child)
+    copy_config.x = 5
+    assert config.x == 10
+    assert copy_config.x == 5
 
-    delta_flat = parent.delta_copy(x=10)
-    assert delta_flat.x == 10
-    assert delta_flat.child.y == 10
-    assert id(delta_flat.child) != id(child)
-
-    delta_nested = parent.delta_copy(x=10, y=20)
-    assert delta_nested.x == 10
-    assert delta_nested.child.y == 10
-    assert id(delta_nested.child) != id(child)
-    assert id(delta_nested.child) != id(delta_flat.child)
-
-
-def test_get_delta_copy_with_condition():
-    config = Configuration()
-    config.add(name="x", value=[1, 2, 3])
-
-    config.add_condition(name="x_length", condition=lambda c: len(c.x) == 3)
-
-    copy_config = config.delta_copy(x=[2, 2, 2])
-    assert copy_config.x == [2, 2, 2]
-    assert isinstance(copy_config.cond_x_length, Callable)
+    copy_config.child.y = 20
+    assert config.child.y == 10
+    assert copy_config.child.y == 20
 
 
 def test_to_value_dict():
-    config = Configuration()
-    config.add(name="x", value=10, type_hint=int, description="a parameter")
-    config.add(
-        name="child", value=RegistrationKey(name="component", namespace="testing")
-    )
-    value_dict = config.to_dict()
-    assert value_dict == {"x": 10, "child": config.child}
+    config = BaseConfig.default()
+    value_dict = config.model_dump()
+    assert value_dict == {"x": 5, "y": 10}
+
+
+def test_nested_to_value_dict():
+    config = NestedConfig.default()
+    value_dict = config.model_dump()
+    assert value_dict == {"x": 10, "child": {"x": 5, "y": 10}}
 
 
 def test_validate_nested_config():
-    parent = Configuration()
-    child = Configuration()
-    child.add(name="y", value=5, allowed_range=lambda x: x < 3)
+    parent = NestedConfig.default()
+    parent.add_condition(name="check_x", condition=lambda c: c.x > 0)
+    parent.child.add_condition(name="check_x", condition=lambda c: c.x > 3)
 
-    parent.validate()
-    parent.add(name="child", value=child)
+    parent.validate_conditions()
+
+    parent.child.x = 1
+    with pytest.raises(ValidationFailureException):
+        parent.child.validate_conditions(strict=True)
 
     with pytest.raises(ValidationFailureException):
-        child.validate(strict=True)
-
-    with pytest.raises(ValidationFailureException):
-        parent.validate(strict=True)
+        parent.validate_conditions(strict=True)
 
 
 def test_configuration_variant_keys():
-    config = Configuration()
-    config.add(name="x", variants=[1, 2, 3])
-    config.add(name="y", value=5)
+    config = ConfigWithVariants.default()
     key = RegistrationKey(name="config", namespace="testing")
 
-    for variant_kwargs, variant_indexes in zip(*config.variants):
+    for variant_info in config.variants:
         variant_key = key.from_variant(
-            variant_kwargs=variant_kwargs, variant_indexes=variant_indexes
+            variant_kwargs=variant_info["values"],
+            variant_indexes=variant_info["indexes"],
         )
         assert f"y{key.KEY_VALUE_SEPARATOR}5" not in variant_key.tags
         assert len(variant_key.tags) == 1
-        assert variant_key.tags == {f"x{key.KEY_VALUE_SEPARATOR}{variant_kwargs['x']}"}
+        assert variant_key.tags == {
+            f"x{key.KEY_VALUE_SEPARATOR}{variant_info['values']['x']}"
+        }
 
 
 def test_configuration_with_multiple_variant_keys():
-    config = Configuration()
-    config.add(name="x", variants=[1, 2, 3])
-    config.add(name="z", variants=["a", "b"])
-    config.add(name="y", value=5)
+    config = ConfigWithMultipleVariants.default()
     key = RegistrationKey(name="config", namespace="testing")
 
-    for variant_kwargs, variant_indexes in zip(*config.variants):
+    for variant_info in config.variants:
         variant_key = key.from_variant(
-            variant_kwargs=variant_kwargs, variant_indexes=variant_indexes
+            variant_kwargs=variant_info["values"],
+            variant_indexes=variant_info["indexes"],
         )
-        assert f"y{key.KEY_VALUE_SEPARATOR}5" not in variant_key.tags
-        assert len(variant_key.tags) == 2
-        assert f"x{key.KEY_VALUE_SEPARATOR}{variant_kwargs['x']}" in variant_key.tags
-        assert f"z{key.KEY_VALUE_SEPARATOR}{variant_kwargs['z']}" in variant_key.tags
+        if variant_info['indexes']['x'] != 0:
+            assert (
+                f"x{key.KEY_VALUE_SEPARATOR}{variant_info['values']['x']}"
+                in variant_key.tags
+            )
+        if variant_info['indexes']['y'] != 0:
+            assert (
+                f"y{key.KEY_VALUE_SEPARATOR}{variant_info['values']['y']}"
+                in variant_key.tags
+            )

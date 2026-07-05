@@ -1,285 +1,225 @@
 from __future__ import annotations
 
+import copy
+import itertools
 import logging
-import os
-from copy import deepcopy
-from functools import partial
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type, TypeVar, Union
+import typing
+from dataclasses import dataclass
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Mapping,
+    Optional,
+    Set,
+    Tuple,
+    Type,
+    TypeVar,
+)
 
-import pandas as pd
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    GetCoreSchemaHandler,
+    PrivateAttr,
+    model_validator,
+)
+from pydantic.fields import FieldInfo
+from pydantic_core import CoreSchema, PydanticUndefined, core_schema
+from typing_extensions import Self
 
 import cinnamon.registry
 from cinnamon.utility.configuration import get_dict_values_combinations
 from cinnamon.utility.exceptions import (
-    AlreadyExistingParameterException,
-    NotAllowedParameterException,
     ValidationFailureException,
     ValidationResult,
 )
 from cinnamon.utility.registration import Tags
-from cinnamon.utility.sanity import (
-    allowed_range_cond,
-    is_required_cond,
-)
 
 C = TypeVar("C", bound="Configuration")
-P = TypeVar("P", bound="Param")
 
 Constructor = Callable[[Any], C]
 Condition = Callable[["Configuration"], bool]
 
-__all__ = ["Configuration", "C", "P", "Param"]
+__all__ = ["Configuration", "C", "Param"]
 
 logger = logging.getLogger(__name__)
 
 
-class Param:
+@dataclass
+class ConditionInfo:
+    condition: Condition
+    tags: Tags
+    description: Optional[str] = None
+
+
+class ParamMeta:
+    def __init__(self, tags: Set[str], variants: List[Any]):
+        self.tags = tags
+        self.variants = variants
+
+    def __call__(self, schema: dict) -> None:
+        pass
+
+
+def Param(
+    default: Any = PydanticUndefined,
+    *,
+    description: Optional[str] = None,
+    tags: Optional[Set[str]] = None,
+    variants: Optional[List[Any]] = None,
+    **kwargs: Any,
+) -> Any:
+    return Field(
+        default,
+        description=description,
+        json_schema_extra=ParamMeta(
+            tags=tags or set(),
+            variants=variants or [],
+        ),
+        **kwargs,
+    )
+
+
+class FieldMetaProxy:
+    """Navigates your metadata maps depending on context."""
+
+    def __init__(self, source_dict: dict, is_instance: bool):
+        self._source = source_dict
+        self._is_instance = is_instance
+
+    def __getattr__(self, field_name: str) -> ParamMeta:
+        if field_name not in self._source:
+            raise AttributeError(f"No field named '{field_name}'")
+
+        if self._is_instance:
+            return self._source[field_name]
+        else:
+            field_info = self._source[field_name]
+            if field_info.json_schema_extra is None:
+                field_info.json_schema_extra = ParamMeta(tags=set(), variants=[])
+            return field_info.json_schema_extra
+
+    def get(self, field_name: str) -> ParamMeta:
+        """Allows dynamic string access via .get()"""
+        try:
+            return self.__getattr__(field_name)
+        except AttributeError:
+            raise KeyError(f"No field named '{field_name}'")
+
+    def __getitem__(self, field_name: str) -> ParamMeta:
+        """Allows dictionary bracket access: self.meta[field_name]"""
+        return self.get(field_name)
+
+
+class MetaDescriptor:
     """
-    A generic attribute wrapper that allows:
-        - Type annotations
-        - Textual description metadata
-        - Tags metadata for categorization and general-purpose retrieval
+    A descriptor that automatically distinguishes class-level vs instance-level access.
     """
 
-    def __init__(
-        self,
-        name: str,
-        value: Any = None,
-        type_hint: Optional[Type] = None,
-        description: Optional[str] = None,
-        tags: Tags = None,
-        allowed_range: Optional[Callable[[Any], bool]] = None,
-        is_required: bool = True,
-        variants: Optional[List] = None,
-    ):
-        """
-        The ``Parameter`` constructor
-
-        Args:
-            name: unique identifier of the ``Field`` instance
-            value: the wrapped value of the ``Field`` instance
-            type_hint: type annotation concerning ``value``
-            description: a string description of the ``Field`` for readability purposes
-            tags: a set of string tags to mark the ``Field`` instance with metadata.
-            allowed_range: allowed range of values for ``value``
-            is_required: if True, ``value`` cannot be None
-            variants: set of variant values of ``value`` of interest
-        """
-
-        self.name = name
-        self.value = value
-        self.type_hint = type_hint
-        self.description = description
-        self.tags = set(tags) if tags is not None else set()
-        self.allowed_range = allowed_range
-        self.is_required = is_required
-        self.variants = variants if variants is not None else []
-
-        if self.is_dependency:
-            self.tags.add("dependency")
-
-    @property
-    def is_dependency(self) -> bool:
-        return (
-            "dependency" in self.tags
-            or isinstance(self.value, cinnamon.registry.RegistrationKey)
-            or self.type_hint == cinnamon.registry.RegistrationKey
-            or self.type_hint == Optional[cinnamon.registry.RegistrationKey]
-            or isinstance(self.value, Configuration)
-        )
-
-    def short_repr(self) -> str:
-        return f"{self.value}"
-
-    def long_repr(self) -> str:
-        return (
-            f"name: {self.name} {os.linesep}"
-            f"value: {self.value} {os.linesep}"
-            f"type_hint: {self.type_hint} {os.linesep}"
-            f"description: {self.description} {os.linesep}"
-            f"tags: {self.tags} {os.linesep}"
-            f"is_required: {self.is_required} {os.linesep}"
-            f"variants: {self.variants}"
-        )
-
-    def __str__(self) -> str:
-        return self.short_repr()
-
-    def __repr__(self) -> str:
-        return self.short_repr()
-
-    def __hash__(self) -> int:
-        return hash(str(self))
-
-    def __eq__(self, other: object) -> bool:
-        """
-        Two ``Param`` instances are equal iff they have the same name and value.
-
-        Args:
-            other: another ``Param`` instance
-
-        Returns:
-            True if the two ``Param`` instances are equal. False, otherwise.
-        """
-        if not isinstance(other, Param):
-            return False
-
-        return self.name == other.name and self.value == other.value
+    def __get__(self, instance: Any, owner: type) -> FieldMetaProxy:
+        if instance is None:
+            # Triggered by: MyConfig.meta.x.variants (Class context)
+            return FieldMetaProxy(owner.model_fields, is_instance=False)
+        else:
+            # Triggered by: config.meta.x.variants (Instance context)
+            return FieldMetaProxy(instance._instance_meta, is_instance=True)
 
 
-class Configuration:
+class Configuration(BaseModel):
     """
     A Configuration specifies the parameters of a Component.
     Configurations store parameters and allow flow control via conditions.
     """
 
-    special_params = ["expanded", "__expanded", "__dict__"]
+    # ignore this variable during serialization
+    _instance_meta: Dict[str, ParamMeta] = PrivateAttr(default_factory=dict)
 
-    def __init__(self):
-        self.__expanded = False
+    _meta: MetaDescriptor = MetaDescriptor()
 
-    def __setattr__(self, key, value):
-        if key in self.params:
-            self.get(key).value = value
-        elif (
-            key
-            in [
-                f"_Configuration{special_param}"
-                for special_param in Configuration.special_params
-            ]
-            or key in Configuration.special_params
-        ):
-            super().__setattr__(key, value)
-        else:
-            raise AttributeError(f"Could not set non-existing parameter: {key}.")
+    _conditions: Dict[str, ConditionInfo] = {}
+    _expanded: bool = False
 
-    def __getattribute__(self, name):
-        attr = object.__getattribute__(self, name)
-        if isinstance(attr, Param):
-            return attr.value
-        return attr
+    model_config = ConfigDict(validate_default=True)
 
-    def __str__(self) -> str:
-        return str(self.to_dict())
+    def model_post_init(self, __context: Any) -> None:
+        """Runs automatically right after Pydantic instantiates an object."""
+        instance_map = {}
+        for field_name, field_info in self.fields.items():
+            extra = field_info.json_schema_extra or ParamMeta(tags=set(), variants=[])
+            instance_map[field_name] = copy.deepcopy(extra)
 
-    def __eq__(self, other: C):
-        if self.params.keys() != other.params.keys():
-            return False
+        # Safely assign to our private attribute using object.__setattr__
+        object.__setattr__(self, "_instance_meta", instance_map)
 
-        for param_name, param in self.params.items():
-            if param.value != other.get(param_name).value:
-                return False
+    @classmethod
+    def __pydantic_init_subclass__(cls, **kwargs: Any) -> None:
+        super().__pydantic_init_subclass__(**kwargs)
 
-        return True
+        for field_name, field_info in cls.model_fields.items():
+            if field_info.json_schema_extra is None:
+                field_info.json_schema_extra = ParamMeta(tags=set(), variants=[])
+
+    # TODO: add pytest
+    @model_validator(mode="after")
+    def validate_variants(self) -> C:
+        for field_name, field_info in self.fields.items():
+            field_variants = self.meta[field_name].variants
+            if field_variants:
+                default_value = field_info.default
+                if default_value in field_variants:
+                    raise ValueError(
+                        f"Default value '{default_value}' for field '{field_name}' "
+                        f"is also reported in variants. This is not allowed."
+                    )
+        return self
+
+    def model_copy(
+        self, *, update: Mapping[str, Any] | None = None, deep: bool = False
+    ) -> Self:
+        config_copy = super().model_copy(update=update, deep=deep)
+        self.model_validate(config_copy.model_dump())
+        return config_copy
+
+    def is_dependency(self, field_name: str, field: FieldInfo) -> bool:
+        field_value = getattr(self, field_name)
+        annotation = field.annotation
+        args = typing.get_args(annotation)
+        actual_type = args[0] if args else annotation
+        return (
+            isinstance(field_value, cinnamon.registry.RegistrationKey)
+            or isinstance(field_value, Configuration)
+            or actual_type is cinnamon.registry.RegistrationKey
+            or actual_type is Configuration
+        )
 
     @property
     def expanded(self) -> bool:
-        return self.__expanded
+        return self._expanded
 
     @expanded.setter
-    def expanded(self, value: bool):
-        self.__expanded = value
+    def expanded(self, expanded: bool) -> None:
+        self._expanded = expanded
 
     @property
-    def conditions(self) -> Dict[str, P]:
-        return {
-            key: param
-            for key, param in self.__dict__.items()
-            if isinstance(param, Param) and "condition" in param.tags
-        }
+    def meta(self):
+        return self._meta
 
     @property
-    def params(self) -> Dict[str, P]:
-        return {
-            key: param
-            for key, param in self.__dict__.items()
-            if isinstance(param, Param)
-            and param.tags.intersection({"condition"}) == set()
-            and key not in Configuration.special_params
-        }
+    def fields(self) -> Dict[str, FieldInfo]:
+        return self.__class__.model_fields
 
     @property
-    def values(self) -> Dict[str, Any]:
-        return {
-            key: param.value
-            for key, param in self.__dict__.items()
-            if isinstance(param, Param)
-            and param.tags.intersection({"condition"}) == set()
-            and key not in Configuration.special_params
-        }
-
-    @property
-    def dependencies(self) -> Dict[str, P]:
-        return {
-            param_key: param
-            for param_key, param in self.params.items()
-            if param.is_dependency
-        }
-
-    def get(self, name: str, default: Any = None) -> Optional[P]:
-        try:
-            return self.__dict__[name]
-        except KeyError:
-            return default
-
-    def add(
+    def dependencies(
         self,
-        name: str,
-        value: Optional[Any] = None,
-        type_hint: Optional[Type] = None,
-        description: Optional[str] = None,
-        tags: Optional[Set[str]] = None,
-        allowed_range: Optional[Callable[[Any], bool]] = None,
-        is_required: bool = True,
-        variants: Optional[List] = None,
-    ):
-        """
-        Adds a Parameter to the Configuration.
-        By default, Parameter's default conditions are added as well.
-
-        Args:
-            name: unique identifier of the Parameter
-            value: value of the Parameter
-            type_hint: the type hint annotation of ``value``
-            description: a description of the ``Parameter`` for readability purposes
-            tags: a set of string tags to mark the ``Parameter`` instance with metadata.
-            allowed_range: allowed range of values for ``value``
-            is_required: if True, ``value`` cannot be None
-            variants: set of variant values of ``value`` of interest
-
-        Raises:
-            ``AlreadyExistingParameterException``: if the provided `name`
-              already exists in the Configuration instance.
-        """
-        if name in self.__dict__:
-            raise AlreadyExistingParameterException(param=self.get(name))
-
-        if name in Configuration.special_params:
-            raise NotAllowedParameterException(param=self.get(name))
-
-        self.__dict__[name] = Param(
-            name=name,
-            value=value,
-            type_hint=type_hint,
-            description=description,
-            tags=tags,
-            allowed_range=allowed_range,
-            is_required=is_required,
-            variants=variants,
-        )
-
-        if is_required:
-            self.add_condition(
-                name=f"{name}_is_required",
-                condition=partial(is_required_cond, name=name),
-            )
-
-        if allowed_range is not None:
-            self.add_condition(
-                name=f"{name}_allowed_range",
-                condition=partial(allowed_range_cond, name=name),
-                description=f"Checks if {name} is in allowed range.",
-            )
+    ) -> Dict[str, cinnamon.registry.RegistrationKey | Configuration]:
+        return {
+            field_name: getattr(self, field_name)
+            for field_name, field in self.fields.items()
+            if self.is_dependency(field_name=field_name, field=field)
+        }
 
     def add_condition(
         self,
@@ -302,21 +242,16 @@ class Configuration:
             ``AlreadyExistingParameterException``: if the provided `name`
              already exists in the Configuration instance.
         """
+        if name in self._conditions:
+            raise RuntimeWarning(
+                "Condition with name {name} already exists! Overwriting..."
+            )
 
-        tags = set() if tags is None else tags
-        tags.add("condition")
-
-        condition_name = f"cond_{name}" if not name.startswith("cond_") else name
-
-        self.add(
-            name=condition_name,
-            value=condition,
-            description=description,
-            tags=tags,
-            is_required=False,
+        self._conditions[name] = ConditionInfo(
+            condition=condition, description=description, tags=tags
         )
 
-    def validate(self, strict: bool = True) -> ValidationResult:
+    def validate_conditions(self, strict: bool = True) -> ValidationResult:
         """
         Validates all provided conditions related to the ``Configuration`` instance.
 
@@ -334,13 +269,13 @@ class Configuration:
         """
 
         for dependency_name, dependency in self.dependencies.items():
-            if isinstance(dependency.value, Configuration):
-                child_validation = dependency.value.validate(strict=strict)
+            if isinstance(dependency, Configuration):
+                child_validation = dependency.validate_conditions(strict=strict)
                 if not child_validation.passed:
                     return child_validation
 
-        for condition_name, condition in self.conditions.items():
-            if not condition.value(self):
+        for condition_name, condition_info in self._conditions.items():
+            if not condition_info.condition(self):
                 validation_result = ValidationResult(
                     passed=False,
                     error_message=f"Condition {condition_name} failed!",
@@ -355,46 +290,6 @@ class Configuration:
 
         return ValidationResult(passed=True, source=self.__class__.__name__)
 
-    def delta_copy(self: type[C], **kwargs) -> C:
-        """
-        Gets a delta copy of current ``Configuration``, including conditions.
-
-        Returns:
-            A delta copy of current ``Configuration``.
-        """
-        copy: C = type(self)()
-
-        # Flat params
-        for param_name, param in self.params.items():
-            if param_name in kwargs:
-                value = deepcopy(kwargs[param_name])
-                kwargs.pop(param_name)
-            else:
-                value = deepcopy(param.value)
-
-            copy.add(
-                name=param_name,
-                value=value,
-                type_hint=param.type_hint,
-                description=param.description,
-                is_required=param.is_required,
-                tags=param.tags,
-                variants=param.variants,
-                allowed_range=param.allowed_range,
-            )
-
-        # Custom conditions
-        for name, condition in self.conditions.items():
-            if name not in copy.conditions:
-                copy.add_condition(
-                    name=name,
-                    condition=deepcopy(condition.value),
-                    description=condition.description,
-                    tags=condition.tags,
-                )
-
-        return copy
-
     @classmethod
     def default(cls: Type[C]) -> C:
         """
@@ -405,193 +300,67 @@ class Configuration:
         """
         return cls()
 
-    def to_dict(self) -> Dict[str, Any]:
-        """
-        Returns all ``Configuration`` parameters in key:value format.
-        The method supports nesting so that dependencies parameters are
-         retrieved iteratively.
-
-        Returns:
-            JSON normalized dict where keys are parameters names and values are their
-             corresponding values.
-        """
-
-        value_dict = {}
-        for param_name, param in self.params.items():
-            if isinstance(param.value, Configuration):
-                value_dict[param_name] = param.value.to_dict()
-            else:
-                value_dict[param_name] = param.value
-
-        if not len(value_dict):
-            return value_dict
-
-        return value_dict
-
     @property
     def has_variants(self) -> bool:
-        for param_key, param in self.params.items():
-            if len(param.variants):
+        for field_name, field_info in self.fields.items():
+            if len(self.meta[field_name].variants):
                 return True
         return False
 
     @property
     def has_at_least_two_variants(self) -> bool:
-        params_with_variants = 0
-        for param_key, param in self.params.items():
-            if len(param.variants):
-                params_with_variants += 1
-            if params_with_variants >= 2:
+        field_with_variants = 0
+        for field_name, field_info in self.fields.items():
+            if len(self.meta[field_name].variants):
+                field_with_variants += 1
+            if field_with_variants >= 2:
                 return True
         return False
 
     @property
     def variants(
         self,
-    ) -> Tuple[List[Dict[str, Any]], List[Dict[str, int]]]:
+    ) -> List[Dict[str, Dict[str, Any]]]:
         """
-        Gets all possible ``Configuration`` variant combinations
-         of current ``Configuration`` instance based on specified variants.
-
-        Returns:
-            value_combinations: A List of all possible key:value dict combinations
-             of parameters that have variants.
-            index_combinations: A List of all possible key:index dict combinations
-             of parameters that have variants. Indexes refer to variant index
-              in variants list.
+        Computes all unique combinations of a configuration's fields along
+         with their indices.
+        The baseline/default value always gets index 0.
+        Subsequent unique variants get an increasing index (1, 2, ...).
         """
+        field_choices = {}
 
         if not self.has_variants:
-            return [], []
+            return []
 
-        parameters = {}
-        params_with_variants = []
-        for param_key, param in self.params.items():
-            # Always add param.value to account for all possible combinations
-            if self.has_at_least_two_variants:
-                parameters.setdefault(param_key, [param.value])
+        for field_name in self.fields.keys():
+            current_value = getattr(self, field_name)
+            variants = self.meta[field_name].variants or []
 
-            if param.variants is not None and len(param.variants):
-                parameters.setdefault(param_key, []).extend(param.variants)
-                params_with_variants.append(param_key)
+            field_choices[field_name] = [
+                (item, idx + 1) for idx, item in enumerate(variants)
+            ]
 
-        value_combinations, index_combinations = get_dict_values_combinations(
-            params_dict=parameters
-        )
-        value_combinations = [
-            {key: value for key, value in comb.items() if key in params_with_variants}
-            for comb in value_combinations
-        ]
-        index_combinations = [
-            {key: value for key, value in comb.items() if key in params_with_variants}
-            for comb in index_combinations
-        ]
-        return value_combinations, index_combinations
+            if len(self.fields) > 1:
+                field_choices[field_name].insert(0, (current_value, 0))
 
-    def show(
-        self,
-    ):
-        """
-        Displays ``Configuration`` parameters.
-        """
-        logger.info(f"Displaying {self.__class__.__name__} parameters...")
-        to_show = pd.json_normalize(self.to_dict()).to_dict(orient="records")
-        if len(to_show):
-            to_show = to_show[0]
+        # Unpack keys and their list of (value, index) tuples
+        keys = list(field_choices.keys())
+        value_lists = list(field_choices.values())
 
-        parameters_repr = os.linesep.join(
-            [f"{key}: {value}" for key, value in to_show.items()]
-        )
-        logger.info(parameters_repr)
+        combinations = []
+        # ((val_x, idx_x), (val_y, idx_y), ...)
+        for combination_tuple in itertools.product(*value_lists):
+            combo_values = {}
+            combo_indexes = {}
 
-    def _search(
-        self, conditions: List[Callable[[Any], bool]], buffer: Dict[str, Any]
-    ) -> List[Any]:
-        return [
-            value
-            for key, value in buffer.items()
-            if all([condition(value) for condition in conditions])
-        ]
+            for key, (val, idx) in zip(keys, combination_tuple):
+                combo_values[key] = val
+                combo_indexes[key] = idx
 
-    def search_param_by_tag(
-        self, tags: Union[Tags, str], exact_match: bool = True
-    ) -> List[Param]:
-        """
-        Searches for all ``Param`` that match specified tags set.
+            # exclude default configuration
+            if sum(list(combo_indexes.values())) == 0:
+                continue
 
-        Args:
-            tags: a set of string tags to look for
-            exact_match: if True, only the ``Param`` with ``Param.tags``
-             that exactly match ``tags`` will be returned
+            combinations.append({"values": combo_values, "indexes": combo_indexes})
 
-        Returns:
-            A dictionary with ``Param.name`` as keys and ``Param`` as values
-        """
-
-        if tags is not None and isinstance(tags, str):
-            tags = {tags}
-
-        return self._search(
-            buffer=self.params,
-            conditions=[
-                lambda p: (
-                    (p.tags == tags and exact_match)
-                    or (not exact_match and p.tags.intersection(tags) == tags)
-                )
-            ],
-        )
-
-    def search_param(self, conditions: List[Callable[[P], bool]]) -> List[Param]:
-        """
-        Performs a custom ``Param`` search by given conditions.
-
-        Args:
-            conditions: list of callable filter functions
-
-        Returns:
-            A dictionary with ``Param.name`` as keys and ``Param`` as values
-        """
-        return self._search(conditions=conditions, buffer=self.params)
-
-    def search_condition_by_tag(
-        self, tags: Union[Tags, str], exact_match: bool = True
-    ) -> List[Param]:
-        """
-        Searches for all ``Param`` that match specified tags set.
-
-        Args:
-            tags: a set of string tags to look for
-            exact_match: if True, only the ``Param`` with ``Param.tags``
-             that exactly match ``tags`` will be returned
-
-        Returns:
-            A dictionary with ``Param.name`` as keys and ``Param`` as values
-        """
-
-        if tags is not None and isinstance(tags, str):
-            tags = {tags}
-
-        return self._search(
-            buffer=self.conditions,
-            conditions=[
-                lambda p: (
-                    (p.tags == tags and exact_match)
-                    or (not exact_match and p.tags.intersection(tags) == tags)
-                )
-            ],
-        )
-
-    def search_condition(
-        self, conditions: List[Callable[[Condition], bool]]
-    ) -> List[Param]:
-        """
-        Performs a custom condition search by given conditions.
-
-        Args:
-            conditions: list of callable filter functions
-
-        Returns:
-            A dictionary with ``Param.name`` as keys and ``Param``
-             as values corresponding to conditions.
-        """
-        return self._search(conditions=conditions, buffer=self.conditions)
+        return combinations

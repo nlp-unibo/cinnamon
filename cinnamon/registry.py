@@ -12,6 +12,9 @@ from pathlib import Path
 from typing import Any, AnyStr, Callable, Dict, List, Optional, Set, Tuple, Union
 
 import networkx as nx
+import pydantic
+from pydantic import GetCoreSchemaHandler
+from pydantic_core import CoreSchema, core_schema
 
 import cinnamon.component
 import cinnamon.configuration
@@ -95,6 +98,17 @@ class RegistrationKey:
         self.special_tags = special_tags if special_tags is not None else set()
         self.resolve_automatically = resolve_automatically
 
+    # TODO: check other schema (e.g., string)
+    @classmethod
+    def __get_pydantic_core_schema__(
+        cls, source_type: Any, handler: GetCoreSchemaHandler
+    ) -> CoreSchema:
+
+        # This tells Pydantic: "If the input is already a RegistrationKey, accept it."
+        # You can chain this with other schemas if you want to allow users
+        # to pass a dictionary that auto-converts to a RegistrationKey.
+        return core_schema.is_instance_schema(cls)
+
     def __hash__(self) -> int:
         return hash(self.__str__())
 
@@ -162,7 +176,7 @@ class RegistrationKey:
         if isinstance(param_value, tuple(TAGGABLE_TYPES)):
             sanitized_tag = f"{param_name}{self.KEY_VALUE_SEPARATOR}{param_value}"
         else:
-            variant_value = f"variant-{param_index + 1}"
+            variant_value = f"variant-{param_index}"
             sanitized_tag = f"{param_name}{self.KEY_VALUE_SEPARATOR}{variant_value}"
 
         return sanitized_tag
@@ -171,21 +185,27 @@ class RegistrationKey:
         self, variant_kwargs: Dict[str, Any], variant_indexes: Dict[str, int] = None
     ) -> RegistrationKey:
         variant_tags = []
+        variant_indexes = (
+            {key: 1 for key in variant_kwargs}
+            if variant_indexes is None
+            else variant_indexes
+        )
         for param_name, variant_value in variant_kwargs.items():
-            if not isinstance(variant_value, RegistrationKey):
-                variant_tags.append(
-                    self.sanitize_variant_tag(
-                        param_name=param_name,
-                        param_index=variant_indexes[param_name]
-                        if variant_indexes is not None
-                        else 1,
-                        param_value=variant_value,
-                    )
-                )
-            else:
+            if variant_indexes[param_name] == 0:
+                continue
+
+            if isinstance(variant_value, RegistrationKey):
                 # The recursive approach of dag resolution ensures tag hierarchy
                 for tag in variant_value.tags:
                     variant_tags.append(f"{param_name}{self.HIERARCHY_SEPARATOR}{tag}")
+            else:
+                variant_tags.append(
+                    self.sanitize_variant_tag(
+                        param_name=param_name,
+                        param_index=variant_indexes[param_name],
+                        param_value=variant_value,
+                    )
+                )
 
         return RegistrationKey(
             name=self.name,
@@ -449,7 +469,7 @@ class Registry:
     _MODULE_MAPPING: Dict[str, str]
     _EXP_NAMESPACES: List[str]
 
-    REGISTRATION_METHODS: Dict[str, Callable]
+    REGISTRATION_METHODS: Dict[str, Callable | BufferedRegistration]
     REGISTRATION_CONTEXT: RegistrationContext
 
     @classmethod
@@ -655,7 +675,8 @@ class Registry:
                 )
 
                 if spec is None:
-                    logging.error(f"Could not load {python_script}. Skipping...")
+                    logging.error(f"Could not load {python_script}.")
+                    raise RuntimeError(f"Could not load {python_script}.")
 
                 # import module and run registration methods
                 current_keys = set(cls.REGISTRATION_METHODS.keys())
@@ -725,7 +746,7 @@ class Registry:
         Checks if the dependency DAG is valid.
 
         Raises:
-           ``AlreadyExpandedException``: if the dependency DAG has already been expanded.
+           ``AlreadyExpandedException``: if the dependency DAG has been expanded.
 
            ``NotADAGException``: if the dependency DAG is not a DAG.
 
@@ -808,17 +829,17 @@ class Registry:
 
             # if dependency returns multiple keys, we keep the first as the main one
             # and the rest is moved to variants
-            if dependency.value is not None and isinstance(
-                dependency.value, RegistrationKey
-            ):
+            if dependency is not None and isinstance(dependency, RegistrationKey):
                 dependency_keys = Registry.expand_configuration(
-                    key=dependency.value,
+                    key=dependency,
                     valid_key_buffer=valid_key_buffer,
                     invalid_key_buffer=invalid_key_buffer,
                 )
-                dependency_variants = dependency_variants.union(dependency_keys)
+                dependency_variants = dependency_variants.union(
+                    dependency_keys
+                ).difference({dependency})
 
-            for key_variant in dependency.variants:
+            for key_variant in config.meta[dependency_name].variants:
                 if key_variant is not None and isinstance(key_variant, RegistrationKey):
                     dependency_variants = dependency_variants.union(
                         Registry.expand_configuration(
@@ -828,18 +849,26 @@ class Registry:
                         )
                     )
 
-            config.get(dependency_name).variants = list(dependency_variants)
+            config.meta[dependency_name].variants = list(dependency_variants)
 
         # variants
-        for variant_kwargs, variant_indexes in zip(*config.variants):
+        for variant_info in config.variants:
             variant_key = key.from_variant(
-                variant_kwargs=variant_kwargs, variant_indexes=variant_indexes
+                variant_kwargs=variant_info['values'],
+                variant_indexes=variant_info['indexes']
             )
-            variant_config = config.delta_copy(**variant_kwargs)
 
             if not cls.in_graph(variant_key):
                 cls._DEPENDENCY_DAG.add_node(variant_key)
             cls._DEPENDENCY_DAG.add_edge(key, variant_key, type="variant")
+
+            try:
+                variant_config = config.model_copy(update=variant_info['values'],
+                                                   deep=True)
+            except pydantic.ValidationError as validation_result:
+                variant_key.metadata = repr(validation_result)
+                invalid_key_buffer.add(variant_key)
+                continue
 
             if not Registry.in_registry(variant_key):
                 cls.register_configuration(
@@ -857,12 +886,12 @@ class Registry:
             # Otherwise, we risk in registering keys that are invalid as valid
             if not variant_key.resolve_automatically:
                 resolved_config = Registry.resolve_configuration(
-                    config=variant_config.delta_copy()
+                    config=variant_config.model_copy(deep=True)
                 )
-                validation_result = resolved_config.validate(strict=False)
+                validation_result = resolved_config.validate_conditions(strict=False)
             else:
                 variant_config = Registry.resolve_configuration(config=variant_config)
-                validation_result = variant_config.validate(strict=False)
+                validation_result = variant_config.validate_conditions(strict=False)
 
             if validation_result.passed:
                 keys.add(variant_key)
@@ -872,11 +901,13 @@ class Registry:
                 invalid_key_buffer.add(variant_key)
 
         if not key.resolve_automatically:
-            resolved_config = Registry.resolve_configuration(config=config.delta_copy())
-            validation_result = resolved_config.validate(strict=False)
+            resolved_config = Registry.resolve_configuration(
+                config=config.model_copy(deep=True)
+            )
+            validation_result = resolved_config.validate_conditions(strict=False)
         else:
             config = Registry.resolve_configuration(config=config)
-            validation_result = config.validate(strict=False)
+            validation_result = config.validate_conditions(strict=False)
 
         if validation_result.passed:
             valid_key_buffer.add(key)
@@ -942,7 +973,7 @@ class Registry:
         if config_info.component is None:
             raise NotBoundException(registration_key=registration_key)
 
-        component_args = {**config.values, **build_args}
+        component_args = {**config.fields, **build_args}
         component_class = import_class_from_string(config_info.component)
         component = component_class(**component_args)
 
@@ -1016,13 +1047,22 @@ class Registry:
 
         # include dependencies
         for dependency_name, dependency in config.dependencies.items():
-            dependency_key = dependency.value
+            dependency_param = config.fields[dependency_name]
+            assert isinstance(dependency, RegistrationKey)
+
+            dependency_key = dependency
+            dependency_variants: list[RegistrationKey] = config.meta[
+                dependency_name
+            ].variants
             dependencies = (
-                [dependency_key] + dependency.variants
+                [dependency_key] + dependency_variants
                 if dependency_key is not None
-                else dependency.variants
+                else dependency_variants
             )
             for dep in dependencies:
+                if not isinstance(dep, RegistrationKey):
+                    continue
+
                 if not cls.in_graph(dep):
                     cls._DEPENDENCY_DAG.add_node(dep)
 
@@ -1043,18 +1083,16 @@ class Registry:
         cls, config: cinnamon.configuration.Configuration
     ) -> cinnamon.configuration.Configuration:
         for dependency_name, dependency in config.dependencies.items():
-            if dependency.value is not None and isinstance(
-                dependency.value, RegistrationKey
-            ):
+            if dependency is not None and isinstance(dependency, RegistrationKey):
                 dependency.value = Registry.retrieve_configuration(
-                    registration_key=dependency.value
+                    registration_key=dependency
                 )
 
-            dependency.variants = [
+            config.meta[dependency_name].variants = [
                 Registry.retrieve_configuration(registration_key=variant_key)
                 if isinstance(variant_key, RegistrationKey)
                 else variant_key
-                for variant_key in dependency.variants
+                for variant_key in config.meta[dependency_name].variants
             ]
 
         return config
@@ -1098,7 +1136,7 @@ class Registry:
         name: Optional[str] = None,
         namespace: Optional[str] = None,
         tags: Tags = None,
-    ) -> cinnamon.configuration.Configuration:
+    ) -> cinnamon.configuration.C:
         """
             Retrieves a ``Configuration`` instance from the registry
              via its ``RegistrationKey``.
@@ -1151,7 +1189,7 @@ class Registry:
         keys: List[RegistrationKey] = None,
     ) -> List[RegistrationKey]:
         """
-        Retrieves ``RegistrationKey`` from registry via given name, tags, namespaces filters.
+        Retrieves ``RegistrationKey`` via given name, tags, namespaces filters.
         The search can be limited to a fixed set of keys, optionally given in input.
 
         Args:
