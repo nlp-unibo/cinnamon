@@ -92,7 +92,7 @@ def test_build_component_with_child(reset_registry):
     parent_component = ComponentWithChild.instantiate(registration_key=parent_key)
 
     assert isinstance(parent_component.c1, ChildConfig)
-    assert parent_component.c1.y is None
+    assert parent_component.c1.y is False
 
 
 def test_build_component_with_child_variants(reset_registry):
@@ -116,9 +116,9 @@ def test_build_component_with_child_variants(reset_registry):
 
     parent_component = ComponentWithChild.instantiate(registration_key=parent_key)
     assert isinstance(parent_component.c1, ChildConfig)
-    assert parent_component.c1.y is None
+    assert parent_component.c1.y is False
 
-    variant_parent_config = Registry.retrieve_configuration(
+    variant_parent_config = ConfigWithChild.retrieve(
         registration_key=parent_key.from_variant(
             {"c1": child_key.from_variant({"y": True})}
         )

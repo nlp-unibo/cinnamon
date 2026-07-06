@@ -973,7 +973,7 @@ class Registry:
         if config_info.component is None:
             raise NotBoundException(registration_key=registration_key)
 
-        component_args = {**config.fields, **build_args}
+        component_args = {**config.values, **build_args}
         component_class = import_class_from_string(config_info.component)
         component = component_class(**component_args)
 
@@ -1084,9 +1084,10 @@ class Registry:
     ) -> cinnamon.configuration.Configuration:
         for dependency_name, dependency in config.dependencies.items():
             if dependency is not None and isinstance(dependency, RegistrationKey):
-                dependency.value = Registry.retrieve_configuration(
+                dependency = Registry.retrieve_configuration(
                     registration_key=dependency
                 )
+                setattr(config, dependency_name, dependency)
 
             config.meta[dependency_name].variants = [
                 Registry.retrieve_configuration(registration_key=variant_key)

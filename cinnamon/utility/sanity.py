@@ -9,6 +9,8 @@ from typing import List, Union
 
 logger = getLogger(__name__)
 
+__all__ = ["check_directory", "check_external_json_path", "time_it"]
+
 
 def check_directory(directory_path: Union[Path, str] = None) -> Path:
     directory_path = (
@@ -43,23 +45,6 @@ def check_external_json_path(jsonpath: Union[Path, str]) -> List[Path]:
         data = json.load(f)
 
     return data
-
-
-def is_required_cond(config: "cinnamon.configuration.Configuration", name: str) -> bool:  # noqa: F821
-    return config.get(name).value is not None
-
-
-def allowed_range_cond(
-    config: "cinnamon.configuration.Configuration",  # noqa: F821
-    name: str,
-) -> bool:
-    found_param = config.get(name)
-
-    if found_param.value is not None and not found_param.allowed_range(
-        found_param.value
-    ):
-        return False
-    return True
 
 
 def time_it(func):

@@ -19,7 +19,6 @@ from tests.fixtures import (
     ConfigWithVariants,
     CustomRunnableComponent,
     IntermediateWithChild,
-    InvalidConfig,
     InvalidVariantConfig,
     LeafWithVariants,
     ParentWithVariantsAndChild,
@@ -368,22 +367,8 @@ def test_resolution_config_with_child_and_param_variants(reset_registry):
         )
         in valid_keys
     )
-    assert (
-        parent_key.from_variant(
-            variant_kwargs={
-                "x": 2
-            }
-        )
-        in valid_keys
-    )
-    assert (
-        parent_key.from_variant(
-            variant_kwargs={
-                "x": 3
-            }
-        )
-        in valid_keys
-    )
+    assert parent_key.from_variant(variant_kwargs={"x": 2}) in valid_keys
+    assert parent_key.from_variant(variant_kwargs={"x": 3}) in valid_keys
     assert (
         parent_key.from_variant(
             variant_kwargs={
@@ -441,7 +426,7 @@ def test_resolution_where_key_is_shared_in_more_than_one_path(reset_registry):
     )
     valid_keys, invalid_keys = Registry.dag_resolution()
     assert len(valid_keys) == 5
-    assert len(invalid_keys) == 4
+    assert len(invalid_keys) == 0
 
 
 def test_resolution_where_key_with_variants_is_shared_in_more_than_one_path(
@@ -461,7 +446,7 @@ def test_resolution_where_key_with_variants_is_shared_in_more_than_one_path(
     )
     valid_keys, invalid_keys = Registry.dag_resolution()
     assert len(valid_keys) == 9
-    assert len(invalid_keys) == 4
+    assert len(invalid_keys) == 0
 
 
 def test_hierarchy_with_conflicting_parameters(reset_registry):
@@ -493,8 +478,8 @@ def test_hierarchy_with_conflicting_parameters_and_custom_constructor(reset_regi
     valid_keys, invalid_keys = Registry.dag_resolution()
     assert len(valid_keys) == 8
 
-    parent = Registry.retrieve_configuration(
-        name="parent", namespace="testing", tags={"x=1", "child.child.x=1"}
+    parent: ParentWithVariantsAndChild = Registry.retrieve_configuration(
+        name="parent", namespace="testing"
     )
     assert parent.child.canarin == 10
 
@@ -567,13 +552,11 @@ def test_retrieve_keys_with_all_conditions(reset_registry):
 
 
 def test_dag_resolution_resolve_automatically_false(reset_registry):
-    config = Configuration.default()
-    config.add(
-        name="c1", value=RegistrationKey(name="intermediate", namespace="testing")
-    )
-
     Registry.register_configuration(
-        config=config, name="config", namespace="testing", resolve_automatically=False
+        config=ParentWithVariantsAndChild.default(),
+        name="config",
+        namespace="testing",
+        resolve_automatically=False,
     )
     Registry.register_configuration(
         config=Configuration.default(), name="intermediate", namespace="testing"
@@ -581,19 +564,16 @@ def test_dag_resolution_resolve_automatically_false(reset_registry):
 
     Registry.dag_resolution()
 
-    retrieved = Registry.retrieve_configuration(name="config", namespace="testing")
-    assert isinstance(retrieved.c1, RegistrationKey)
+    retrieved = ParentWithVariantsAndChild.retrieve(name="config", namespace="testing")
+    assert isinstance(retrieved.child, RegistrationKey)
 
 
 def test_dag_resolution_resolve_automatically_false_with_variants(reset_registry):
-    config = Configuration.default()
-    config.add(name="x", variants=[1, 2])
-    config.add(
-        name="c1", value=RegistrationKey(name="intermediate", namespace="testing")
-    )
-
     Registry.register_configuration(
-        config=config, name="config", namespace="testing", resolve_automatically=False
+        config=ParentWithVariantsAndChild.default(),
+        name="config",
+        namespace="testing",
+        resolve_automatically=False,
     )
     Registry.register_configuration(
         config=Configuration.default(), name="intermediate", namespace="testing"
@@ -601,44 +581,39 @@ def test_dag_resolution_resolve_automatically_false_with_variants(reset_registry
 
     Registry.dag_resolution()
 
-    retrieved = Registry.retrieve_configuration(name="config", namespace="testing")
-    assert isinstance(retrieved.c1, RegistrationKey)
+    retrieved = ParentWithVariantsAndChild.retrieve(name="config", namespace="testing")
+    assert isinstance(retrieved.child, RegistrationKey)
 
-    variant = Registry.retrieve_configuration(
-        name="config", tags={"x=1"}, namespace="testing"
+    variant = ParentWithVariantsAndChild.retrieve(
+        name="config", tags={"x=2"}, namespace="testing"
     )
-    assert isinstance(variant.c1, RegistrationKey)
+    assert isinstance(variant.child, RegistrationKey)
 
 
 def test_dag_resolution_resolve_automatically_false_with_invalid_variants(
     reset_registry,
 ):
-    config = Configuration.default()
-    config.add(name="x", variants=[1, 2])
-    config.add(
-        name="c1", value=RegistrationKey(name="intermediate", namespace="testing")
-    )
-
-    child_config = Configuration.default()
-    child_config.add(name="y", variants=["a", "b"])
+    config = ParentWithVariantsAndChild.default()
+    config.meta.x.variants = [2, 3]
+    config.add_condition(name="invalidate_variant", condition=lambda c: c.x <= 2)
 
     Registry.register_configuration(
         config=config, name="config", namespace="testing", resolve_automatically=False
     )
     Registry.register_configuration(
-        config=child_config, name="intermediate", namespace="testing"
+        config=LeafWithVariants.default(), name="intermediate", namespace="testing"
     )
 
     valid_keys, invalid_keys = Registry.dag_resolution()
     assert len(valid_keys) == 6
 
-    retrieved = Registry.retrieve_configuration(name="config", namespace="testing")
-    assert isinstance(retrieved.c1, RegistrationKey)
+    retrieved = ParentWithVariantsAndChild.retrieve(name="config", namespace="testing")
+    assert isinstance(retrieved.child, RegistrationKey)
 
-    variant = Registry.retrieve_configuration(
-        name="config", tags={"x=1"}, namespace="testing"
+    variant = ParentWithVariantsAndChild.retrieve(
+        name="config", tags={"x=2"}, namespace="testing"
     )
-    assert isinstance(variant.c1, RegistrationKey)
+    assert isinstance(variant.child, RegistrationKey)
 
 
 def test_register_and_bind_runnable_component(reset_registry):
@@ -681,6 +656,7 @@ def test_retrieve_custom_runnable_component(reset_registry):
     config_info = Registry.retrieve_configuration_info(registration_key=key)
     component = CustomRunnableComponent.instantiate(registration_key=key)
 
+    assert config_info.run_method is not None
     assert hasattr(component, config_info.run_method)
     assert (
         getattr(component, config_info.run_method)()

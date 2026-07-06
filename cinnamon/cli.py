@@ -129,7 +129,7 @@ def run():
     keys = Registry.retrieve_runnable_keys()
 
     if not len(keys):
-        logger.info(f"Could not find any registered runnable component. Aborting...")
+        logger.info("Could not find any registered runnable component. Aborting...")
         return
 
     filtered_keys = []
@@ -214,7 +214,7 @@ def generate():
     )
 
     if not len(valid_keys):
-        logger.info(f"Could not find any registered runnable component. Aborting...")
+        logger.info("Could not find any registered runnable component. Aborting...")
         return
 
     filtered_keys = []

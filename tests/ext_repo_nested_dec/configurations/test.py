@@ -19,5 +19,4 @@ class MockConfiguration(Configuration):
         component="cinnamon.component.Component",
     )
     def default(cls: Type[C]) -> C:
-        config = super().default()
-        return config
+        return cls()

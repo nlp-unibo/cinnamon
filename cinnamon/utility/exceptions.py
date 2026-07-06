@@ -4,8 +4,6 @@ from pathlib import Path
 from typing import AnyStr, List, Optional, Union
 
 __all__ = [
-    "AlreadyExistingParameterException",
-    "NotAllowedParameterException",
     "AlreadyRegisteredException",
     "NamespaceNotFoundException",
     "NotRegisteredException",
@@ -18,20 +16,6 @@ __all__ = [
     "ValidationResult",
     "ValidationFailureException",
 ]
-
-
-class AlreadyExistingParameterException(Exception):
-    def __init__(self, param: "cinnamon.configuration.Param"):  # noqa: F821
-        super().__init__(
-            f"Parameter {param.name} already exists! {os.linesep}Parameter: {param}"
-        )
-
-
-class NotAllowedParameterException(Exception):
-    def __init__(self, param: "cinnamon.configuration.Param"):  # noqa: F821
-        super().__init__(
-            f"Parameter {param.name} is not allowed! {os.linesep}Parameter: {param}"
-        )
 
 
 class AlreadyRegisteredException(Exception):

@@ -66,8 +66,8 @@ def test_variants():
     v_combinations = config.variants
     assert len(v_combinations) == 8
     for comb in v_combinations:
-        alt_config = config.model_copy(update=comb)
-        for key, value in comb.items():
+        alt_config = config.model_copy(update=comb['values'])
+        for key, value in comb['values'].items():
             assert getattr(alt_config, key) == value
 
 

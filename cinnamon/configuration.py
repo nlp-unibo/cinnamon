@@ -13,7 +13,6 @@ from typing import (
     Mapping,
     Optional,
     Set,
-    Tuple,
     Type,
     TypeVar,
 )
@@ -22,16 +21,14 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
-    GetCoreSchemaHandler,
     PrivateAttr,
     model_validator,
 )
 from pydantic.fields import FieldInfo
-from pydantic_core import CoreSchema, PydanticUndefined, core_schema
+from pydantic_core import PydanticUndefined
 from typing_extensions import Self
 
 import cinnamon.registry
-from cinnamon.utility.configuration import get_dict_values_combinations
 from cinnamon.utility.exceptions import (
     ValidationFailureException,
     ValidationResult,
@@ -155,6 +152,46 @@ class Configuration(BaseModel):
         object.__setattr__(self, "_instance_meta", instance_map)
 
     @classmethod
+    def retrieve(
+        cls: Type[C],
+        registration_key: Optional[cinnamon.registry.Registration] = None,
+        name: Optional[str] = None,
+        namespace: Optional[str] = None,
+        tags: cinnamon.configuration.Tags = None,
+    ) -> C:
+        """
+        Syntactic sugar for retrieving a `Configuration` from a
+         ``RegistrationKey`` in implicit format.
+
+        Args:
+            registration_key: the ``RegistrationKey`` used to register the
+             ``Configuration`` class.
+            name: the ``name`` field of ``RegistrationKey``
+            tags: the ``tags`` field of ``RegistrationKey``
+            namespace: the ``namespace`` field of ``RegistrationKey``
+
+        Returns:
+            A ``Configuration`` instance
+
+        Raises:
+            ``InvalidConfigurationTypeException``: if there's a mismatch
+             between the ``Configuration`` class used
+            during registration and the type of the built ``Configuration``
+             instance using the registered
+            ``constructor`` method (see ``ConfigurationInfo`` arguments).
+        """
+        config = cinnamon.registry.Registry.retrieve_configuration(
+            registration_key=registration_key, name=name, tags=tags, namespace=namespace
+        )
+        if not isinstance(config, cls):
+            raise RuntimeError(
+                f"The instantiated config is not an instance of {cls}."
+                f" Got {config.__class__.__name__}"
+            )
+
+        return config
+
+    @classmethod
     def __pydantic_init_subclass__(cls, **kwargs: Any) -> None:
         super().__pydantic_init_subclass__(**kwargs)
 
@@ -210,6 +247,13 @@ class Configuration(BaseModel):
     @property
     def fields(self) -> Dict[str, FieldInfo]:
         return self.__class__.model_fields
+
+    @property
+    def values(self) -> Dict[str, Any]:
+        return {
+            field_name: getattr(self, field_name)
+            for field_name, field in self.fields.items()
+        }
 
     @property
     def dependencies(
