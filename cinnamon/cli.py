@@ -1,10 +1,9 @@
 import argparse
+import json
 import logging
 import os
 import sys
 from logging import getLogger
-
-import pandas as pd
 
 from cinnamon.registry import Registry
 from cinnamon.utility.inquirer import filter_keys
@@ -60,24 +59,17 @@ def build():
     valid_keys, invalid_keys = Registry.build(
         directory=directory, external_directories=external_directories
     )
+    valid_keys = sorted(list(valid_keys), key=lambda key: key.name)
+    invalid_keys = sorted(list(invalid_keys), key=lambda key: key.name)
 
     registration_path = directory.joinpath("registrations")
     if not registration_path.exists():
         registration_path.mkdir(parents=True, exist_ok=True)
 
-    valid_df = pd.DataFrame(
-        [key.to_record() for key in valid_keys],
-        columns=["Name", "Tags", "Namespace", "Description", "Metadata"],
-    )
-    valid_df = valid_df.sort_values(by=["Name"])
-    invalid_df = pd.DataFrame(
-        [key.to_record() for key in invalid_keys],
-        columns=["Name", "Tags", "Namespace", "Description", "Metadata"],
-    )
-    invalid_df = invalid_df.sort_values(by=["Name"])
-
-    valid_df.to_csv(registration_path.joinpath("valid_keys.csv"), index=None)
-    invalid_df.to_csv(registration_path.joinpath("invalid_keys.csv"), index=None)
+    with registration_path.joinpath("valid_keys.json").open("w") as f:
+        json.dump(valid_keys, f)
+    with registration_path.joinpath("invalid_keys.json").open("w") as f:
+        json.dump(invalid_keys, f)
 
     logger.info("Valid registration keys:")
     for key in valid_keys:
@@ -150,19 +142,21 @@ def run():
         logger.info(f"Executing {key}")
 
         config_info = Registry.retrieve_configuration_info(registration_key=key)
-        config_info.config.show()
+        logger.info(config_info.config.model_dump())
 
         component = Registry.instantiate_component(registration_key=key)
 
-        # config_info.run_method is not None here
+        assert config_info.run_method is not None
         if hasattr(component, config_info.run_method):
             getattr(component, config_info.run_method)()
         else:
             logger.error(
-                f"Component {component} has not method {config_info.run_method}! Aborting..."
+                f"Component {component} has not method {config_info.run_method}!"
+                f" Aborting..."
             )
             raise RuntimeError(
-                f"Component {component} has not method {config_info.run_method}! Aborting..."
+                f"Component {component} has not method {config_info.run_method}!"
+                f" Aborting..."
             )
 
 
@@ -242,6 +236,7 @@ from cinnamon.registry import Registry, RegistrationKey
 if __name__ == '__main__':
     Registry.build(directory=Path('{run_directory}'))
     logging.basicConfig()
+    logger = getLogger(__name__)
     
     keys = [
         {code_keys}
@@ -252,9 +247,9 @@ if __name__ == '__main__':
         key = RegistrationKey.from_string(key)
 
         config_info = Registry.retrieve_configuration_info(registration_key=key)
-        config_info.config.show()
+        logger.info(config_info.config.model_dump())
 
-        component = Registry.instantiate_component(registration_key=key)
+        component = Registry.instantiate(registration_key=key)
 
         if hasattr(component, config_info.run_method):
             getattr(component, config_info.run_method)()
@@ -263,7 +258,8 @@ if __name__ == '__main__':
     script_path = run_directory.joinpath(f"{args.filename}.py")
     if script_path.exists():
         response = input(
-            f"Script path {script_path} already exists. Do you want to overwrite it? Y/N "
+            f"Script path {script_path} already exists. "
+            f"Do you want to overwrite it? Y/N "
         )
         if response.strip().casefold() != "y":
             logger.info("Aborting...")
