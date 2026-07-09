@@ -789,7 +789,7 @@ class Registry:
         # Variants expansion doesn't change the topology of the graph
         valid_key_buffer: Set[RegistrationKey] = set()
         invalid_key_buffer: Set[RegistrationKey] = set()
-        logging.info(f"Resolving {len(cls._REGISTRY)} configurations...")
+        logger.info(f"Resolving {len(cls._REGISTRY)} configurations...")
         for key in cls._DEPENDENCY_DAG.successors(cls._ROOT_KEY):
             Registry.expand_configuration(
                 key=key,
@@ -1047,8 +1047,10 @@ class Registry:
 
         # include dependencies
         for dependency_name, dependency in config.dependencies.items():
-            dependency_param = config.fields[dependency_name]
-            assert isinstance(dependency, RegistrationKey)
+            if not isinstance(dependency, RegistrationKey):
+                raise TypeError(
+                    f"Dependency '{dependency_name}' is not a RegistrationKey"
+                )
 
             dependency_key = dependency
             dependency_variants: list[RegistrationKey] = config.meta[

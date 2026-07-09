@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from typing import (
     Any,
     Callable,
+    ClassVar,
     Dict,
     List,
     Mapping,
@@ -131,13 +132,13 @@ class Configuration(BaseModel):
     Configurations store parameters and allow flow control via conditions.
     """
 
+    _conditions: Dict[str, ConditionInfo] = PrivateAttr(default_factory=dict)
+    _expanded: bool = PrivateAttr(default=False)
+
     # ignore this variable during serialization
     _instance_meta: Dict[str, ParamMeta] = PrivateAttr(default_factory=dict)
 
-    _meta: MetaDescriptor = MetaDescriptor()
-
-    _conditions: Dict[str, ConditionInfo] = {}
-    _expanded: bool = False
+    meta: ClassVar[MetaDescriptor] = MetaDescriptor()
 
     model_config = ConfigDict(validate_default=True)
 
@@ -199,26 +200,43 @@ class Configuration(BaseModel):
             if field_info.json_schema_extra is None:
                 field_info.json_schema_extra = ParamMeta(tags=set(), variants=[])
 
-    # TODO: add pytest
     @model_validator(mode="after")
     def validate_variants(self) -> C:
         for field_name, field_info in self.fields.items():
             field_variants = self.meta[field_name].variants
-            if field_variants:
-                default_value = field_info.default
-                if default_value in field_variants:
-                    raise ValueError(
-                        f"Default value '{default_value}' for field '{field_name}' "
-                        f"is also reported in variants. This is not allowed."
-                    )
+            if not field_variants:
+                continue
+
+            default_value = field_info.default
+            if (
+                default_value is PydanticUndefined
+                or field_info.default_factory is not None
+            ):
+                continue  # required fields have no default to check
+
+            if default_value in field_variants:
+                raise ValueError(
+                    f"Default value '{default_value}' for field '{field_name}' "
+                    f"is also reported in variants. This is not allowed."
+                )
         return self
 
     def model_copy(
         self, *, update: Mapping[str, Any] | None = None, deep: bool = False
     ) -> Self:
-        config_copy = super().model_copy(update=update, deep=deep)
-        self.model_validate(config_copy.model_dump())
-        return config_copy
+        # 1. Get a pydantic copy with the updates applied
+        model_copy = super().model_copy(update=update, deep=deep)
+
+        # 2. Re-validate public fields only (this is what was broken before —
+        #    the old code discarded the validated result)
+        validated = self.model_validate(model_copy.model_dump(mode="python"))
+
+        # 3. Manually propagate private attributes that model_validate doesn't touch
+        conditions = copy.deepcopy(self._conditions) if deep else dict(self._conditions)
+        object.__setattr__(validated, "_conditions", conditions)
+        object.__setattr__(validated, "_expanded", self._expanded)
+
+        return validated
 
     def is_dependency(self, field_name: str, field: FieldInfo) -> bool:
         field_value = getattr(self, field_name)
@@ -239,10 +257,6 @@ class Configuration(BaseModel):
     @expanded.setter
     def expanded(self, expanded: bool) -> None:
         self._expanded = expanded
-
-    @property
-    def meta(self):
-        return self._meta
 
     @property
     def fields(self) -> Dict[str, FieldInfo]:
