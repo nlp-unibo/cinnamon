@@ -82,69 +82,163 @@
              
   <section id="cinnamon-entry-points">
 <span id="commands"></span><h1>Cinnamon entry points<a class="headerlink" href="#cinnamon-entry-points" title="Link to this heading"></a></h1>
-<p>The cinnamon package offers console scripts to work with <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> and <code class="docutils literal notranslate"><span class="pre">Component</span></code> without requiring any custom code.</p>
+<p>Cinnamon ships three console scripts for working with <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> and <code class="docutils literal notranslate"><span class="pre">Component</span></code>
+without writing boilerplate code.</p>
+<section id="installation">
+<h2>Installation<a class="headerlink" href="#installation" title="Link to this heading"></a></h2>
+<p>The core <code class="docutils literal notranslate"><span class="pre">cinnamon</span></code> package does not include the interactive CLI dependency.
+To use <code class="docutils literal notranslate"><span class="pre">cmn-run</span></code> and <code class="docutils literal notranslate"><span class="pre">cmn-generate</span></code>, install the <code class="docutils literal notranslate"><span class="pre">cli</span></code> extra:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>cinnamon<span class="o">[</span>cli<span class="o">]</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">cmn-build</span></code> has no extra dependencies and works with the base install.</p>
+</section>
+<section id="common-arguments">
+<h2>Common arguments<a class="headerlink" href="#common-arguments" title="Link to this heading"></a></h2>
+<p>All three commands accept the same two optional arguments:</p>
+<dl>
+<dt><code class="docutils literal notranslate"><span class="pre">-dir</span></code> / <code class="docutils literal notranslate"><span class="pre">--directory</span></code></dt><dd><p>Path to the main project directory containing the <code class="docutils literal notranslate"><span class="pre">configurations</span></code> folder.
+Defaults to the current working directory if not provided.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">-ext</span></code> / <code class="docutils literal notranslate"><span class="pre">--external-path</span></code></dt><dd><p>Path to a JSON file listing external project directories to include during
+registration. The file must contain a JSON array of path strings:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">[</span>
+<span class="w">    </span><span class="s2">&quot;/path/to/external/project_a&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">&quot;/path/to/external/project_b&quot;</span>
+<span class="p">]</span>
+</pre></div>
+</div>
+<p>See <a class="reference external" href="https://nlp-unibo.github.io/cinnamon/dependencies.html">dependencies</a> for
+details on external directories.</p>
+</dd>
+</dl>
+</section>
 <section id="cmn-build">
 <h2>cmn-build<a class="headerlink" href="#cmn-build" title="Link to this heading"></a></h2>
-<p>The <code class="docutils literal notranslate"><span class="pre">cmn-build</span></code> command is the console script version of <code class="docutils literal notranslate"><span class="pre">Registry.build()</span></code>.</p>
-<p>In addition to loading registrations and resolving dependencies, the <code class="docutils literal notranslate"><span class="pre">cmn-build</span></code> command stores in csv format all valid and invalid <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code>.</p>
-<p>In particular, a <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code> is valid (invalid) if the associated <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> instance is valid (invalid).</p>
-<p>To run <code class="docutils literal notranslate"><span class="pre">cmn-build</span></code>, do as follows</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>cmn-setup<span class="w"> </span>--dir<span class="w"> </span>*main-directory*<span class="w"> </span>--ext<span class="w"> </span>*ext-directory-1*<span class="w"> </span>*ext-directory-2*<span class="w"> </span>...
-</pre></div>
-</div>
-<p>By default, <code class="docutils literal notranslate"><span class="pre">cmn-build</span></code> takes <code class="docutils literal notranslate"><span class="pre">dir=pwd</span></code>.</p>
-<p>Thus, usually, we only require to open a terminal in our main project directory and run</p>
+<p><code class="docutils literal notranslate"><span class="pre">cmn-build</span></code> is the console script equivalent of calling <code class="docutils literal notranslate"><span class="pre">Registry.build()</span></code> directly.
+It scans the project’s <code class="docutils literal notranslate"><span class="pre">configurations</span></code> folder, resolves all dependencies and variants,
+and reports which <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code> instances are valid or invalid.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>cmn-build
+
+<span class="c1"># with explicit directory</span>
+cmn-build<span class="w"> </span>--directory<span class="w"> </span>path/to/project
+
+<span class="c1"># with external directories</span>
+cmn-build<span class="w"> </span>--directory<span class="w"> </span>path/to/project<span class="w"> </span>--external-path<span class="w"> </span>path/to/externals.json
 </pre></div>
 </div>
+<p>After a successful run, <code class="docutils literal notranslate"><span class="pre">cmn-build</span></code> writes two JSON files inside a <code class="docutils literal notranslate"><span class="pre">registrations/</span></code>
+folder in your project directory:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">valid_keys.json</span></code> — all <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code> instances that passed validation.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">invalid_keys.json</span></code> — all keys that failed, along with the reason stored in
+<code class="docutils literal notranslate"><span class="pre">RegistrationKey.metadata</span></code>.</p></li>
+</ul>
+<p>Valid and invalid keys are also logged to the console at <code class="docutils literal notranslate"><span class="pre">INFO</span></code> level.</p>
+<p>A <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code> is <strong>valid</strong> if its bound <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> passes all Pydantic
+field constraints and all <code class="docutils literal notranslate"><span class="pre">add_condition</span></code> conditions after dependency resolution.
+It is <strong>invalid</strong> if any constraint or condition fails, or if a required dependency
+could not be found.</p>
 </section>
 <section id="cmn-run">
 <h2>cmn-run<a class="headerlink" href="#cmn-run" title="Link to this heading"></a></h2>
-<p>The <code class="docutils literal notranslate"><span class="pre">cmn-run</span></code> command allows building and executing <code class="docutils literal notranslate"><span class="pre">Component</span></code> given a <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code>.</p>
-<p>To run a <code class="docutils literal notranslate"><span class="pre">Component</span></code> we only need to specify the method to execute during registration.</p>
-<p>For instance,</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">CustomComponent</span><span class="p">(</span><span class="n">cinnamon</span><span class="o">.</span><span class="n">component</span><span class="o">.</span><span class="n">Component</span><span class="p">):</span>
+<p><code class="docutils literal notranslate"><span class="pre">cmn-run</span></code> builds the registry and interactively guides you through selecting and
+executing one or more registered runnable components.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>cmn-run
 
-    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="n">x</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">y</span> <span class="o">=</span> <span class="n">y</span>
-
-    <span class="k">def</span><span class="w"> </span><span class="nf">to_run</span><span class="p">():</span>
-        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Running this component with x=</span><span class="si">{</span><span class="n">x</span><span class="si">}</span><span class="s2"> and y=</span><span class="si">{</span><span class="n">y</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;The configuration of the component is </span><span class="si">{</span><span class="n">config</span><span class="si">}</span><span class="s1">)</span>
-
-<span class="k">class</span><span class="w"> </span><span class="nc">CustomComponentConfiguration</span><span class="p">(</span><span class="n">cinnamon</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">Configuration</span><span class="p">):</span>
-
-    <span class="nd">@classmethod</span>
-    <span class="nd">@register_method</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;custom&#39;</span><span class="p">,</span> <span class="n">namespace</span><span class="o">=</span><span class="s1">&#39;testing&#39;</span><span class="p">,</span> <span class="n">component</span><span class="o">=</span><span class="s1">&#39;components.CustomComponent&#39;</span><span class="p">,</span> <span class="n">run_method</span><span class="o">=</span><span class="s1">&#39;to_run&#39;</span><span class="p">)</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">default</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-        <span class="n">config</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">default</span><span class="p">()</span>
-        <span class="n">config</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
-        <span class="n">config</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">config</span>
+<span class="c1"># with explicit directory</span>
+cmn-run<span class="w"> </span>--directory<span class="w"> </span>path/to/project
 </pre></div>
 </div>
-<p>Defines a simple <code class="docutils literal notranslate"><span class="pre">CustomComponent</span></code> that prints some information when being executed.</p>
-<p>Runnable methods must not receive any arguments.</p>
-<p>Given a <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code>, the <code class="docutils literal notranslate"><span class="pre">cmn-run</span></code> does the following:</p>
-<ul class="simple">
-<li><p>Retrieves from <code class="docutils literal notranslate"><span class="pre">Registry</span></code> the <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> info via the given <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code></p></li>
-<li><p>Builds a <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> instance</p></li>
-<li><p>Builds a <code class="docutils literal notranslate"><span class="pre">Component</span></code> instance by providing the built <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> parameters.</p></li>
-</ul>
-<p>Nonetheless, providing a <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code> by heart is not a simple task, especially as projects scale up in the number of defined <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> and <code class="docutils literal notranslate"><span class="pre">Component</span></code>.</p>
-<p>To account for this problem, <code class="docutils literal notranslate"><span class="pre">cmn-run</span></code> allows for interactive search for <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code> by relying on <a class="reference external" href="https://inquirerpy.readthedocs.io/en/latest/">InquirePy</a>.</p>
-<p>In particular, <code class="docutils literal notranslate"><span class="pre">cmn-run</span></code> guides the user through three distinct prompts:</p>
-<ol class="arabic simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">namespace</span></code> selection</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">name</span></code> selection</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">tags</span></code> selection</p></li>
-</ol>
-<p>Eventually, the defined <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code> might be compatible with several actually registered <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code>.</p>
-<p>Thus, <code class="docutils literal notranslate"><span class="pre">cmn-run</span></code> allows selecting one or more of those keys to execute all corresponding components in sequence.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>Intuitively, <code class="docutils literal notranslate"><span class="pre">cmn-run</span></code> supports running one or more <code class="docutils literal notranslate"><span class="pre">Component</span></code> in sequence given a <code class="docutils literal notranslate"><span class="pre">name</span></code>, some <code class="docutils literal notranslate"><span class="pre">tags</span></code> and a <code class="docutils literal notranslate"><span class="pre">namespace</span></code>.</p>
+<p>A <code class="docutils literal notranslate"><span class="pre">Component</span></code> is only available in <code class="docutils literal notranslate"><span class="pre">cmn-run</span></code> if it was registered with a
+<code class="docutils literal notranslate"><span class="pre">run_method</span></code>. See the registration section below.</p>
+</div>
+<section id="registering-a-runnable-component">
+<h3>Registering a runnable component<a class="headerlink" href="#registering-a-runnable-component" title="Link to this heading"></a></h3>
+<p>A component becomes runnable by specifying <code class="docutils literal notranslate"><span class="pre">run_method</span></code> at registration time.
+The method must take no arguments beyond <code class="docutils literal notranslate"><span class="pre">self</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">cinnamon.component</span><span class="w"> </span><span class="kn">import</span> <span class="n">Component</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">cinnamon.configuration</span><span class="w"> </span><span class="kn">import</span> <span class="n">Configuration</span><span class="p">,</span> <span class="n">Param</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">cinnamon.registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">register_method</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">TrainerComponent</span><span class="p">(</span><span class="n">Component</span><span class="p">):</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">epochs</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">lr</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">epochs</span> <span class="o">=</span> <span class="n">epochs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lr</span> <span class="o">=</span> <span class="n">lr</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">train</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Training for </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">epochs</span><span class="si">}</span><span class="s1"> epochs at lr=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">lr</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">TrainerConfig</span><span class="p">(</span><span class="n">Configuration</span><span class="p">):</span>
+    <span class="n">epochs</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">Param</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
+    <span class="n">lr</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">Param</span><span class="p">(</span><span class="mf">0.001</span><span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="nd">@register_method</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;trainer&#39;</span><span class="p">,</span>
+        <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;default&#39;</span><span class="p">},</span>
+        <span class="n">namespace</span><span class="o">=</span><span class="s1">&#39;my_project&#39;</span><span class="p">,</span>
+        <span class="n">component</span><span class="o">=</span><span class="s1">&#39;components.TrainerComponent&#39;</span><span class="p">,</span>
+        <span class="n">run_method</span><span class="o">=</span><span class="s1">&#39;train&#39;</span>
+    <span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">default</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;TrainerConfig&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">default</span><span class="p">()</span>
+</pre></div>
+</div>
+</section>
+<section id="interactive-selection">
+<h3>Interactive selection<a class="headerlink" href="#interactive-selection" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">cmn-run</span></code> guides you through four sequential prompts to narrow down and confirm
+the components to run:</p>
+<ol class="arabic simple">
+<li><p><strong>Namespace</strong> — if more than one namespace is registered, select one from the list.
+If only one exists, it is selected automatically.</p></li>
+<li><p><strong>Name</strong> — select a <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code> name from the filtered list.
+Choose <em>Cancel</em> to restart.</p></li>
+<li><p><strong>Tags</strong> — iteratively add tags to narrow the selection. Choose <em>Proceed</em> once
+the desired subset is reached, <em>Go back</em> to remove the last tag, or <em>Cancel</em>
+to restart.</p></li>
+<li><p><strong>Final selection</strong> — a checkbox list of all matching keys. At least one must
+be selected.</p></li>
+</ol>
+<p>After confirming the selection, <code class="docutils literal notranslate"><span class="pre">cmn-run</span></code> builds each chosen component and invokes
+its <code class="docutils literal notranslate"><span class="pre">run_method</span></code> in sequence. The bound <code class="docutils literal notranslate"><span class="pre">Configuration</span></code>’s field values are logged
+via <code class="docutils literal notranslate"><span class="pre">model_dump()</span></code> before each run.</p>
+</section>
+</section>
+<section id="cmn-generate">
+<h2>cmn-generate<a class="headerlink" href="#cmn-generate" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">cmn-generate</span></code> builds the registry, guides you through the same interactive
+key selection as <code class="docutils literal notranslate"><span class="pre">cmn-run</span></code>, and writes a self-contained Python script that
+runs the selected components without requiring the CLI.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>cmn-generate<span class="w"> </span>--filename<span class="w"> </span>my_experiment
+
+<span class="c1"># with explicit directories</span>
+cmn-generate<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--directory<span class="w"> </span>path/to/project<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--run-directory<span class="w"> </span>path/to/output<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--filename<span class="w"> </span>my_experiment
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">cmn-generate</span></code> accepts two additional arguments:</p>
+<dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">-run-dir</span></code> / <code class="docutils literal notranslate"><span class="pre">--run-directory</span></code></dt><dd><p>Directory where the generated script is written.
+Defaults to the current working directory.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">-name</span></code> / <code class="docutils literal notranslate"><span class="pre">--filename</span></code> <em>(required)</em></dt><dd><p>Name of the generated Python file (without the <code class="docutils literal notranslate"><span class="pre">.py</span></code> extension).</p>
+</dd>
+</dl>
+<p>The generated script contains the selected <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code> strings, calls
+<code class="docutils literal notranslate"><span class="pre">Registry.build()</span></code>, then retrieves and runs each component in sequence.
+If a script with the given filename already exists in the target directory,
+<code class="docutils literal notranslate"><span class="pre">cmn-generate</span></code> will prompt you before overwriting it.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The generated script itself only requires the
+base <code class="docutils literal notranslate"><span class="pre">cinnamon</span></code> install.</p>
 </div>
 <div class="toctree-wrapper compound">
 </div>

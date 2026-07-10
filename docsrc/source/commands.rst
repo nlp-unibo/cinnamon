@@ -3,91 +3,191 @@
 Cinnamon entry points
 *********************************************
 
-The cinnamon package offers console scripts to work with ``Configuration`` and ``Component`` without requiring any custom code.
+Cinnamon ships three console scripts for working with ``Configuration`` and ``Component``
+without writing boilerplate code.
+
+=============================================
+Installation
+=============================================
+
+The core ``cinnamon`` package does not include the interactive CLI dependency.
+To use ``cmn-run`` and ``cmn-generate``, install the ``cli`` extra:
+
+.. code-block:: bash
+
+    pip install cinnamon[cli]
+
+``cmn-build`` has no extra dependencies and works with the base install.
+
+=============================================
+Common arguments
+=============================================
+
+All three commands accept the same two optional arguments:
+
+``-dir`` / ``--directory``
+    Path to the main project directory containing the ``configurations`` folder.
+    Defaults to the current working directory if not provided.
+
+``-ext`` / ``--external-path``
+    Path to a JSON file listing external project directories to include during
+    registration. The file must contain a JSON array of path strings:
+
+    .. code-block:: json
+
+        [
+            "/path/to/external/project_a",
+            "/path/to/external/project_b"
+        ]
+
+    See `dependencies <https://nlp-unibo.github.io/cinnamon/dependencies.html>`_ for
+    details on external directories.
 
 =============================================
 cmn-build
 =============================================
 
-The ``cmn-build`` command is the console script version of ``Registry.build()``.
-
-In addition to loading registrations and resolving dependencies, the ``cmn-build`` command stores in csv format all valid and invalid ``RegistrationKey``.
-
-In particular, a ``RegistrationKey`` is valid (invalid) if the associated ``Configuration`` instance is valid (invalid).
-
-To run ``cmn-build``, do as follows
-
-.. code-block:: bash
-
-    cmn-setup --dir *main-directory* --ext *ext-directory-1* *ext-directory-2* ...
-
-By default, ``cmn-build`` takes ``dir=pwd``.
-
-Thus, usually, we only require to open a terminal in our main project directory and run
+``cmn-build`` is the console script equivalent of calling ``Registry.build()`` directly.
+It scans the project's ``configurations`` folder, resolves all dependencies and variants,
+and reports which ``RegistrationKey`` instances are valid or invalid.
 
 .. code-block:: bash
 
     cmn-build
 
+    # with explicit directory
+    cmn-build --directory path/to/project
+
+    # with external directories
+    cmn-build --directory path/to/project --external-path path/to/externals.json
+
+After a successful run, ``cmn-build`` writes two JSON files inside a ``registrations/``
+folder in your project directory:
+
+- ``valid_keys.json`` — all ``RegistrationKey`` instances that passed validation.
+- ``invalid_keys.json`` — all keys that failed, along with the reason stored in
+  ``RegistrationKey.metadata``.
+
+Valid and invalid keys are also logged to the console at ``INFO`` level.
+
+A ``RegistrationKey`` is **valid** if its bound ``Configuration`` passes all Pydantic
+field constraints and all ``add_condition`` conditions after dependency resolution.
+It is **invalid** if any constraint or condition fails, or if a required dependency
+could not be found.
+
+
 =============================================
 cmn-run
 =============================================
 
-The ``cmn-run`` command allows building and executing ``Component`` given a ``RegistrationKey``.
+``cmn-run`` builds the registry and interactively guides you through selecting and
+executing one or more registered runnable components.
 
-To run a ``Component`` we only need to specify the method to execute during registration.
+.. code-block:: bash
 
-For instance,
+    cmn-run
+
+    # with explicit directory
+    cmn-run --directory path/to/project
+
+.. note::
+    A ``Component`` is only available in ``cmn-run`` if it was registered with a
+    ``run_method``. See the registration section below.
+
+---------------------------------------------
+Registering a runnable component
+---------------------------------------------
+
+A component becomes runnable by specifying ``run_method`` at registration time.
+The method must take no arguments beyond ``self``:
 
 .. code-block:: python
 
-    class CustomComponent(cinnamon.component.Component):
+    from cinnamon.component import Component
+    from cinnamon.configuration import Configuration, Param
+    from cinnamon.registry import register_method
 
-        def __init__(self, x, y):
-            self.x = x
-            self.y = y
+    class TrainerComponent(Component):
 
-        def to_run():
-            print(f"Running this component with x={x} and y={y}")
-            print(f'The configuration of the component is {config})
+        def __init__(self, epochs: int, lr: float):
+            self.epochs = epochs
+            self.lr = lr
 
-    class CustomComponentConfiguration(cinnamon.configuration.Configuration):
+        def train(self):
+            print(f'Training for {self.epochs} epochs at lr={self.lr}')
+
+    class TrainerConfig(Configuration):
+        epochs: int = Param(10)
+        lr: float = Param(0.001)
 
         @classmethod
-        @register_method(name='custom', namespace='testing', component='components.CustomComponent', run_method='to_run')
-        def default(cls):
-            config = super().default()
-            config.add(name='x', value=5)
-            config.add(name='y', value=10)
-            return config
+        @register_method(
+            name='trainer',
+            tags={'default'},
+            namespace='my_project',
+            component='components.TrainerComponent',
+            run_method='train'
+        )
+        def default(cls) -> 'TrainerConfig':
+            return super().default()
 
-Defines a simple ``CustomComponent`` that prints some information when being executed.
+---------------------------------------------
+Interactive selection
+---------------------------------------------
+
+``cmn-run`` guides you through four sequential prompts to narrow down and confirm
+the components to run:
+
+1. **Namespace** — if more than one namespace is registered, select one from the list.
+   If only one exists, it is selected automatically.
+2. **Name** — select a ``RegistrationKey`` name from the filtered list.
+   Choose *Cancel* to restart.
+3. **Tags** — iteratively add tags to narrow the selection. Choose *Proceed* once
+   the desired subset is reached, *Go back* to remove the last tag, or *Cancel*
+   to restart.
+4. **Final selection** — a checkbox list of all matching keys. At least one must
+   be selected.
+
+After confirming the selection, ``cmn-run`` builds each chosen component and invokes
+its ``run_method`` in sequence. The bound ``Configuration``'s field values are logged
+via ``model_dump()`` before each run.
+
+
+=============================================
+cmn-generate
+=============================================
+
+``cmn-generate`` builds the registry, guides you through the same interactive
+key selection as ``cmn-run``, and writes a self-contained Python script that
+runs the selected components without requiring the CLI.
+
+.. code-block:: bash
+
+    cmn-generate --filename my_experiment
+
+    # with explicit directories
+    cmn-generate \
+        --directory path/to/project \
+        --run-directory path/to/output \
+        --filename my_experiment
+
+``cmn-generate`` accepts two additional arguments:
+
+``-run-dir`` / ``--run-directory``
+    Directory where the generated script is written.
+    Defaults to the current working directory.
+
+``-name`` / ``--filename`` *(required)*
+    Name of the generated Python file (without the ``.py`` extension).
+
+The generated script contains the selected ``RegistrationKey`` strings, calls
+``Registry.build()``, then retrieves and runs each component in sequence.
+If a script with the given filename already exists in the target directory,
+``cmn-generate`` will prompt you before overwriting it.
 
 .. note::
-Runnable methods must not receive any arguments.
-
-Given a ``RegistrationKey``, the ``cmn-run`` does the following:
-
-- Retrieves from ``Registry`` the ``Configuration`` info via the given ``RegistrationKey``
-- Builds a ``Configuration`` instance
-- Builds a ``Component`` instance by providing the built ``Configuration`` parameters.
-
-Nonetheless, providing a ``RegistrationKey`` by heart is not a simple task, especially as projects scale up in the number of defined ``Configuration`` and ``Component``.
-
-To account for this problem, ``cmn-run`` allows for interactive search for ``RegistrationKey`` by relying on `InquirePy <https://inquirerpy.readthedocs.io/en/latest/>`_.
-
-In particular, ``cmn-run`` guides the user through three distinct prompts:
-
-1. ``namespace`` selection
-2. ``name`` selection
-3. ``tags`` selection
-
-Eventually, the defined ``RegistrationKey`` might be compatible with several actually registered ``RegistrationKey``.
-
-Thus, ``cmn-run`` allows selecting one or more of those keys to execute all corresponding components in sequence.
-
-.. note::
-    Intuitively, ``cmn-run`` supports running one or more ``Component`` in sequence given a ``name``, some ``tags`` and a ``namespace``.
+    The generated script itself only requires the
+    base ``cinnamon`` install.
 
 
 .. toctree::
@@ -95,5 +195,3 @@ Thus, ``cmn-run`` allows selecting one or more of those keys to execute all corr
    :hidden:
    :caption: Contents:
    :titlesonly:
-
-

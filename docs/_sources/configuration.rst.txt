@@ -3,427 +3,453 @@
 Configuration
 *********************************************
 
+A ``Configuration`` is a `Pydantic <https://docs.pydantic.dev/latest/>`_ ``BaseModel`` subclass
+that stores all the parameters of a ``Component``.
+Each field is defined as a typed class annotation, optionally wrapped with ``Param`` to attach
+cinnamon-specific metadata such as descriptions, tags, and variants.
+
 =============================================
 Param
 =============================================
 
-A ``Param`` is a useful wrapper for storing additional metadata like
+``Param`` is a wrapper around Pydantic's ``Field`` that accepts all standard ``Field`` arguments
+and additionally supports three cinnamon-specific keyword arguments:
 
-- type hints
-- textual descriptions
-- allowed value range
-- possible value variants
-- optional tags for efficient ``Param`` search
-
-For instance, the following code defines an integer ``Param`` with a specific allowed value range
+- ``tags``: a ``set`` of arbitrary string keywords for grouping and searching parameters.
+- ``variants``: a ``list`` of alternative values for automated configuration search.
+- ``description``: a human-readable description of the parameter.
 
 .. code-block:: python
 
-    param = Param(name='x', value=5, type_hint=int, allowed_range=lambda p: p in [1, 5, 10])
+    from cinnamon.configuration import Configuration, Param
 
+    class MyConfig(Configuration):
+        x: int = Param(5, description='An example integer parameter', tags={'number'})
 
-The ``name`` attribute is the ``Param`` unique identifier.
-
-The ``allowed_range`` attribute introduces a condition such that ``x`` can only be set to ``1,``, ``5`` or ``10``.
-
-Once set, a ``Param`` can be modified directly
+The first positional argument is the default value.
+Passing ``...`` (Ellipsis) marks the field as required — no default will be used and
+Pydantic will raise a ``ValidationError`` if the field is omitted at instantiation.
 
 .. code-block:: python
 
-    param = Param(name='x', value=5, type_hint=int, allowed_range=lambda p: p in [1, 5, 10])
-    print(param.value)      # >>> 5
-    param.value = 10
-    print(param.value)      # >>> 10
+    class MyConfig(Configuration):
+        x: int = Param(...)     # required: must be provided at instantiation
+        y: int = Param(5)       # optional: defaults to 5
 
-The same applies for all other attributes of ``Param``.
+Plain Python defaults are also accepted without ``Param``.
+In that case, cinnamon automatically injects empty ``tags`` and ``variants`` metadata:
+
+.. code-block:: python
+
+    class MyConfig(Configuration):
+        x: int = 5              # equivalent to Param(5, tags=set(), variants=[])
+
+
+---------------------------------------------
+Accessing parameter metadata
+---------------------------------------------
+
+Each ``Configuration`` exposes a ``meta`` descriptor that provides access to field metadata
+(``tags`` and ``variants``) at both class level and instance level.
+
+.. code-block:: python
+
+    class MyConfig(Configuration):
+        x: int = Param(5, tags={'number'}, variants=[10, 20])
+
+    # Class-level access (reads from model_fields)
+    MyConfig.meta.x.tags        # >>> {'number'}
+    MyConfig.meta.x.variants    # >>> [10, 20]
+
+    # Instance-level access (reads from a per-instance copy of metadata)
+    config = MyConfig()
+    config.meta.x.tags          # >>> {'number'}
+    config.meta.x.variants      # >>> [10, 20]
+
+    # Bracket access is also supported
+    config.meta['x'].tags       # >>> {'number'}
+
+Instance-level metadata is independent across instances — modifying one instance's
+metadata does not affect other instances or the class definition.
+
+.. code-block:: python
+
+    config_a = MyConfig()
+    config_b = MyConfig()
+
+    config_a.meta.x.variants.append(30)
+
+    config_a.meta.x.variants    # >>> [10, 20, 30]
+    config_b.meta.x.variants    # >>> [10, 20]  (unchanged)
+
+
+---------------------------------------------
+Type constraints
+---------------------------------------------
+
+Since ``Param`` forwards all keyword arguments to Pydantic's ``Field``, standard Pydantic
+field constraints apply directly.
+
+For **numeric ranges**, use ``ge`` (≥), ``le`` (≤), ``gt`` (>), ``lt`` (<):
+
+.. code-block:: python
+
+    class MyConfig(Configuration):
+        x: int = Param(5, ge=1, le=10)     # 1 <= x <= 10
+
+    MyConfig(x=5)   # ✓
+    MyConfig(x=0)   # ✗ ValidationError
+
+For **discrete allowed values**, use ``Literal``:
+
+.. code-block:: python
+
+    from typing import Literal
+
+    class MyConfig(Configuration):
+        mode: Literal['train', 'eval', 'test'] = Param('train')
+
+    MyConfig(mode='train')  # ✓
+    MyConfig(mode='other')  # ✗ ValidationError
+
+For **cross-field constraints**, use ``@model_validator``:
+
+.. code-block:: python
+
+    from pydantic import model_validator
+
+    class MyConfig(Configuration):
+        x: int = Param(10)
+        y: int = Param(5)
+
+        @model_validator(mode='after')
+        def check_x_greater_than_y(self) -> 'MyConfig':
+            if self.x <= self.y:
+                raise ValueError(
+                    f'x must be greater than y, got x={self.x}, y={self.y}'
+                )
+            return self
+
+    MyConfig(x=10, y=5)     # ✓
+    MyConfig(x=3, y=5)      # ✗ ValidationError
+
 
 =============================================
 Configuration
 =============================================
 
-A ``Configuration`` stores all the parameters of a ``Component``.
-
-Each parameter is wrapped into a ``Param``.
-
-For example, we can define a ``Configuration`` inline with a ``Param`` as follows
+A ``Configuration`` is defined by subclassing ``Configuration`` and declaring fields
+as typed class annotations:
 
 .. code-block:: python
 
-    config = Configuration()
-    config.add(name='x', value=50, type_hint=int, description='An example parameter')
+    class MyConfig(Configuration):
+        x: int = Param(50, description='An example parameter')
+
+    config = MyConfig()
     print(config.x)     # >>> 50
-    config.x = 10
-    print(config.x)     # >>> 10
 
-We can always access the ``Param`` instance via ``config.get()`` as follows
-
-.. code-block:: python
-
-    config = Configuration()
-    config.add(name='x', value=50, type_hint=int, description='An example parameter')
-    config.get('x').value = 20
-    print(config.x)     # >>> 20
-    config.get('x').variants = [10, 5, 70]
-
-Adding a ``Param`` with via ``name`` that already exist will throw an error
+Field values are accessed as regular Python attributes.
+Since ``Configuration`` validates defaults at instantiation (``validate_default=True``),
+a misconfigured default is caught immediately:
 
 .. code-block:: python
 
-    config = Configuration()
-    config.add(name='x', value=10)
-    config.add(name='x', value=True)    # >>> raises cinnamon.AlreadyExistingParameterException
+    class InvalidConfig(Configuration):
+        x: int = Param(5, ge=1, le=3)
 
-Likewise, setting a non-existing ``Param`` will throw an error
+    InvalidConfig()     # ✗ ValidationError: x=5 violates le=3
+
+To create a modified copy of an existing instance, use ``model_copy``:
 
 .. code-block:: python
 
-    config = Configuration()
-    config.add(name='x', value=10)
-    config.y = True     # >>> raises AttributeError
+    config = MyConfig()
+    updated = config.model_copy(update={'x': 10})
+
+    print(updated.x)    # >>> 10
+    print(config.x)     # >>> 50  (original unchanged)
+
+``model_copy`` re-validates the updated fields, so constraints are enforced:
+
+.. code-block:: python
+
+    class MyConfig(Configuration):
+        x: int = Param(5, ge=1, le=10)
+
+    config = MyConfig()
+    config.model_copy(update={'x': 99})     # ✗ ValidationError
+
+
+---------------------------------------------
+Accessing field values and definitions
+---------------------------------------------
+
+All field values are accessible as a plain dictionary via the ``values`` property:
+
+.. code-block:: python
+
+    class MyConfig(Configuration):
+        x: int = Param(5)
+        y: bool = Param(True)
+
+    config = MyConfig()
+    config.values   # >>> {'x': 5, 'y': True}
+
+All ``FieldInfo`` definitions (type, default, constraints, metadata) are accessible
+via the ``fields`` property, which mirrors ``model_fields``:
+
+.. code-block:: python
+
+    config.fields           # >>> {'x': FieldInfo(...), 'y': FieldInfo(...)}
+    config.fields['x']      # >>> FieldInfo(default=5, ...)
+
 
 ---------------------------------------------
 Adding conditions
 ---------------------------------------------
 
-``Configuration`` also support special kind of ``Param`` known as **conditions**.
+Beyond Pydantic's built-in field validation, ``Configuration`` supports runtime
+**conditions**: arbitrary callables that check invariants across one or more fields.
+
+.. code-block:: python
+
+    class MyConfig(Configuration):
+        x: int = Param(10)
+        y: int = Param(5)
+
+    config = MyConfig()
+    config.add_condition(
+        name='x_equals_y',
+        condition=lambda c: c.x == c.y,
+        description='x and y must be equal'
+    )
+
+The condition name must be unique. Registering a second condition with the same name
+raises a ``RuntimeWarning``.
+
+Conditions accept an optional ``tags`` set for grouping:
+
+.. code-block:: python
+
+    config.add_condition(
+        name='x_positive',
+        condition=lambda c: c.x > 0,
+        tags={'sanity'},
+        description='x must be positive'
+    )
 
 .. note::
-    Therefore, all ``Param`` rules apply to conditions as well, such as conflicting names.
-
-Conditions allow a user to set constraints on a ``Configuration``, such as enforcing a specific ``Param`` combination.
-
-Some conditions are set under the hood when adding a ``Param``
-
-.. code-block:: python
-
-    config = Configuration()
-    config.add(name='x', value=5, allowed_range: lambda v: v >= 0)
-    config.add(name='y', is_required=True)
-
-Here, we set two different **conditions**.
-
-- ``allowed_range``: specifies that ``x`` can only be greater or equal than 0
-- ``is_required``: specifies that ``y`` cannot be set to ``None``
-
-We can also write our own conditions
-
-.. code-block:: python
-
-    config = Configuration()
-    config.add(name='x', value=10)
-    config.add(name='y', value=5)
-    config.add_condition(name='match_x_y', condition=lambda c: c.x == c.y)
-
-Here we specify that we only allow ``config`` to have ``x`` equal to ``y``.
-
-.. note::
-    So far, we have only defined conditions.
-    We require now some APIs to **validate** such conditions to ensure that ``Configuration`` instances can be used.
-
----------------------------------------------
-Validating Configurations
----------------------------------------------
-
-``Configuration`` conditions are **not** executed **automatically**.
-
-We can directly evaluate all conditions via ``Configuration.validate`` method
-
-.. code-block:: python
-
-    config = Configuration()
-    config.add(name='x', value=10, variants=[5, 15])
-    config.add(name='y', value=5, variants[10, 15])
-    config.add_condition(name='match_x_y', condition=lambda c: c.x == c.y)
-    config.validate()               # >>> raises cinnamon.ValidationFailureException
-    config.validate(strict=False)   # >>> False
-
-    config.x = 5
-    config.validate()       # nothing happens, all conditions pass
+    Conditions registered via ``add_condition`` are evaluated lazily — they are
+    not checked at instantiation time. Use ``@model_validator`` for constraints
+    that should be enforced at construction.
 
 
 ---------------------------------------------
-Search Params
+Validating conditions
 ---------------------------------------------
 
-``Param`` support tags, a **set** of arbitrary string keywords provided by users.
-
-Tags allow to quickly retrieve ``Param`` that share one or more keywords from a ``Configuration``
-
-.. code-block:: python
-
-    config = Configuration()
-    config.add(name='x', value=10, tags={"number"})
-    config.add(name='y', value=True, tags={"boolean"})
-    config.add(name='z', value=30, tags={"number"})
-
-    config.search_param_by_tag(tags='number')   # >>> [x, z]
-
-``Param`` search can also be generalized based on custom conditions
+Conditions registered via ``add_condition`` are evaluated explicitly by calling
+``validate_conditions``:
 
 .. code-block:: python
 
-    config = Configuration()
-    config.add(name='x', value=10, tags={"number"})
-    config.add(name='y', value=True, tags={"boolean"})
-    config.add(name='z', value=30, tags={"number"})
+    class MyConfig(Configuration):
+        x: int = Param(10)
+        y: int = Param(5)
 
-    config.search_param(conditions=[
-        lambda param: 'number' in param.tags
-    ])
-    # >>> [x, z]
+    config = MyConfig()
+    config.add_condition(name='match', condition=lambda c: c.x == c.y)
 
+    config.validate_conditions()                # ✗ raises ValidationFailureException
+    config.validate_conditions(strict=False)    # returns ValidationResult(passed=False, ...)
 
-*********************************************
-Delta copy
-*********************************************
+    config = config.model_copy(update={'x': 5})
+    config.add_condition(name='match', condition=lambda c: c.x == c.y)
+    config.validate_conditions()                # ✓ passes silently
 
-In many cases, we may need a slightly modified ``Configuration`` instance.
-
-We can quickly create a ``Configuration`` instance delta copy by only specifying the parameters to change
+When ``strict=False``, a ``ValidationResult`` is returned instead of raising an exception,
+allowing callers to inspect the result programmatically:
 
 .. code-block:: python
 
-    config = Configuration()
-    config.add(name='x', value=5)
-    delta_copy = config.delta_copy(x=20)
-    delta_copy.x    # >>> 20
-    config.x        # >>> 5
+    result = config.validate_conditions(strict=False)
+    result.passed           # >>> False
+    result.error_message    # >>> 'Condition match failed!'
 
-We have created a delta copy of ``Configuration`` instance with ``x`` set to 20 instead of 5.
+If a ``Configuration`` has nested ``Configuration`` dependencies, ``validate_conditions``
+recursively validates them as well.
 
-*********************************************
+
+---------------------------------------------
+Searching fields by tag
+---------------------------------------------
+
+Tags allow quickly retrieving fields that share a keyword:
+
+.. code-block:: python
+
+    class MyConfig(Configuration):
+        x: int  = Param(10,   tags={'number'})
+        y: bool = Param(True, tags={'boolean'})
+        z: int  = Param(30,   tags={'number'})
+
+    config = MyConfig()
+
+    number_fields = {
+        name: config.meta[name]
+        for name in config.fields
+        if 'number' in config.meta[name].tags
+    }
+    # >>> {'x': ParamMeta(...), 'z': ParamMeta(...)}
+
+To filter by multiple tags, extend the condition:
+
+.. code-block:: python
+
+    target_tags = {'number', 'hyperparameter'}
+    matching = {
+        name: config.meta[name]
+        for name in config.fields
+        if target_tags & config.meta[name].tags  # non-empty intersection
+    }
+
+
+=============================================
 Default template
-*********************************************
+=============================================
 
-``Configuration`` are usually not defined inline as shown in the previous examples, but through class methods.
-
-In particular, the ``default`` method defines the default template for ``Configuration``.
-
-.. code-block:: python
-
-    class MyConfig(cinnamon.configuration.Configuration):
-
-        @classmethod
-        def default(cls):
-            config = super(cls).default()
-
-            config.add(name='x', value=5)
-
-            return config
-
-
-    if __name__ == '__main__':
-        config = MyConfig.default()
-        config.x    # >>> 5
-
-As any class, we can define custom template methods
+``Configuration`` subclasses define their fields at class level — no explicit ``default()``
+override is needed in the typical case.
+The inherited ``default()`` classmethod is equivalent to calling the constructor with no
+arguments:
 
 .. code-block:: python
 
-        class MyConfig(cinnamon.configuration.Configuration):
-
-            @classmethod
-            def default(cls):
-                config = super(cls).default()
-
-                config.add(name='x', value=5)
-
-                return config
-
-            @classmethod
-            def custom_template(cls):
-                config = cls.default()
-
-                config.x = 20
-                config.add(name='y', value=True)
-
-                return config
-
-Intuitively, since we are dealing with python classes, we can exploit inheritance to quickly define configuration extensions
-
-.. code-block:: python
-
-        class MyConfig(cinnamon.configuration.Configuration):
-
-            @classmethod
-            def default(cls):
-                config = super(cls).default()
-
-                config.add(name='x', value=5)
-
-                return config
-
-        class MyConfigExtension(MyConfig):
-
-           @classmethod
-           def default(cls):
-               config = super(cls).default()
-
-               config.add(name='y', value=True)
-
-               return config
-
-
-*********************************************
-Variants
-*********************************************
-
-In a project, we may have that a ``Component`` is bound to several ``Configuration``.
-
-In some of these cases, each of these ``Configuration`` are just slight parameter variations of a single ``Configuration`` template.
-
-.. code-block:: python
-
-    class CustomComponent(cinnamon.component.Component):
-
-        def __init__(self, x, y):
-            self.x = x
-            self.y = y
-
-    class CustomConfig(cinnamon.configuration.Configuration):
-
-        @classmethod
-        def default(cls):
-            config = super(cls).default()
-
-            config.add(name='x', value=5)
-            config.add(name='y', value=True)
-
-            return config
-
-        @classmethod
-        def variantA(cls):
-            config = cls.default()
-
-            config.x = 20
-            config.y = False
-
-            return config
-
-        @classmethod
-        def variantB(cls):
-            config = cls.default()
-
-            config.x = 42
-            config.y = True
-
-            return config
-
-        @classmethod
-        def variantC(cls):
-            config = cls.default()
-
-            # This is allowed since there is no condition prohibiting so
-            config.x = [1, 2, 3]
-
-            return config
-
-
-
-In cinnamon, we can avoid explicitly defining all these ``Configuration`` templates and relying on the notion of **configuration variant**.
-
-A configuration variant is a ``Configuration`` template that has at least one different parameter value.
-
-We define variants by specifying the ``variants`` field when adding a parameter to the ``Configuration``.
-
-.. code-block:: python
-
-    class CustomConfig(cinnamon.configuration.Configuration):
-
-        @classmethod
-        def default(
-                cls
-        ):
-            config = super().default()
-
-            config.add(name='x',
-                       value=5,
-                       variants=[20, 42, [1, 2, 3]])
-            config.add(name='y',
-                       value=False,
-                       variants=[True])
-            return config
-
-In the above code example, ``CustomConfig`` has ``x`` and ``y`` boolean parameters.
-Both of them specify value variants, thus, defining 8 different ``CustomConfig`` variants, one for each combination of the two parameters.
-
-We can quickly inspect these variants via ``Configuration.variants`` property.
-
-.. code-block:: python
+    class MyConfig(Configuration):
+        x: int = Param(5)
 
     config = MyConfig.default()
-    variants = config.variants[0]
-    # >>> variants[0] = {'x': 5, 'y': False}
-    # >>> variants[1] = {'x': 5, 'y': True}
-    # >>> variants[2] = {'x': 20, 'y': False}
-    # >>> variants[3] = {'x': 20, 'y': True}
-    # >>> variants[4] = {'x': 42, 'y': False}
-    # >>> variants[5] = {'x': 42, 'y': True}
-    # >>> variants[6] = {'x': [1, 2, 3], 'y': False}
-    # >>> variants[7] = {'x': [1, 2, 3], 'y': True}
+    # equivalent to: config = MyConfig()
+    config.x    # >>> 5
 
-By using ``Configuration.delta_copy`` we can quickly instantiate one of these variants
+For configurations that require custom initialisation logic, ``default()`` can be overridden:
 
 .. code-block:: python
 
-    my_variant = config.delta_copy(**variants[0])
-    my_variant.x      # >>> 5
-    my_variant.y      # >>> False
-
-*********************************************
-Nesting (i.e., adding dependencies)
-*********************************************
-
-One core functionality of cinnamon is that ``Configuration`` can be nested to build more sophisticated ones (the same applies for ``Component``).
-
-Cinnamon does that via loose pointers called ``RegistrationKey``, a compound unique identifier associated to a specific ``Configuration``.
-
-.. code-block:: python
-
-    class ParentConfig(cinnamon.configuration.Configuration):
+    class MyConfig(Configuration):
+        x: int = Param(5)
 
         @classmethod
-        def default(
-                cls
-        ):
-            config = super(cls).default()
-
-            config.add(name='param_1',
-                       value=True,
-                       type_hint=bool,
-                       variants=[False, True])
-            config.add(name='param_2',
-                       value=False,
-                       type_hint=bool,
-                       variants=[False, True])
-            config.add(name='child',
-                       value=RegistrationKey(name='test', tags={'nested'}, namespace='testing'))
-            return config
-
-
-    class NestedChild(Configuration):
-
-        @classmethod
-        def default(
-                cls
-        ):
+        def default(cls) -> 'MyConfig':
             config = super().default()
-
-            config.add(name='child',
-                       value=RegistrationKey(name='test', tags={'plain'}, namespace='testing'),
-
+            config.add_condition(
+                name='x_positive',
+                condition=lambda c: c.x > 0
+            )
             return config
 
-In the above example, ``ParentConfig`` has a child ``Configuration``, named ``child``, pointing to ``NestedChild``.
-Likewise, ``NestedChild`` has a child ``Configuration``, named ``child``.
+Inheritance works naturally — a subclass inherits all fields from its parent and may
+add new ones:
+
+.. code-block:: python
+
+    class MyConfig(Configuration):
+        x: int = Param(5)
+
+    class MyConfigExtension(MyConfig):
+        y: bool = Param(True)
+
+    config = MyConfigExtension.default()
+    config.x    # >>> 5  (inherited)
+    config.y    # >>> True
+
+
+=============================================
+Variants
+=============================================
+
+Instead of defining multiple ``Configuration`` subclasses for slight parameter variations,
+cinnamon supports **variants**: alternative values declared alongside a field's default.
+
+.. code-block:: python
+
+    class CustomConfig(Configuration):
+        x: int  = Param(5,     variants=[20, 42])
+        y: bool = Param(False, variants=[True])
+
+The default value must **not** appear in ``variants`` — cinnamon enforces this at
+instantiation and raises a ``ValidationError`` if a duplicate is detected.
+
+The ``variants`` property returns all unique combinations of variant values, excluding
+the all-default combination (which is the configuration itself):
+
+.. code-block:: python
+
+    config = CustomConfig.default()
+    combos = config.variants
+
+Each entry in the returned list is a dict with two keys:
+
+- ``values``: the field values for this combination.
+- ``indexes``: the index of each value within its field's variant list (``0`` = default).
+
+.. code-block:: python
+
+    # combos[0] = {'values': {'x': 5,  'y': True},  'indexes': {'x': 0, 'y': 1}}
+    # combos[1] = {'values': {'x': 20, 'y': False}, 'indexes': {'x': 1, 'y': 0}}
+    # combos[2] = {'values': {'x': 20, 'y': True},  'indexes': {'x': 1, 'y': 1}}
+    # combos[3] = {'values': {'x': 42, 'y': False}, 'indexes': {'x': 2, 'y': 0}}
+    # combos[4] = {'values': {'x': 42, 'y': True},  'indexes': {'x': 2, 'y': 1}}
+
+Use ``model_copy`` to instantiate a specific variant:
+
+.. code-block:: python
+
+    variant = config.model_copy(update=combos[0]['values'])
+    variant.x   # >>> 5
+    variant.y   # >>> True
+
+
+=============================================
+Nesting (i.e., adding dependencies)
+=============================================
+
+``Configuration`` instances can be nested to compose more sophisticated configurations.
+Nesting is expressed via ``RegistrationKey`` values — loose pointers resolved at
+build time by the ``Registry``.
+
+.. code-block:: python
+
+    from cinnamon.registry import RegistrationKey
+
+    class ChildConfig(Configuration):
+        z: int = Param(42)
+
+    class ParentConfig(Configuration):
+        param_1: bool = Param(True,  variants=[False, True])
+        param_2: bool = Param(False, variants=[False, True])
+        child: RegistrationKey = Param(
+            RegistrationKey(name='child', tags={'default'}, namespace='testing')
+        )
+
+The ``dependencies`` property returns all fields whose value is a ``RegistrationKey``
+or a nested ``Configuration`` instance:
+
+.. code-block:: python
+
+    config = ParentConfig.default()
+    config.dependencies
+    # >>> {'child': RegistrationKey(name='child', tags={'default'}, namespace='testing')}
 
 .. note::
-    In ``cinnamon`` nested configurations are called **dependencies**.
-    You can access to a ``Configuration`` dependencies via ``Configuration.dependencies`` property.
+    In cinnamon, nested configurations are called **dependencies**.
+    See `dependencies <https://nlp-unibo.github.io/cinnamon/dependencies.html>`_
+    for how the ``Registry`` resolves and builds them automatically.
+
 
 .. toctree::
    :maxdepth: 4
    :hidden:
    :caption: Contents:
    :titlesonly:
-

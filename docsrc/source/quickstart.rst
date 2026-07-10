@@ -3,189 +3,231 @@
 Quickstart
 ****************************
 
-Let's consider a data loader class that loads and returns some data.
+Let's consider a data loader class that reads a CSV file from disk.
 
 .. code-block:: python
 
+    import pandas as pd
+
     class DataLoader:
 
-        def __init__(df_path):
+        def __init__(self, df_path: str):
             self.df_path = df_path
 
-        def load():
-            df = pd.read_csv(self.df_path)
-            return df
+        def load(self):
+            return pd.read_csv(self.df_path)
 
     if __name__ == '__main__':
         loader = DataLoader('path/to/data')
         data = loader.load()
 
-What if we want to define **multiple** ``DataLoader``, each pointing to a different ``df_path``?
+What if we want to run **multiple** ``DataLoader`` instances, each pointing to a
+different ``df_path``?
 
-We notice that we are **mixing** code logic (i.e., the ``DataLoader`` class) with its configuration (i.e., ``df_path``).
+The issue is that ``df_path`` is mixed into the code logic itself.
+Changing it means touching the class or its instantiation site — both of which tend
+to spread as a project grows.
 
-We can **separate** code logic from configuration.
-
-Instead of relying on additional data formats (e.g., JSON), we define a ``DataLoaderConfig`` in python.
+A cleaner approach is to **separate code logic from configuration**:
 
 .. code-block:: python
 
     class DataLoaderConfig:
 
-        def __init__(df_path):
+        def __init__(self, df_path: str):
             self.df_path = df_path
 
     class DataLoader:
 
-        def __init__(config: DataLoaderConfig):
+        def __init__(self, config: DataLoaderConfig):
             self.config = config
 
-        def load():
-            df = pd.read_csv(self.config.df_path)
-            return df
+        def load(self):
+            return pd.read_csv(self.config.df_path)
 
-    if __name__ = '__main__':
+    if __name__ == '__main__':
         config = DataLoaderConfig(df_path='path/to/data')
         loader = DataLoader(config)
         data = loader.load()
 
-Now, we are relying on **dependency injection** to separate code logic and configuration.
+We now rely on **dependency injection** — the ``DataLoader`` does not know or care
+where its parameters come from.
 
 .. note::
-    The ``DataLoader``'s APIs do not change as we change the configuration.
+    The ``DataLoader``'s API does not change as we swap configurations.
 
 =============================================
 Cinnamon
 =============================================
 
-In ``cinnamon`` we follow the above paradigm.
+Cinnamon formalises this pattern and adds validation, registration, and dependency
+resolution on top of it.
+
+Define your configuration by subclassing ``Configuration`` and declaring each field
+as a typed class annotation, optionally wrapped with ``Param``:
 
 .. code-block:: python
 
-    from cinnamon.configuration import Configuration
-    from cinnamon.component import Component
+    from pathlib import Path
+    from cinnamon.configuration import Configuration, Param
 
     class DataLoaderConfig(Configuration):
+        df_path: Path = Param(
+            'path/to/data',
+            description='Path to the CSV file to load'
+        )
 
-        @classmethod
-        def default(cls):
-            config = super().default()
+Define your component by subclassing ``Component``.
+The class structure stays exactly as you would write it in plain Python — cinnamon
+imposes no additional APIs on your code logic:
 
-            config.add(name='df_path',
-                       value='path/to/data',
-                       type_hint=Path,
-                       description='path where to load data')
+.. code-block:: python
 
-            return config
-
+    from cinnamon.component import Component
 
     class DataLoader(Component):
 
-        def __init__(self, df_path):
+        def __init__(self, df_path: Path):
             self.df_path = df_path
 
-        def load():
-            df = pd.read_csv(self.df_path)
-            return df
+        def load(self):
+            return pd.read_csv(self.df_path)
 
-    if __name__ = '__main__':
+To use both together without the registry:
+
+.. code-block:: python
+
+    if __name__ == '__main__':
         config = DataLoaderConfig.default()
         loader = DataLoader(**config.values)
         data = loader.load()
 
-Configurations are ``cinnamon.configuration.Configuration`` subclasses, where the ``default()`` method
-defines the standard template of the configuration.
+``config.values`` returns a plain ``{field_name: value}`` dictionary, which unpacks
+directly into the component's constructor.
 
-You can **add parameters** to the configuration via ``add()`` method.
-
-Each parameter is defined by a ``name``, a ``value``, and, optionally, info about its type, textual description, variants, allowed value range and more...
-
-All this information allows ``cinnamon`` checking whether the defined ``Configuration`` is **valid** or not.
-
-The code logic is a ``cinnamon.component.Component`` subclass and maintains the same code structure **with no modifications**.
-
-In particular, components can be defined as you would normally define a standard python class.
+.. note::
+    ``DataLoaderConfig.default()`` is equivalent to ``DataLoaderConfig()``.
+    It returns a ``DataLoaderConfig`` instance with all fields set to their defaults.
 
 =============================================
 Registration
 =============================================
 
-In ``cinnamon``, we usually **don't explicitly** instantiate a ``Configuration`` and its corresponding ``Component`` as done in the previous section.
+In practice, cinnamon encourages a **register, bind, and build** workflow rather
+than directly instantiating configurations and components.
 
-Instead, ``cinnamon`` supports a **registration, bind, and build** paradigm.
+Once you have defined a ``Configuration`` and its corresponding ``Component``,
+you **register** the configuration in the ``Registry`` and **bind** it to the component.
+This is done via a ``RegistrationKey``: a compound identifier made up of a ``name``,
+an optional ``tags`` set, and a ``namespace``.
 
-Once, we have defined the ``Configuration`` and its corresponding ``Component``, we **register** the ``Configuration``.
-
-.. code-block:: python
-
-    Registry.register_configuration(config=DataLoaderConfig.default(),
-                               name='data_loader',
-                               tags={'test'},
-                               namespace='showcasing',
-                               component='DataLoader')
-
-or
+The most concise way to register is the ``@register_method`` decorator on a
+``@classmethod`` of your ``Configuration``:
 
 .. code-block:: python
+
+    from cinnamon.configuration import Configuration, Param
+    from cinnamon.registry import register_method
 
     class DataLoaderConfig(Configuration):
+        df_path: Path = Param(
+            'path/to/data',
+            description='Path to the CSV file to load'
+        )
 
         @classmethod
-        @register_method(name='data_loader',
-                         tags={'test'},
-                         namespace='showcasing',
-                         component='DataLoader')
-        def default(cls):
-            config = super().default()
+        @register_method(
+            name='data_loader',
+            tags={'test'},
+            namespace='showcasing',
+            component='components.DataLoader'   # module path as a string
+        )
+        def default(cls) -> 'DataLoaderConfig':
+            return super().default()
 
-            config.add(name='df_path',
-                       value='path/to/data',
-                       type_hint=Path,
-                       description='path where to load data')
-
-            return config
-
-We do so by using a ``RegistrationKey`` defined as a (``name``, ``tags``, ``namespace``) tuple.
-
-Additionally, we **bind** the ``Configuration`` to a ``Component`` so that ``cinnamon`` knows that we want to create ``DataLoader`` instances via ``DataLoaderConfig``.
-
-At this point, we only need to create our first instance via the ``RegistrationKey``.
+Alternatively, you can register programmatically using ``Registry.register_configuration()``
+inside a function decorated with ``@register``:
 
 .. code-block:: python
 
-    loader = DataLoader.instantiate(name='data_loader',
-                                    tags={'test'},
-                                    namespace='showcasing')
+    from cinnamon.registry import Registry, register
 
-to return a ``DataLoader``.
+    @register
+    def register_data_loader():
+        Registry.register_configuration(
+            config=DataLoaderConfig.default(),
+            name='data_loader',
+            tags={'test'},
+            namespace='showcasing',
+            component='components.DataLoader'
+        )
 
-Now, we can build ``DataLoader`` instances anywhere in our code by simply using the associated ``RegistrationKey``.
+Both approaches are equivalent. The ``@register_method`` style is more concise when
+the registration lives naturally on the configuration class. The ``@register`` style
+is useful when you want to re-use an existing ``Configuration`` without subclassing it.
 
-.. note::
-    If you want to quickly change the ``Configuration`` of your ``DataLoader``, **you only need to change the key!**
+=============================================
+Building
+=============================================
 
+The ``Registry`` does not execute registrations eagerly.
+Instead, call ``Registry.build()`` to scan your project's ``configurations`` folder,
+run all ``@register`` and ``@register_method`` decorators it finds, and resolve the
+full dependency graph:
+
+.. code-block:: python
+
+    from pathlib import Path
+    from cinnamon.registry import Registry
+
+    Registry.build(directory=Path('.'))
+
+After a successful build, construct a ``DataLoader`` instance from its registered key:
+
+.. code-block:: python
+
+    # Via the Registry directly
+    loader = Registry.instantiate_component(
+        name='data_loader',
+        tags={'test'},
+        namespace='showcasing'
+    )
+
+    # Or via the Component class (syntactic sugar — also type-checks the result)
+    loader = DataLoader.instantiate(
+        name='data_loader',
+        tags={'test'},
+        namespace='showcasing'
+    )
+
+    data = loader.load()
+
+The ``Registry`` builds the ``DataLoaderConfig`` instance, resolves any dependencies,
+validates all conditions, and passes ``config.values`` to ``DataLoader.__init__``
+automatically.
+
+To swap the underlying implementation, you only need to change the ``RegistrationKey``
+— the calling code stays the same.
 
 =============================================
 Beyond quickstart
 =============================================
 
-``cinnamon`` uses the **registration, bind, and build** to provide flexible, clean and easy to extend code.
+The **register, bind, and build** workflow unlocks a number of powerful features:
 
-The main code dependency are ``RegistrationKey`` instances.
-See `Registration <https://nlp-unibo.github.io/cinnamon/registration.html>`_ if you want to know more about how to set up your code with ``cinnamon``.
+- **Nesting** ``Component`` and ``Configuration`` to compose more sophisticated pipelines.
+- Automatically generating ``Configuration`` **variants** for hyperparameter search.
+- Integrating **external** ``Component`` and ``Configuration`` written by other users.
+- Static and dynamic **condition** validation.
 
-Via this paradigm, ``cinnamon`` supports:
+See `Configuration <https://nlp-unibo.github.io/cinnamon/configuration.html>`_ for a
+full walkthrough of parameters, conditions, variants, and nesting.
 
-- **Nesting** ``Component`` and ``Configuration`` to build more sophisticated ones.
-- Automatically generating ``Configuration`` **variants**.
-- Quick integration of **external** ``Component`` and ``Configuration`` (e.g., written by other users).
-- Static and dynamic code **sanity check**.
-
-See `Configuration <https://nlp-unibo.github.io/cinnamon/configuration.html>`_ for more details.
+See `Registration <https://nlp-unibo.github.io/cinnamon/registration.html>`_ for more
+details on how to structure registration code and use the ``Registry`` APIs.
 
 .. toctree::
    :maxdepth: 4
    :hidden:
    :caption: Contents:
    :titlesonly:
-

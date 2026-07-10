@@ -3,202 +3,221 @@
 Registration Dependencies
 *********************************************
 
-In `registration <https://nlp-unibo.github.io/cinnamon/registration.html>`_, we have seen that cinnamon pairs ``Configuration`` to ``Component`` via ``RegistrationKey``.
-Moreover, ``Configuration`` can be nested to indirectly define nested ``Component`` (see `configuration <https://nlp-unibo.github.io/cinnamon/configuration.html>`_).
+In `registration <https://nlp-unibo.github.io/cinnamon/registration.html>`_, we saw that
+cinnamon pairs ``Configuration`` to ``Component`` via ``RegistrationKey``.
+Moreover, ``Configuration`` instances can nest other ``Configuration`` instances to compose
+more sophisticated ones (see `configuration <https://nlp-unibo.github.io/cinnamon/configuration.html>`_).
 
-We are only left to the question of **how** should we use these APIs to work with cinnamon.
+What remains is the question of **how** to organise code so that cinnamon can find and
+wire everything together automatically.
 
 =============================================
-Code Organization
+Code organisation
 =============================================
 
-Ideally, registration functions (either class methods or ad-hoc functions) can be written anywhere: it is up to the ``Registry`` to find these functions and run them to populate itself with ``RegistrationKey`` and associated configuration and component information.
+Registration functions (either ``@classmethod`` decorators or ad-hoc ``@register`` functions)
+can technically be written anywhere.
+However, cinnamon's ``Registry`` only scans files inside a folder named ``configurations``.
+This constraint is intentional: it avoids accidentally executing unrelated code during
+the registration scan.
 
-Nonetheless, cinnamon is designed to check only registration functions written in files located in ``configurations`` folder.
-This choice is meant to avoid unwanted code executions when checking python files.
-
-Therefore, we recommend organizing your code as follows
+The recommended project layout is:
 
 .. code-block::
 
-    project_folder
-        configurations
-            folder containing ``Configuration`` scripts
-
-        components
-            folder containing ``Component`` scripts
-
-We also recommend using the same filename for <``Configuration``, ``Component``> paired scripts for readability purposes.
-
-For instance, if we define a data loader component, our code organization will be
-
-.. code-block::
-
-    project_folder
-        configurations
+    project_folder/
+        configurations/
+            data_loader.py
+        components/
             data_loader.py
 
-        components
-            data_loader.py
+A ``components`` folder is not required, but pairing component and configuration files
+by name makes it easy to navigate the project.
 
-where
+For the above example the files would look like:
 
-components/data_loader.py
-    .. code-block:: python
+``components/data_loader.py``
 
-        class DataLoader(Component):
+.. code-block:: python
 
-            def load(...):
-                ...
+    from cinnamon.component import Component
 
-configurations/data_loader.py
-    .. code-block:: python
+    class DataLoader(Component):
 
-        class DataLoaderConfig(Configuration):
+        def __init__(self, folder_name: str):
+            self.folder_name = folder_name
 
-            @classmethod
-            @register_method(name='loader', tags={'default'}, namespace='testing', component='components.DataLoader')
-            def default(cls):
-                config = super(cls).default()
+        def load(self):
+            ...
 
-                config.add(name='folder_name', type_hint=str, value='my_custom_folder')
+``configurations/data_loader.py``
 
-                return config
+.. code-block:: python
+
+    from pathlib import Path
+    from cinnamon.configuration import Configuration, Param
+    from cinnamon.registry import Registry, RegistrationKey, register_method
+
+    class DataLoaderConfig(Configuration):
+        folder_name: str = Param('my_custom_folder', description='folder to load data from')
+
+        @classmethod
+        @register_method(name='loader', tags={'default'}, namespace='testing',
+                         component='components.DataLoader')
+        def default(cls) -> 'DataLoaderConfig':
+            return super().default()
 
 .. note::
-    Defining a ``components`` folder is not mandatory, but it improves readability by allowing users to quickly pair components and configurations.
+    Defining a ``components`` folder is not mandatory, but it improves readability
+    by allowing users to quickly pair components and configurations.
 
 
 =============================================
 Resolving dependencies
 =============================================
 
-Registering and nesting ``Configuration`` can quickly lead to a dependency problem.
-Furthermore, the addition of ``Configuration`` variants may further exacerbate the issue.
+Registering and nesting ``Configuration`` can quickly lead to dependency ordering problems.
+The addition of ``Configuration`` variants can further complicate this.
 
-To avoid users manually ordering registrations to avoid conflicts, cinnamon dynamically builds a dependency graphs, **independently** of the registration order.
+To avoid requiring users to manually order registrations, cinnamon builds a
+dependency graph automatically — **independently of the registration order**.
 
-For instance, consider the following nesting dependency between two configurations:
+Consider the following two nested configurations:
 
 .. code-block:: python
 
-    class ParentConfig(cinnamon.configuration.Configuration):
-
-        @classmethod
-        def default(
-                cls
-        ):
-            config = super(cls).default()
-
-            config.add(name='param_1', value=True)
-            config.add(name='param_2', value=False)
-            config.add(name='child',
-                       value=RegistrationKey(name='test', tags={'nested'}, namespace='testing'))
-            return config
-
+    from cinnamon.configuration import Configuration, Param
+    from cinnamon.registry import RegistrationKey
 
     class NestedChild(Configuration):
+        x: int = Param(42)
 
-        @classmethod
-        def default(
-                cls
-        ):
-            config = super().default()
+    class ParentConfig(Configuration):
+        param_1: bool = Param(True)
+        param_2: bool = Param(False)
+        child: RegistrationKey = Param(
+            RegistrationKey(name='test', tags={'nested'}, namespace='testing')
+        )
 
-            config.add(name='x', value=42)
-
-            return config
-
-The following registration functions produce the same dependency graph.
+The two registration functions below produce identical dependency graphs,
+regardless of the order in which they register the parent and child:
 
 .. code-block:: python
 
-    @register
-    def custom_registration():
-        Registry.register_configuration(config=ParentConfig.default(),
-                                        name='test',
-                                        tags={'parent'},
-                                        namespace='testing',
-                                        )
-        Registry.register_configuration(config=NestedChild.default(),
-                                        name='test',
-                                        tags={'nested'},
-                                        namespace='testing',
-                                        )
+    from cinnamon.registry import Registry, register
 
     @register
     def custom_registration():
-        Registry.register_configuration(config=NestedChild.default(),
-                                        name='test',
-                                        tags={'nested'},
-                                        namespace='testing',
-                                        )
-        Registry.register_configuration(config=ParentConfig.default(),
-                                        name='test',
-                                        tags={'parent'},
-                                        namespace='testing',
-                                        )
+        Registry.register_configuration(
+            config=ParentConfig.default(),
+            name='test', tags={'parent'}, namespace='testing'
+        )
+        Registry.register_configuration(
+            config=NestedChild.default(),
+            name='test', tags={'nested'}, namespace='testing'
+        )
+
+    @register
+    def custom_registration():
+        # Order reversed — the result is identical
+        Registry.register_configuration(
+            config=NestedChild.default(),
+            name='test', tags={'nested'}, namespace='testing'
+        )
+        Registry.register_configuration(
+            config=ParentConfig.default(),
+            name='test', tags={'parent'}, namespace='testing'
+        )
 
 .. note::
-    The same reasoning applies for class method registrations (i.e., via ``register_method`` decorator).
+    The same ordering independence applies to ``@register_method`` decorators.
 
-This code organization is meant to simplify registration burden while keeping high readability.
+This is possible because the ``Registry`` builds a directed acyclic graph (DAG) of
+dependencies and resolves them bottom-up — children before parents — regardless of
+the order they were registered.
 
-Behind the curtains, the ``Registry`` is issued to look for all ``@register`` and ``@register_method`` decorators located in ``configurations`` folder
-to automatically execute them.
-
-This action is handled by ``Registry.build()`` method.
+To trigger registration and resolution, call ``Registry.build()``:
 
 .. code-block:: python
+
+    from pathlib import Path
+    from cinnamon.registry import Registry
 
     Registry.build(directory=Path('.'))
 
-Issues the ``Registry`` to look for all ``configurations`` folder(s) under the current working directory.
+This instructs the ``Registry`` to scan all ``configurations`` folders under the
+current working directory, execute every ``@register`` and ``@register_method``
+decorator it finds, and then resolve the full dependency graph.
 
 .. note::
-    The ``Registry`` search for registrations also accounts for nested ``configurations`` folders in a given directory.
+    ``Registry.build()`` searches recursively — nested ``configurations`` folders
+    within subdirectories are also picked up automatically.
+
 
 =============================================
 External dependencies
 =============================================
 
-Cinnamon is a community project. This means that **you** are the main contributor.
+Cinnamon is designed to be a community framework. You may need to import
+``Configuration`` and ``Component`` definitions written by others and build on top of them.
 
-In many situations, you may need to import other's work: external configurations and components.
+The ``Registry`` supports loading registrations from directories outside your own project.
+You can also define ``Configuration`` fields that point to externally registered keys.
 
-Cinnamon supports loading registration function calls that are external to your project's ``configurations`` folder.
-Moreover, you can also build your ``Configuration`` and ``Component`` with dependencies on external ones.
-
-For instance, suppose that a ``DataLoaderConfig`` variant has a external dependency.
+For example, suppose a ``DataLoaderConfig`` variant depends on an external preprocessor:
 
 .. code-block:: python
+
+    from cinnamon.configuration import Configuration, Param
+    from cinnamon.registry import RegistrationKey, register_method
 
     class DataLoaderConfig(Configuration):
+        folder_name: str = Param('my_custom_folder')
 
         @classmethod
-        def default(cls):
-            config = super(cls).get_default()
-
-            config.add(name='folder_name', type_hint=str)
-
-            return config
+        @register_method(name='loader', tags={'default'}, namespace='testing',
+                         component='components.DataLoader')
+        def default(cls) -> 'DataLoaderConfig':
+            return super().default()
 
         @classmethod
-        @register_method(name='loader', tags={'external'}, namespace='testing')
-        def external_variant(cls):
-            config = cls.default()
-
-            config.add(name='processor', value=RegistrationKey(name='processor', namespace='external'))
-
+        @register_method(name='loader', tags={'external'}, namespace='testing',
+                         component='components.DataLoader')
+        def external_variant(cls) -> 'DataLoaderConfig':
+            config = cls()
+            # processor is defined in an external project
+            config = config.model_copy(update={
+                'processor': RegistrationKey(name='processor', namespace='external')
+            })
             return config
 
-In this case, to avoid incurring in errors, we need to inform the ``Registry`` where ``RegistrationKey(name='processor', namespace='external')`` has been declared.
+.. note::
+    To use ``model_copy`` to add a new field, the field must already be declared
+    on the class. If ``processor`` is not declared in ``DataLoaderConfig``, add it
+    as an optional field:
 
-We do so, by specifying the main external directory when issuing ``Registry.build()``.
+    .. code-block:: python
+
+        from typing import Optional
+
+        class DataLoaderConfig(Configuration):
+            folder_name: str = Param('my_custom_folder')
+            processor: Optional[RegistrationKey] = Param(None)
+
+To avoid a ``NamespaceNotFoundException`` when the external key is resolved, inform
+the ``Registry`` where that namespace was declared by passing ``external_directories``
+to ``Registry.build()``:
 
 .. code-block:: python
 
-    Registry.build(directory=Path('.'), external_directories=[Path('path/to/external/directory')])
+    Registry.build(
+        directory=Path('.'),
+        external_directories=[Path('path/to/external/project')]
+    )
+
+The ``Registry`` will scan the external project's ``configurations`` folder,
+register its keys, and make them available for dependency resolution alongside
+your own.
 
 
 .. toctree::
@@ -206,4 +225,3 @@ We do so, by specifying the main external directory when issuing ``Registry.buil
    :hidden:
    :caption: Contents:
    :titlesonly:
-

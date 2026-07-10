@@ -219,7 +219,8 @@ class RegistrationKey:
 
     def from_tags_simplification(self, tags: Tags):
         """
-        Builds a new ``RegistrationKey`` from current instance by removing provided tags.
+        Builds a new ``RegistrationKey`` from current instance
+         by removing provided tags.
 
         Args:
             tags: a Tag set containing tags to remove
