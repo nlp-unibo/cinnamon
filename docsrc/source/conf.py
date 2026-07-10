@@ -1,22 +1,19 @@
 import sys
 from pathlib import Path
 
-sys.path.insert(0, Path(__file__).parent.parent.parent.resolve().absolute().as_posix())
+base_path = Path(__file__).parent.parent.parent.resolve().absolute()
+sys.path.insert(0, base_path.as_posix())
 sys.path.insert(
     0,
-    Path(__file__)
-    .parent.parent.parent.resolve()
-    .absolute()
-    .joinpath("cinnamon")
-    .as_posix(),
+    base_path.joinpath("cinnamon").as_posix(),
 )
 sys.path.insert(
     0,
-    Path(__file__)
-    .parent.parent.parent.resolve()
-    .absolute()
-    .joinpath("cinnamon", "utility")
-    .as_posix(),
+    base_path.joinpath("cinnamon", "utility").as_posix(),
+)
+sys.path.insert(
+    0,
+    base_path.joinpath("examples").as_posix(),
 )
 
 # Configuration file for the Sphinx documentation builder.

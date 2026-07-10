@@ -33,6 +33,11 @@ dev = [
 cli = [
     "InquirerPy>=0.3.4"
 ]
+examples = [
+    "pandas>=2.0",
+    "scikit-learn>=1.3",
+    "tqdm>=4.9.0"
+]
 
 [project.scripts]
 cmn-build = "cinnamon.cli:build"

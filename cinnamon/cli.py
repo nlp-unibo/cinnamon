@@ -230,6 +230,7 @@ def generate():
     code_template = f"""
 # Automatically generated via cmn-generate
 import logging
+from logging import getLogger
 from pathlib import Path
 from cinnamon.registry import Registry, RegistrationKey
 

@@ -17,3 +17,9 @@
    Dependencies <dependencies.rst>
    Commands <commands.rst>
    Code Documentation <modules.rst>
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Examples
+
+   Examples <examples/index.rst>
