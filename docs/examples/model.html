@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Defining a SVM classifier &mdash; Cinnamon</title>
+  <title>SVM Classifier &mdash; Cinnamon</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
 
@@ -14,13 +14,13 @@
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
       <script src="../_static/documentation_options.js?v=2709fde1"></script>
-      <script src="../_static/doctools.js?v=9bcbadda"></script>
-      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Defining a Benchmark" href="benchmark.html" />
-    <link rel="prev" title="Parsing data with Processor" href="processor.html" /> 
+    <link rel="next" title="Benchmark" href="benchmark.html" />
+    <link rel="prev" title="Processors" href="processor.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -55,17 +55,19 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Examples</span></p>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="data_loader.html">Data Loader</a></li>
-<li class="toctree-l1"><a class="reference internal" href="processor.html">Processor</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Model</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#svcmodel"><code class="docutils literal notranslate"><span class="pre">SVCModel</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="#svcmodelconfig"><code class="docutils literal notranslate"><span class="pre">SVCModelConfig</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="#next">Next!</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Examples</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="overview.html">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="data_loader.html">Data Loader</a></li>
+<li class="toctree-l2"><a class="reference internal" href="processor.html">Processor</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Model</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#svcmodel"><code class="docutils literal notranslate"><span class="pre">SVCModel</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#svcmodelconfig"><code class="docutils literal notranslate"><span class="pre">SVCModelConfig</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="benchmark.html">Benchmark</a></li>
-<li class="toctree-l1"><a class="reference internal" href="catalog.html">Catalog</a></li>
+<li class="toctree-l2"><a class="reference internal" href="benchmark.html">Benchmark</a></li>
+<li class="toctree-l2"><a class="reference internal" href="catalog.html">Catalog</a></li>
+</ul>
+</li>
 </ul>
 
         </div>
@@ -82,8 +84,8 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
-          <li class="breadcrumb-item"><a href="index.html">&lt;no title&gt;</a></li>
-      <li class="breadcrumb-item active">Defining a SVM classifier</li>
+          <li class="breadcrumb-item"><a href="index.html">Examples</a></li>
+      <li class="breadcrumb-item active">SVM Classifier</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/examples/model.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -93,108 +95,70 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="defining-a-svm-classifier">
-<span id="model"></span><h1>Defining a SVM classifier<a class="headerlink" href="#defining-a-svm-classifier" title="Link to this heading"></a></h1>
-<p>We are ready to define our SVM classifier.</p>
-<p>We define the <code class="docutils literal notranslate"><span class="pre">SVCModel</span></code> component to wrap  a SVC from sklearn.</p>
-<p>Then, we define its associated <code class="docutils literal notranslate"><span class="pre">SVCModelConfig</span></code> and perform registrations.</p>
-<p>Lastly, we define the runnable script to run our <code class="docutils literal notranslate"><span class="pre">SVCModel</span></code>.</p>
+  <section id="svm-classifier">
+<span id="model"></span><h1>SVM Classifier<a class="headerlink" href="#svm-classifier" title="Link to this heading"></a></h1>
+<p>The model stage wraps scikit-learn’s <code class="docutils literal notranslate"><span class="pre">SVC</span></code> as a cinnamon <code class="docutils literal notranslate"><span class="pre">Component</span></code>.</p>
 <section id="svcmodel">
 <h2><code class="docutils literal notranslate"><span class="pre">SVCModel</span></code><a class="headerlink" href="#svcmodel" title="Link to this heading"></a></h2>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">SVCModel</span><span class="p">(</span><span class="n">Component</span><span class="p">):</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
-            <span class="bp">self</span><span class="p">,</span>
-            <span class="n">C</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-            <span class="n">kernel</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-            <span class="n">class_weight</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;balanced&#39;</span>
-    <span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">C</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">kernel</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">class_weight</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;balanced&#39;</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">C</span> <span class="o">=</span> <span class="n">C</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">kernel</span> <span class="o">=</span> <span class="n">kernel</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">class_weight</span> <span class="o">=</span> <span class="n">class_weight</span>
-
-        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">SVC</span><span class="p">(</span><span class="n">C</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">C</span><span class="p">,</span>
-                         <span class="n">kernel</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">kernel</span><span class="p">,</span>
-                         <span class="n">class_weight</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">class_weight</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">SVC</span><span class="p">(</span><span class="n">C</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">C</span><span class="p">,</span> <span class="n">kernel</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">kernel</span><span class="p">,</span> <span class="n">class_weight</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">class_weight</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">fit</span><span class="p">(</span>
-            <span class="bp">self</span><span class="p">,</span>
-            <span class="n">x_train</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
-            <span class="n">y_train</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
-            <span class="n">x_val</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-            <span class="n">y_val</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">x_train</span><span class="p">,</span> <span class="n">y_train</span><span class="p">,</span>
+        <span class="n">x_val</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">y_val</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]]:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="o">=</span><span class="n">x_train</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">y_train</span><span class="p">)</span>
         <span class="n">train_info</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x_train</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">y_train</span><span class="p">)</span>
-
         <span class="k">if</span> <span class="n">x_val</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">val_info</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x_val</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">y_val</span><span class="p">)</span>
-            <span class="k">return</span> <span class="n">train_info</span><span class="p">,</span> <span class="n">val_info</span>
-
+            <span class="k">return</span> <span class="n">train_info</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x_val</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">y_val</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">train_info</span><span class="p">,</span> <span class="kc">None</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">evaluate</span><span class="p">(</span>
-            <span class="bp">self</span><span class="p">,</span>
-            <span class="n">x</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
-            <span class="n">y</span><span class="p">:</span> <span class="n">Any</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">evaluate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
         <span class="n">predictions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">)</span>
-        <span class="n">f1</span> <span class="o">=</span> <span class="n">f1_score</span><span class="p">(</span><span class="n">y_pred</span><span class="o">=</span><span class="n">predictions</span><span class="p">,</span> <span class="n">y_true</span><span class="o">=</span><span class="n">y</span><span class="p">)</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
-        <span class="n">acc</span> <span class="o">=</span> <span class="n">accuracy_score</span><span class="p">(</span><span class="n">y_pred</span><span class="o">=</span><span class="n">predictions</span><span class="p">,</span> <span class="n">y_true</span><span class="o">=</span><span class="n">y</span><span class="p">)</span>
-
         <span class="k">return</span> <span class="p">{</span>
-            <span class="s1">&#39;f1&#39;</span><span class="p">:</span> <span class="n">f1</span><span class="p">,</span>
-            <span class="s1">&#39;acc&#39;</span><span class="p">:</span> <span class="n">acc</span>
+            <span class="s1">&#39;f1&#39;</span><span class="p">:</span>  <span class="n">f1_score</span><span class="p">(</span><span class="n">y_pred</span><span class="o">=</span><span class="n">predictions</span><span class="p">,</span> <span class="n">y_true</span><span class="o">=</span><span class="n">y</span><span class="p">),</span>
+            <span class="s1">&#39;acc&#39;</span><span class="p">:</span> <span class="n">accuracy_score</span><span class="p">(</span><span class="n">y_pred</span><span class="o">=</span><span class="n">predictions</span><span class="p">,</span> <span class="n">y_true</span><span class="o">=</span><span class="n">y</span><span class="p">),</span>
         <span class="p">}</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">predict</span><span class="p">(</span>
-            <span class="bp">self</span><span class="p">,</span>
-            <span class="n">x</span><span class="p">:</span> <span class="n">Any</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">X</span><span class="o">=</span><span class="n">x</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>Note how <code class="docutils literal notranslate"><span class="pre">fit()</span></code> and <code class="docutils literal notranslate"><span class="pre">predict()</span></code> functions simply wrap the <code class="docutils literal notranslate"><span class="pre">model.fit()</span></code> and <code class="docutils literal notranslate"><span class="pre">model.predict()</span></code> functions of the SVC.</p>
+<p><code class="docutils literal notranslate"><span class="pre">fit()</span></code> trains the SVC and returns evaluation metrics for both train and (optional)
+validation sets. <code class="docutils literal notranslate"><span class="pre">evaluate()</span></code> returns <code class="docutils literal notranslate"><span class="pre">f1</span></code> and <code class="docutils literal notranslate"><span class="pre">acc</span></code> scores. <code class="docutils literal notranslate"><span class="pre">predict()</span></code>
+wraps <code class="docutils literal notranslate"><span class="pre">model.predict()</span></code> directly.</p>
 </section>
 <section id="svcmodelconfig">
 <h2><code class="docutils literal notranslate"><span class="pre">SVCModelConfig</span></code><a class="headerlink" href="#svcmodelconfig" title="Link to this heading"></a></h2>
-<p>The <code class="docutils literal notranslate"><span class="pre">SVCModel</span></code> uses <code class="docutils literal notranslate"><span class="pre">SVCModelConfig</span></code> as default configuration template.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">SVCModelConfig</span><span class="p">(</span><span class="n">Configuration</span><span class="p">):</span>
+    <span class="n">C</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">Param</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s1">&#39;Regularisation parameter of SVC&#39;</span><span class="p">)</span>
+    <span class="n">kernel</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Param</span><span class="p">(</span><span class="s1">&#39;linear&#39;</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s1">&#39;Kernel type&#39;</span><span class="p">)</span>
+    <span class="n">class_weight</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Param</span><span class="p">(</span>
+        <span class="s1">&#39;balanced&#39;</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="s1">&#39;Weighting strategy for class imbalance&#39;</span>
+    <span class="p">)</span>
 
     <span class="nd">@classmethod</span>
-    <span class="nd">@register_method</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;model&#39;</span><span class="p">,</span>
-                     <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;svc&#39;</span><span class="p">},</span>
-                     <span class="n">namespace</span><span class="o">=</span><span class="s1">&#39;examples&#39;</span><span class="p">,</span>
-                     <span class="n">component_class</span><span class="o">=</span><span class="n">SVCModel</span><span class="p">)</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">default</span><span class="p">(</span>
-            <span class="bp">cls</span>
-    <span class="p">):</span>
-        <span class="n">config</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">default</span><span class="p">()</span>
-
-        <span class="n">config</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;C&#39;</span><span class="p">,</span>
-                   <span class="n">value</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
-                   <span class="n">type_hint</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
-                   <span class="n">description</span><span class="o">=</span><span class="s1">&#39;C parameter of SVC&#39;</span><span class="p">)</span>
-        <span class="n">config</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;kernel&#39;</span><span class="p">,</span>
-                   <span class="n">type_hint</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
-                   <span class="n">value</span><span class="o">=</span><span class="s1">&#39;linear&#39;</span><span class="p">,</span>
-                   <span class="n">description</span><span class="o">=</span><span class="s1">&#39;The kernel of the SVC&#39;</span><span class="p">)</span>
-        <span class="n">config</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;class_weight&#39;</span><span class="p">,</span>
-                   <span class="n">type_hint</span><span class="o">=</span><span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
-                   <span class="n">value</span><span class="o">=</span><span class="s1">&#39;balanced&#39;</span><span class="p">,</span>
-                   <span class="n">description</span><span class="o">=</span><span class="s1">&#39;The weighting technique for addressing class imbalance.&#39;</span>
-                               <span class="s1">&#39;Each sample in the training set receives a weight based on&#39;</span>
-                               <span class="s1">&#39; its class distribution&#39;</span><span class="p">)</span>
-
-        <span class="k">return</span> <span class="n">config</span>
+    <span class="nd">@register_method</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;model&#39;</span><span class="p">,</span>
+        <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;svc&#39;</span><span class="p">},</span>
+        <span class="n">namespace</span><span class="o">=</span><span class="s1">&#39;examples&#39;</span><span class="p">,</span>
+        <span class="n">component</span><span class="o">=</span><span class="s1">&#39;examples.components.model.SVCModel&#39;</span>
+    <span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">default</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;SVCModelConfig&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">default</span><span class="p">()</span>
 </pre></div>
 </div>
-<p>We register the <code class="docutils literal notranslate"><span class="pre">SVCModelConfig</span></code> via <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code> (<code class="docutils literal notranslate"><span class="pre">name=model</span></code>, <code class="docutils literal notranslate"><span class="pre">tags={'svc'}</span></code>, <code class="docutils literal notranslate"><span class="pre">namespace=examples</span></code>) and bind it to <code class="docutils literal notranslate"><span class="pre">SVCModel</span></code>.</p>
-</section>
-<section id="next">
-<h2>Next!<a class="headerlink" href="#next" title="Link to this heading"></a></h2>
-<p>That’s it! We have defined our SVM classifier as a <code class="docutils literal notranslate"><span class="pre">Component</span></code> and its corresponding <code class="docutils literal notranslate"><span class="pre">Configuration</span></code>.</p>
-<p>Next, we define a proper evaluation criteria by wrapping our data, processing, and model pipeline into a <code class="docutils literal notranslate"><span class="pre">Benchmark</span></code>.</p>
+<p>The three fields correspond exactly to the three parameters of <code class="docutils literal notranslate"><span class="pre">SVCModel.__init__</span></code>.
+When the <code class="docutils literal notranslate"><span class="pre">Registry</span></code> builds <code class="docutils literal notranslate"><span class="pre">SVCModel</span></code>, it calls <code class="docutils literal notranslate"><span class="pre">SVCModel(**config.values)</span></code>,
+which unpacks <code class="docutils literal notranslate"><span class="pre">{'C':</span> <span class="pre">1.0,</span> <span class="pre">'kernel':</span> <span class="pre">'linear',</span> <span class="pre">'class_weight':</span> <span class="pre">'balanced'}</span></code>
+directly into the constructor.</p>
 </section>
 </section>
 
@@ -202,8 +166,8 @@
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="processor.html" class="btn btn-neutral float-left" title="Parsing data with Processor" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="benchmark.html" class="btn btn-neutral float-right" title="Defining a Benchmark" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="processor.html" class="btn btn-neutral float-left" title="Processors" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="benchmark.html" class="btn btn-neutral float-right" title="Benchmark" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

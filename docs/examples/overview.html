@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Quickstart &mdash; Cinnamon</title>
+  <title>Overview &mdash; Cinnamon</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
 
@@ -14,13 +14,13 @@
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
       <script src="../_static/documentation_options.js?v=2709fde1"></script>
-      <script src="../_static/doctools.js?v=9bcbadda"></script>
-      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Loading data with DataLoader" href="data_loader.html" />
-    <link rel="prev" title="&lt;no title&gt;" href="index.html" /> 
+    <link rel="next" title="Data Loader" href="data_loader.html" />
+    <link rel="prev" title="Examples" href="index.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -55,16 +55,21 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Examples</span></p>
 <ul class="current">
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Overview</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#usage">Usage</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#contact">Contact</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Examples</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Overview</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#project-layout">Project layout</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#installation">Installation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#running-the-demos">Running the demos</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#using-these-components-in-your-own-project">Using these components in your own project</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="data_loader.html">Data Loader</a></li>
-<li class="toctree-l1"><a class="reference internal" href="processor.html">Processor</a></li>
-<li class="toctree-l1"><a class="reference internal" href="model.html">Model</a></li>
-<li class="toctree-l1"><a class="reference internal" href="benchmark.html">Benchmark</a></li>
-<li class="toctree-l1"><a class="reference internal" href="catalog.html">Catalog</a></li>
+<li class="toctree-l2"><a class="reference internal" href="data_loader.html">Data Loader</a></li>
+<li class="toctree-l2"><a class="reference internal" href="processor.html">Processor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="model.html">Model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="benchmark.html">Benchmark</a></li>
+<li class="toctree-l2"><a class="reference internal" href="catalog.html">Catalog</a></li>
+</ul>
+</li>
 </ul>
 
         </div>
@@ -81,8 +86,8 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
-          <li class="breadcrumb-item"><a href="index.html">&lt;no title&gt;</a></li>
-      <li class="breadcrumb-item active">Quickstart</li>
+          <li class="breadcrumb-item"><a href="index.html">Examples</a></li>
+      <li class="breadcrumb-item active">Overview</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/examples/overview.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -92,74 +97,97 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="quickstart">
-<span id="overview"></span><h1>Quickstart<a class="headerlink" href="#quickstart" title="Link to this heading"></a></h1>
-<p>This project contains a complete example of a machine-learning pipeline.</p>
-<p>In particular, we’ll see how</p>
+  <section id="overview">
+<span id="examples-overview"></span><h1>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h1>
+<p>The examples folder contains a complete machine-learning pipeline built with cinnamon.
+It is a good starting point to see how <code class="docutils literal notranslate"><span class="pre">Component</span></code> and <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> work together
+in a real project.</p>
+<p>The pipeline covers:</p>
 <ul class="simple">
-<li><p>Define a <code class="docutils literal notranslate"><span class="pre">DataLoader</span></code></p></li>
-<li><p>Define two data <code class="docutils literal notranslate"><span class="pre">Processor</span></code>, one for tf-idf features and one for one-hot label encoding</p></li>
-<li><p>Define a SVM classifier <code class="docutils literal notranslate"><span class="pre">Model</span></code></p></li>
-<li><p>Train and evaluate our classifier with a <code class="docutils literal notranslate"><span class="pre">Benchmark</span></code></p></li>
+<li><p>A <code class="docutils literal notranslate"><span class="pre">DataLoader</span></code> that downloads and parses the IMDB dataset.</p></li>
+<li><p>Two <code class="docutils literal notranslate"><span class="pre">Processor</span></code> components — one for tf-idf features, one for label encoding.</p></li>
+<li><p>An <code class="docutils literal notranslate"><span class="pre">SVCModel</span></code> wrapping scikit-learn’s SVC classifier.</p></li>
+<li><p>An <code class="docutils literal notranslate"><span class="pre">SVCBenchmark</span></code> that wires everything together and evaluates the model.</p></li>
 </ul>
-<p>We consider the IMDB data to perform a binary classification for sentiment analysis.</p>
-<section id="usage">
-<h2>Usage<a class="headerlink" href="#usage" title="Link to this heading"></a></h2>
-<p>Want to use the <code class="docutils literal notranslate"><span class="pre">Component</span></code> and <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> of this example project?</p>
-<p>You can quickly integrate them into your project by cloning this Github repo and add it to <code class="docutils literal notranslate"><span class="pre">Registry.setup()</span></code>.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">Registry</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">directory</span><span class="o">=...</span><span class="p">,</span>
-               <span class="n">external_directories</span><span class="o">=</span><span class="p">[</span>
-                   <span class="s2">&quot;path/where/cinnamon_examples/is/stored&quot;</span><span class="p">,</span>
-               <span class="p">])</span>
-</pre></div>
-</div>
-<p>Done! Cinnamon will automatically import all registered <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> under <cite>configurations</cite> folders.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>Remember to first install all requirements to allow successful code import.</p>
-</div>
-<p>We then can define any registration that uses <code class="docutils literal notranslate"><span class="pre">Component</span></code> or <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> declared in this repo.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@register</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;model&#39;</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;custom&#39;</span><span class="p">},</span> <span class="n">namespace</span><span class="o">=</span><span class="s1">&#39;my_own&#39;</span><span class="p">)</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">register_custom_model_config</span><span class="p">():</span>
-    <span class="n">config</span> <span class="o">=</span> <span class="n">SVCModelConfig</span><span class="o">.</span><span class="n">default</span><span class="p">()</span>
-
-    <span class="n">config</span><span class="o">.</span><span class="n">C</span> <span class="o">=</span> <span class="mf">0.5</span>
-    <span class="n">config</span><span class="o">.</span><span class="n">kernel</span> <span class="o">=</span> <span class="s1">&#39;rbf&#39;</span>
-
-    <span class="k">return</span> <span class="n">config</span>
-</pre></div>
-</div>
-<p>Or that we want to re-use <code class="docutils literal notranslate"><span class="pre">IMBDLoader</span></code> with our custom benchmark.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">CustomBenchmarkConfig</span><span class="p">(</span><span class="n">Configuration</span><span class="p">):</span>
-
- <span class="nd">@classmethod</span>
- <span class="nd">@register_method</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;benchmark&#39;</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;custom&#39;</span><span class="p">},</span> <span class="n">namespace</span><span class="o">=</span><span class="s1">&#39;my_own&#39;</span><span class="p">)</span>
- <span class="k">def</span><span class="w"> </span><span class="nf">default</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-     <span class="n">config</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">default</span><span class="p">()</span>
-
-     <span class="n">config</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;data_loader&#39;</span><span class="p">,</span>
-                <span class="n">value</span><span class="o">=</span><span class="n">RegistrationKey</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;data_loader&#39;</span><span class="p">,</span>
-                                  <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;imdb&#39;</span><span class="p">},</span>
-                                  <span class="n">namespace</span><span class="o">=</span><span class="s1">&#39;examples&#39;</span><span class="p">))</span>
-
-     <span class="n">config</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;model&#39;</span><span class="p">,</span>
-                <span class="n">value</span><span class="o">=</span><span class="n">RegistrationKey</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;model&#39;</span><span class="p">,</span>
-                                      <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;imdb&#39;</span><span class="p">,</span> <span class="s1">&#39;lstm&#39;</span><span class="p">},</span>
-                                      <span class="n">namespace</span><span class="o">=</span><span class="s1">&#39;my_own&#39;</span><span class="p">))</span>
-
-     <span class="o">...</span>
-
-     <span class="k">return</span> <span class="n">config</span>
+<p>All components are registered in the <code class="docutils literal notranslate"><span class="pre">Registry</span></code> and can be swapped independently.</p>
+<section id="project-layout">
+<h2>Project layout<a class="headerlink" href="#project-layout" title="Link to this heading"></a></h2>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>examples/
+    components/
+        data_loader.py      ← IMDBLoader
+        processor.py        ← TfIdfProcessor, LabelProcessor
+        model.py            ← SVCModel
+        benchmark.py        ← SVCBenchmark
+    configurations/
+        data_loader.py      ← IMDBLoaderConfig
+        processor.py        ← TfIdfProcessorConfig, LabelProcessor registration
+        model.py            ← SVCModelConfig
+        benchmark.py        ← SVCBenchmarkConfig
+    demos/
+        demo_data_loader.py ← run IMDBLoader standalone
+        demo_benchmark.py   ← run the full pipeline
 </pre></div>
 </div>
 </section>
-<section id="contact">
-<h2>Contact<a class="headerlink" href="#contact" title="Link to this heading"></a></h2>
-<p>Don’t hesitate to contact:</p>
-<ul class="simple">
-<li><p><a class="reference external" href="https://www.unibo.it/sitoweb/federico.ruggeri6/en">Federico Ruggeri</a></p></li>
-</ul>
-<p>for questions/doubts/issues!</p>
+<section id="installation">
+<h2>Installation<a class="headerlink" href="#installation" title="Link to this heading"></a></h2>
+<p>Install cinnamon and the example dependencies:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">&quot;cinnamon[examples]&quot;</span>
+</pre></div>
+</div>
+</section>
+<section id="running-the-demos">
+<h2>Running the demos<a class="headerlink" href="#running-the-demos" title="Link to this heading"></a></h2>
+<p>Run the full benchmark pipeline:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>examples
+python<span class="w"> </span>demos/demo_benchmark.py
+</pre></div>
+</div>
+<p>Run only the data loader:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>examples
+python<span class="w"> </span>demos/demo_data_loader.py
+</pre></div>
+</div>
+<p>Both scripts call <code class="docutils literal notranslate"><span class="pre">Registry.build()</span></code> to discover and register all configurations
+under the <code class="docutils literal notranslate"><span class="pre">configurations/</span></code> folder before building the components.</p>
+</section>
+<section id="using-these-components-in-your-own-project">
+<h2>Using these components in your own project<a class="headerlink" href="#using-these-components-in-your-own-project" title="Link to this heading"></a></h2>
+<p>You can reuse the example components and configurations from your own project by
+pointing <code class="docutils literal notranslate"><span class="pre">Registry.build()</span></code> to the examples folder as an external directory:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">cinnamon.registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">Registry</span>
+
+<span class="n">Registry</span><span class="o">.</span><span class="n">build</span><span class="p">(</span>
+    <span class="n">directory</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">),</span>                           <span class="c1"># your project</span>
+    <span class="n">external_directories</span><span class="o">=</span><span class="p">[</span><span class="n">Path</span><span class="p">(</span><span class="s1">&#39;path/to/examples&#39;</span><span class="p">)]</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>Once built, you can register configurations that reference the example keys:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">cinnamon.configuration</span><span class="w"> </span><span class="kn">import</span> <span class="n">Configuration</span><span class="p">,</span> <span class="n">Param</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">cinnamon.registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">RegistrationKey</span><span class="p">,</span> <span class="n">register_method</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">CustomBenchmarkConfig</span><span class="p">(</span><span class="n">Configuration</span><span class="p">):</span>
+    <span class="n">data_loader</span><span class="p">:</span> <span class="n">RegistrationKey</span> <span class="o">=</span> <span class="n">Param</span><span class="p">(</span>
+        <span class="n">RegistrationKey</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;data_loader&#39;</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;imdb&#39;</span><span class="p">},</span> <span class="n">namespace</span><span class="o">=</span><span class="s1">&#39;examples&#39;</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="n">model</span><span class="p">:</span> <span class="n">RegistrationKey</span> <span class="o">=</span> <span class="n">Param</span><span class="p">(</span>
+        <span class="n">RegistrationKey</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;model&#39;</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;svc&#39;</span><span class="p">},</span> <span class="n">namespace</span><span class="o">=</span><span class="s1">&#39;examples&#39;</span><span class="p">)</span>
+    <span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="nd">@register_method</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;benchmark&#39;</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;custom&#39;</span><span class="p">},</span> <span class="n">namespace</span><span class="o">=</span><span class="s1">&#39;my_project&#39;</span><span class="p">,</span>
+                     <span class="n">component</span><span class="o">=</span><span class="s1">&#39;components.CustomBenchmark&#39;</span><span class="p">,</span> <span class="n">run_method</span><span class="o">=</span><span class="s1">&#39;run&#39;</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">default</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;CustomBenchmarkConfig&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">default</span><span class="p">()</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Make sure to install the example dependencies before importing example components,
+otherwise the import will fail during <code class="docutils literal notranslate"><span class="pre">Registry.build()</span></code>.</p>
+</div>
 </section>
 </section>
 
@@ -167,8 +195,8 @@
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="index.html" class="btn btn-neutral float-left" title="&lt;no title&gt;" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="data_loader.html" class="btn btn-neutral float-right" title="Loading data with DataLoader" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="index.html" class="btn btn-neutral float-left" title="Examples" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="data_loader.html" class="btn btn-neutral float-right" title="Data Loader" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

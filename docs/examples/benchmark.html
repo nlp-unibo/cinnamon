@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Defining a Benchmark &mdash; Cinnamon</title>
+  <title>Benchmark &mdash; Cinnamon</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
 
@@ -14,13 +14,13 @@
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
       <script src="../_static/documentation_options.js?v=2709fde1"></script>
-      <script src="../_static/doctools.js?v=9bcbadda"></script>
-      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Available Configuration" href="catalog.html" />
-    <link rel="prev" title="Defining a SVM classifier" href="model.html" /> 
+    <link rel="next" title="Registered Keys" href="catalog.html" />
+    <link rel="prev" title="SVM Classifier" href="model.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -55,18 +55,21 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Examples</span></p>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="data_loader.html">Data Loader</a></li>
-<li class="toctree-l1"><a class="reference internal" href="processor.html">Processor</a></li>
-<li class="toctree-l1"><a class="reference internal" href="model.html">Model</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Benchmark</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#svcbenchmark"><code class="docutils literal notranslate"><span class="pre">SVCBenchmark</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="#svcbenchmarkconfig"><code class="docutils literal notranslate"><span class="pre">SVCBenchmarkConfig</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="#running-svcbenchmark">Running <code class="docutils literal notranslate"><span class="pre">SVCBenchmark</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="#congratulations">Congratulations!</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Examples</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="overview.html">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="data_loader.html">Data Loader</a></li>
+<li class="toctree-l2"><a class="reference internal" href="processor.html">Processor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="model.html">Model</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Benchmark</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#svcbenchmark"><code class="docutils literal notranslate"><span class="pre">SVCBenchmark</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#svcbenchmarkconfig"><code class="docutils literal notranslate"><span class="pre">SVCBenchmarkConfig</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#demo-script">Demo script</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#congratulations">Congratulations!</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="catalog.html">Catalog</a></li>
+<li class="toctree-l2"><a class="reference internal" href="catalog.html">Catalog</a></li>
+</ul>
+</li>
 </ul>
 
         </div>
@@ -83,8 +86,8 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
-          <li class="breadcrumb-item"><a href="index.html">&lt;no title&gt;</a></li>
-      <li class="breadcrumb-item active">Defining a <code class="docutils literal notranslate"><span class="pre">Benchmark</span></code></li>
+          <li class="breadcrumb-item"><a href="index.html">Examples</a></li>
+      <li class="breadcrumb-item active">Benchmark</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/examples/benchmark.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -94,127 +97,150 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="defining-a-benchmark">
-<span id="benchmark"></span><h1>Defining a <code class="docutils literal notranslate"><span class="pre">Benchmark</span></code><a class="headerlink" href="#defining-a-benchmark" title="Link to this heading"></a></h1>
-<p>We have defined each individual piece of our machine learning experiment.</p>
-<p>We now need to define a code logic that uses all of them to train and evaluate our SVM classifier on the IMDB dataset.</p>
+  <section id="benchmark">
+<span id="id1"></span><h1>Benchmark<a class="headerlink" href="#benchmark" title="Link to this heading"></a></h1>
+<p><code class="docutils literal notranslate"><span class="pre">SVCBenchmark</span></code> ties together the data loader, processors, and model into a single
+runnable pipeline.</p>
 <section id="svcbenchmark">
 <h2><code class="docutils literal notranslate"><span class="pre">SVCBenchmark</span></code><a class="headerlink" href="#svcbenchmark" title="Link to this heading"></a></h2>
-<p>We define a <code class="docutils literal notranslate"><span class="pre">Component</span></code> that wraps up data loading, data processing, model definition, model training, and model evaluation.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">SVCBenchmark</span><span class="p">(</span><span class="n">RunnableComponent</span><span class="p">):</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">SVCBenchmark</span><span class="p">(</span><span class="n">Component</span><span class="p">):</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
-            <span class="bp">self</span><span class="p">,</span>
-            <span class="n">data_loader</span><span class="p">:</span> <span class="n">IMDBLoader</span><span class="p">,</span>
-            <span class="n">model</span><span class="p">:</span> <span class="n">SVCModel</span><span class="p">,</span>
-            <span class="n">text_processor</span><span class="p">:</span> <span class="n">TfIdfProcessor</span><span class="p">,</span>
-            <span class="n">label_processor</span><span class="p">:</span> <span class="n">LabelProcessor</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">data_loader</span><span class="p">:</span> <span class="n">RegistrationKey</span><span class="p">,</span>
+        <span class="n">model</span><span class="p">:</span> <span class="n">RegistrationKey</span><span class="p">,</span>
+        <span class="n">text_processor</span><span class="p">:</span> <span class="n">RegistrationKey</span><span class="p">,</span>
+        <span class="n">label_processor</span><span class="p">:</span> <span class="n">RegistrationKey</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">data_loader</span> <span class="o">=</span> <span class="n">data_loader</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_loader</span>    <span class="o">=</span> <span class="n">data_loader</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span>          <span class="o">=</span> <span class="n">model</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">text_processor</span> <span class="o">=</span> <span class="n">text_processor</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">label_processor</span> <span class="o">=</span> <span class="n">label_processor</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">run</span><span class="p">(</span>
-            <span class="bp">self</span><span class="p">,</span>
-            <span class="n">config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">cinnamon</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">Configuration</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="p">):</span>
-        <span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">()</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">)</span>
 
-        <span class="n">train_df</span><span class="p">,</span> <span class="n">val_df</span><span class="p">,</span> <span class="n">test_df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_loader</span><span class="o">.</span><span class="n">get_splits</span><span class="p">()</span>
+        <span class="n">data_loader</span> <span class="o">=</span> <span class="n">IMDBLoader</span><span class="o">.</span><span class="n">instantiate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_loader</span><span class="p">)</span>
+        <span class="n">train_df</span><span class="p">,</span> <span class="n">val_df</span><span class="p">,</span> <span class="n">test_df</span> <span class="o">=</span> <span class="n">data_loader</span><span class="o">.</span><span class="n">get_splits</span><span class="p">()</span>
 
-        <span class="n">x_train</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">text_processor</span><span class="o">.</span><span class="n">process</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">train_df</span><span class="p">,</span> <span class="n">is_training_data</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-        <span class="n">y_train</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">label_processor</span><span class="o">.</span><span class="n">process</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">train_df</span><span class="p">,</span> <span class="n">is_training_data</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">text_processor</span>  <span class="o">=</span> <span class="n">TfIdfProcessor</span><span class="o">.</span><span class="n">instantiate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">text_processor</span><span class="p">)</span>
+        <span class="n">label_processor</span> <span class="o">=</span> <span class="n">LabelProcessor</span><span class="o">.</span><span class="n">instantiate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">label_processor</span><span class="p">)</span>
 
-        <span class="n">x_val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">text_processor</span><span class="o">.</span><span class="n">process</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">val_df</span><span class="p">)</span>
-        <span class="n">y_val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">label_processor</span><span class="o">.</span><span class="n">process</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">val_df</span><span class="p">)</span>
+        <span class="n">x_train</span> <span class="o">=</span> <span class="n">text_processor</span><span class="o">.</span><span class="n">process</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">train_df</span><span class="p">,</span> <span class="n">is_training_data</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">y_train</span> <span class="o">=</span> <span class="n">label_processor</span><span class="o">.</span><span class="n">process</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">train_df</span><span class="p">,</span> <span class="n">is_training_data</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">x_val</span>   <span class="o">=</span> <span class="n">text_processor</span><span class="o">.</span><span class="n">process</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">val_df</span><span class="p">)</span>
+        <span class="n">y_val</span>   <span class="o">=</span> <span class="n">label_processor</span><span class="o">.</span><span class="n">process</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">val_df</span><span class="p">)</span>
+        <span class="n">x_test</span>  <span class="o">=</span> <span class="n">text_processor</span><span class="o">.</span><span class="n">process</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">test_df</span><span class="p">)</span>
+        <span class="n">y_test</span>  <span class="o">=</span> <span class="n">label_processor</span><span class="o">.</span><span class="n">process</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">test_df</span><span class="p">)</span>
 
-        <span class="n">x_test</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">text_processor</span><span class="o">.</span><span class="n">process</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">test_df</span><span class="p">)</span>
-        <span class="n">y_test</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">label_processor</span><span class="o">.</span><span class="n">process</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">test_df</span><span class="p">)</span>
-
-        <span class="n">train_info</span><span class="p">,</span> <span class="n">val_info</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">x_train</span><span class="o">=</span><span class="n">x_train</span><span class="p">,</span> <span class="n">y_train</span><span class="o">=</span><span class="n">y_train</span><span class="p">,</span>
-                                              <span class="n">x_val</span><span class="o">=</span><span class="n">x_val</span><span class="p">,</span> <span class="n">y_val</span><span class="o">=</span><span class="n">y_val</span><span class="p">)</span>
-        <span class="n">test_info</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x_test</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">y_test</span><span class="p">)</span>
+        <span class="n">model</span> <span class="o">=</span> <span class="n">SVCModel</span><span class="o">.</span><span class="n">instantiate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">)</span>
+        <span class="n">train_info</span><span class="p">,</span> <span class="n">val_info</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span>
+            <span class="n">x_train</span><span class="o">=</span><span class="n">x_train</span><span class="p">,</span> <span class="n">y_train</span><span class="o">=</span><span class="n">y_train</span><span class="p">,</span>
+            <span class="n">x_val</span><span class="o">=</span><span class="n">x_val</span><span class="p">,</span>     <span class="n">y_val</span><span class="o">=</span><span class="n">y_val</span>
+        <span class="p">)</span>
+        <span class="n">test_info</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x_test</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">y_test</span><span class="p">)</span>
 
         <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Train info:</span><span class="se">\n</span><span class="si">{</span><span class="n">train_info</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
         <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Val info:</span><span class="se">\n</span><span class="si">{</span><span class="n">val_info</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
         <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Test info:</span><span class="se">\n</span><span class="si">{</span><span class="n">test_info</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>The <code class="docutils literal notranslate"><span class="pre">__init__</span></code> of <code class="docutils literal notranslate"><span class="pre">SVCBenchmark</span></code> takes built <code class="docutils literal notranslate"><span class="pre">Component</span></code> instances. This is automatically handled by cinnamon.
-If you want to work with <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code> (e.g., some components require additional attributes to initialize), set <code class="docutils literal notranslate"><span class="pre">build_recursively=False</span></code> in <code class="docutils literal notranslate"><span class="pre">register</span></code> and <code class="docutils literal notranslate"><span class="pre">register_method</span></code>.</p>
-</div>
+<p>Notice that <code class="docutils literal notranslate"><span class="pre">SVCBenchmark.__init__</span></code> receives <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code> objects, not built
+component instances. Each dependency is built lazily inside <code class="docutils literal notranslate"><span class="pre">run()</span></code> via
+<code class="docutils literal notranslate"><span class="pre">Component.instantiate(key)</span></code>.</p>
+<p>This is a deliberate design choice enabled by <code class="docutils literal notranslate"><span class="pre">resolve_automatically=False</span></code> in the
+benchmark’s registration (see below). It means:</p>
+<ul class="simple">
+<li><p>The <code class="docutils literal notranslate"><span class="pre">Registry</span></code> validates that each <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code> exists and is resolvable,
+but does not build the nested components eagerly.</p></li>
+<li><p>Components are constructed only when <code class="docutils literal notranslate"><span class="pre">run()</span></code> is called, keeping memory usage low
+until the pipeline actually starts.</p></li>
+<li><p>Each nested component gets its own fresh instance per run, with no shared state.</p></li>
+</ul>
 </section>
 <section id="svcbenchmarkconfig">
 <h2><code class="docutils literal notranslate"><span class="pre">SVCBenchmarkConfig</span></code><a class="headerlink" href="#svcbenchmarkconfig" title="Link to this heading"></a></h2>
-<p>We then define the corresponding <code class="docutils literal notranslate"><span class="pre">SVCBenchmarkConfig</span></code>.</p>
-<p>Notice how this configuration is an example of <strong>nested configuration</strong> where some <code class="docutils literal notranslate"><span class="pre">Param</span></code> point to <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code>.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">SVCBenchmarkConfig</span><span class="p">(</span><span class="n">Configuration</span><span class="p">):</span>
+    <span class="n">data_loader</span><span class="p">:</span> <span class="n">RegistrationKey</span> <span class="o">=</span> <span class="n">Param</span><span class="p">(</span>
+        <span class="n">RegistrationKey</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;data_loader&#39;</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;imdb&#39;</span><span class="p">},</span> <span class="n">namespace</span><span class="o">=</span><span class="s1">&#39;examples&#39;</span><span class="p">),</span>
+        <span class="n">description</span><span class="o">=</span><span class="s1">&#39;Data loader&#39;</span>
+    <span class="p">)</span>
+    <span class="n">text_processor</span><span class="p">:</span> <span class="n">RegistrationKey</span> <span class="o">=</span> <span class="n">Param</span><span class="p">(</span>
+        <span class="n">RegistrationKey</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;processor&#39;</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;tf-idf&#39;</span><span class="p">},</span> <span class="n">namespace</span><span class="o">=</span><span class="s1">&#39;examples&#39;</span><span class="p">),</span>
+        <span class="n">description</span><span class="o">=</span><span class="s1">&#39;Text processor&#39;</span>
+    <span class="p">)</span>
+    <span class="n">label_processor</span><span class="p">:</span> <span class="n">RegistrationKey</span> <span class="o">=</span> <span class="n">Param</span><span class="p">(</span>
+        <span class="n">RegistrationKey</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;processor&#39;</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;label&#39;</span><span class="p">},</span> <span class="n">namespace</span><span class="o">=</span><span class="s1">&#39;examples&#39;</span><span class="p">),</span>
+        <span class="n">description</span><span class="o">=</span><span class="s1">&#39;Label processor&#39;</span>
+    <span class="p">)</span>
+    <span class="n">model</span><span class="p">:</span> <span class="n">RegistrationKey</span> <span class="o">=</span> <span class="n">Param</span><span class="p">(</span>
+        <span class="n">RegistrationKey</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;model&#39;</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;svc&#39;</span><span class="p">},</span> <span class="n">namespace</span><span class="o">=</span><span class="s1">&#39;examples&#39;</span><span class="p">),</span>
+        <span class="n">description</span><span class="o">=</span><span class="s1">&#39;Classifier model&#39;</span>
+    <span class="p">)</span>
 
     <span class="nd">@classmethod</span>
-    <span class="nd">@register_method</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;benchmark&#39;</span><span class="p">,</span>
-                     <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;svc&#39;</span><span class="p">},</span>
-                     <span class="n">namespace</span><span class="o">=</span><span class="s1">&#39;examples&#39;</span><span class="p">,</span>
-                     <span class="n">component_class</span><span class="o">=</span><span class="n">SVCBenchmark</span><span class="p">)</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">default</span><span class="p">(</span>
-            <span class="bp">cls</span>
-    <span class="p">):</span>
-        <span class="n">config</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">default</span><span class="p">()</span>
-
-        <span class="n">config</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;data_loader&#39;</span><span class="p">,</span>
-                   <span class="n">value</span><span class="o">=</span><span class="n">RegistrationKey</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;data_loader&#39;</span><span class="p">,</span>
-                                         <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;imdb&#39;</span><span class="p">},</span>
-                                         <span class="n">namespace</span><span class="o">=</span><span class="s1">&#39;examples&#39;</span><span class="p">))</span>
-
-        <span class="n">config</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;text_processor&#39;</span><span class="p">,</span>
-                   <span class="n">value</span><span class="o">=</span><span class="n">RegistrationKey</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;processor&#39;</span><span class="p">,</span>
-                                         <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;tf-idf&#39;</span><span class="p">},</span>
-                                         <span class="n">namespace</span><span class="o">=</span><span class="s1">&#39;examples&#39;</span><span class="p">))</span>
-        <span class="n">config</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;label_processor&#39;</span><span class="p">,</span>
-                   <span class="n">value</span><span class="o">=</span><span class="n">RegistrationKey</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;processor&#39;</span><span class="p">,</span>
-                                         <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;label&#39;</span><span class="p">},</span>
-                                         <span class="n">namespace</span><span class="o">=</span><span class="s1">&#39;examples&#39;</span><span class="p">))</span>
-
-        <span class="n">config</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;model&#39;</span><span class="p">,</span>
-                   <span class="n">value</span><span class="o">=</span><span class="n">RegistrationKey</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;model&#39;</span><span class="p">,</span>
-                                         <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;svc&#39;</span><span class="p">},</span>
-                                         <span class="n">namespace</span><span class="o">=</span><span class="s1">&#39;examples&#39;</span><span class="p">))</span>
-
-        <span class="k">return</span> <span class="n">config</span>
+    <span class="nd">@register_method</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;benchmark&#39;</span><span class="p">,</span>
+        <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;svc&#39;</span><span class="p">},</span>
+        <span class="n">namespace</span><span class="o">=</span><span class="s1">&#39;examples&#39;</span><span class="p">,</span>
+        <span class="n">component</span><span class="o">=</span><span class="s1">&#39;examples.components.benchmark.SVCBenchmark&#39;</span><span class="p">,</span>
+        <span class="n">run_method</span><span class="o">=</span><span class="s1">&#39;run&#39;</span><span class="p">,</span>
+        <span class="n">resolve_automatically</span><span class="o">=</span><span class="kc">False</span>      <span class="c1"># keep RegistrationKey fields unresolved</span>
+    <span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">default</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;SVCBenchmarkConfig&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">default</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>The four <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code> fields point to the other registered components.
+<code class="docutils literal notranslate"><span class="pre">resolve_automatically=False</span></code> tells the <code class="docutils literal notranslate"><span class="pre">Registry</span></code> not to replace those keys with
+<code class="docutils literal notranslate"><span class="pre">Configuration</span></code> instances during <code class="docutils literal notranslate"><span class="pre">dag_resolution()</span></code> — they are passed as-is to
+<code class="docutils literal notranslate"><span class="pre">SVCBenchmark.__init__</span></code>, which then resolves them lazily inside <code class="docutils literal notranslate"><span class="pre">run()</span></code>.</p>
+<p>The default keys can be swapped by overriding individual fields via <code class="docutils literal notranslate"><span class="pre">model_copy()</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Use a custom model instead of the default SVC</span>
+<span class="n">config</span> <span class="o">=</span> <span class="n">SVCBenchmarkConfig</span><span class="o">.</span><span class="n">default</span><span class="p">()</span>
+<span class="n">config</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">model_copy</span><span class="p">(</span><span class="n">update</span><span class="o">=</span><span class="p">{</span>
+    <span class="s1">&#39;model&#39;</span><span class="p">:</span> <span class="n">RegistrationKey</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;model&#39;</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;custom&#39;</span><span class="p">},</span> <span class="n">namespace</span><span class="o">=</span><span class="s1">&#39;my_project&#39;</span><span class="p">)</span>
+<span class="p">})</span>
 </pre></div>
 </div>
 </section>
-<section id="running-svcbenchmark">
-<h2>Running <code class="docutils literal notranslate"><span class="pre">SVCBenchmark</span></code><a class="headerlink" href="#running-svcbenchmark" title="Link to this heading"></a></h2>
-<p>We can now write a script to test <code class="docutils literal notranslate"><span class="pre">SVCBenchmark</span></code>.</p>
+<section id="demo-script">
+<h2>Demo script<a class="headerlink" href="#demo-script" title="Link to this heading"></a></h2>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
-
 <span class="kn">from</span><span class="w"> </span><span class="nn">cinnamon.registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">Registry</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">components.benchmark</span><span class="w"> </span><span class="kn">import</span> <span class="n">SVCBenchmark</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">examples.components.benchmark</span><span class="w"> </span><span class="kn">import</span> <span class="n">SVCBenchmark</span>
 
 <span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    In this demo script, we retrieve and build our SVC pipeline.</span>
-<span class="sd">    The pipeline covers data loading, data processing, and model evaluation.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-
     <span class="n">directory</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
-    <span class="n">Registry</span><span class="o">.</span><span class="n">setup</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="n">directory</span><span class="p">)</span>
+    <span class="n">Registry</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="n">directory</span><span class="p">)</span>
 
-    <span class="n">benchmark</span> <span class="o">=</span> <span class="n">SVCBenchmark</span><span class="o">.</span><span class="n">build_component</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;benchmark&#39;</span><span class="p">,</span>
-                                             <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;svc&#39;</span><span class="p">},</span>
-                                             <span class="n">namespace</span><span class="o">=</span><span class="s1">&#39;examples&#39;</span><span class="p">)</span>
+    <span class="n">benchmark</span> <span class="o">=</span> <span class="n">SVCBenchmark</span><span class="o">.</span><span class="n">instantiate</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;benchmark&#39;</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;svc&#39;</span><span class="p">},</span> <span class="n">namespace</span><span class="o">=</span><span class="s1">&#39;examples&#39;</span>
+    <span class="p">)</span>
     <span class="n">benchmark</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
 </pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">Registry.build()</span></code> discovers and registers all four component configurations.
+<code class="docutils literal notranslate"><span class="pre">SVCBenchmark.instantiate()</span></code> builds the benchmark with its four <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code>
+fields intact. <code class="docutils literal notranslate"><span class="pre">benchmark.run()</span></code> then builds and runs each nested component in sequence.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The demo is at <code class="docutils literal notranslate"><span class="pre">examples/demos/demo_benchmark.py</span></code>.
+Run it from the <code class="docutils literal notranslate"><span class="pre">examples/</span></code> directory so that relative paths in
+<code class="docutils literal notranslate"><span class="pre">IMDBLoaderConfig</span></code> (the <code class="docutils literal notranslate"><span class="pre">datasets/</span></code> subfolder) resolve correctly.</p>
 </div>
 </section>
 <section id="congratulations">
 <h2>Congratulations!<a class="headerlink" href="#congratulations" title="Link to this heading"></a></h2>
-<p>That’s it! We have successfully defined a <strong>customizable</strong>, <strong>plug-and-play</strong>, and <strong>re-usable</strong> machine-learning pipeline.</p>
-<p>Feel free to play to download this repository and play with <code class="docutils literal notranslate"><span class="pre">Component</span></code> and <code class="docutils literal notranslate"><span class="pre">Configuration</span></code>.</p>
-<p>Cheers!</p>
+<p>That’s the full pipeline — a customisable, plug-and-play machine-learning experiment
+where every stage can be swapped independently via <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code>.</p>
+<p>To extend it, you can:</p>
+<ul class="simple">
+<li><p>Register a new <code class="docutils literal notranslate"><span class="pre">model</span></code> key pointing to a different classifier.</p></li>
+<li><p>Register a new <code class="docutils literal notranslate"><span class="pre">processor</span></code> key with different tf-idf parameters.</p></li>
+<li><p>Build a <code class="docutils literal notranslate"><span class="pre">CustomBenchmarkConfig</span></code> that mixes example and custom components.</p></li>
+</ul>
+<p>See the <a class="reference external" href="catalog.html">catalog</a> for the full list of registered keys.</p>
 </section>
 </section>
 
@@ -222,8 +248,8 @@ If you want to work with <code class="docutils literal notranslate"><span class=
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="model.html" class="btn btn-neutral float-left" title="Defining a SVM classifier" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="catalog.html" class="btn btn-neutral float-right" title="Available Configuration" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="model.html" class="btn btn-neutral float-left" title="SVM Classifier" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="catalog.html" class="btn btn-neutral float-right" title="Registered Keys" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

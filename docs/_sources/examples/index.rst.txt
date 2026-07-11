@@ -1,18 +1,21 @@
-.. Cinnamon Examples documentation master file, created by
-   sphinx-quickstart on Wed Aug 23 15:13:50 2023.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+.. _examples:
 
+Examples
+*********************************************
+
+This section walks through a complete machine-learning pipeline built with cinnamon.
+
+The pipeline performs binary sentiment analysis on the `IMDB dataset
+<https://ai.stanford.edu/~amaas/data/sentiment/>`_ using a Support Vector Machine.
+Each stage — data loading, preprocessing, modelling, and evaluation — is defined as a
+separate ``Component`` and ``Configuration``, wired together by the ``Registry``.
 
 .. toctree::
-   :maxdepth: 4
-   :hidden:
-   :caption: Contents:
-   :titlesonly:
+   :maxdepth: 1
 
    Overview <overview.rst>
    Data Loader <data_loader.rst>
-   Processor  <processor.rst>
+   Processor <processor.rst>
    Model <model.rst>
    Benchmark <benchmark.rst>
    Catalog <catalog.rst>
