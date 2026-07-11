@@ -40,8 +40,8 @@ jobs:
       - name: Build HTML
         run: |
           # Navigate to your docs folder and build
-          cd docs
-          make html
+          cd docsrc
+          sh build_docs.sh
           # Note: If you don't use 'make', the command is:
           # sphinx-build -b html . _build/html
 
