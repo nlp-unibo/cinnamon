@@ -50,7 +50,7 @@ jobs:
         with:
           # Tell GitHub exactly which folder to host
           # This is usually docs/_build/html or docs/build/html
-          path: docs/_build/html
+          path: docs/
 
   deploy:
     environment:
