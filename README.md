@@ -9,7 +9,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Tests](https://github.com/nlp-unibo/cinnamon/actions/workflows/ci.yml/badge.svg)](https://github.com/nlp-unibo/cinnamon/actions)
 
-[Documentation](https://nlp-unibo.github.io/cinnamon/) · [Examples](https://nlp-unibo.github.io/cinnamon/examples/index.html) · [Quickstart](https://nlp-unibo.github.io/cinnamon/quickstart.html)
+[Documentation](https://nlp-unibo.github.io/cinnamon/overview.html) · [Examples](https://nlp-unibo.github.io/cinnamon/examples/index.html) · [Quickstart](https://nlp-unibo.github.io/cinnamon/quickstart.html)
 
 </div>
 
