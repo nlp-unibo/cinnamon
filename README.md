@@ -51,11 +51,11 @@ pip install cinnamon
 
 Optional extras:
 
-| Extra | What it adds | Install |
-|---|---|---|
-| `cli` | `cmn-run`, `cmn-generate` interactive prompts | `pip install "cinnamon[cli]"` |
-| `examples` | Dependencies for the built-in examples | `pip install "cinnamon[examples]"` |
-| `dev` | pytest, ruff, mypy | `pip install "cinnamon[dev]"` |
+| Extra | What it adds                                              | Install |
+|---|-----------------------------------------------------------|---|
+| `cli` | `cmn-build`, `cmn-run`, `cmn-generate` interactive prompts | `pip install "cinnamon[cli]"` |
+| `examples` | Dependencies for the built-in examples                    | `pip install "cinnamon[examples]"` |
+| `dev` | pytest, ruff, mypy                                        | `pip install "cinnamon[dev]"` |
 
 ---
 
