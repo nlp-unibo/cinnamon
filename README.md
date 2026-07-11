@@ -1,152 +1,175 @@
-# Cinnamon
+<div align="center">
 
-Cinnamon is a simple library for general-purpose configuration and code logic de-coupling.
-It was developed to offer two main functionalities:
+# cinnamon
 
-**De-coupling**
-   a code logic from its regulating parameters
+**A lightweight Python framework for decoupling configuration from code logic.**
 
-**Re-use**
-   of code logic without effort
+[![PyPI version](https://img.shields.io/pypi/v/cinnamon.svg)](https://pypi.org/project/cinnamon/)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Tests](https://github.com/nlp-unibo/cinnamon/actions/workflows/ci.yml/badge.svg)](https://github.com/nlp-unibo/cinnamon/actions)
+
+[Documentation](https://nlp-unibo.github.io/cinnamon/) · [Examples](https://nlp-unibo.github.io/cinnamon/examples/index.html) · [Quickstart](https://nlp-unibo.github.io/cinnamon/quickstart.html)
+
+</div>
+
+---
+
+## What is cinnamon?
+
+Cinnamon separates **what your code does** from **how it is configured**.
+
+Instead of scattering parameters across constructors, config files, or command-line
+arguments, you define each component's parameters as a typed `Configuration` class
+backed by [Pydantic](https://docs.pydantic.dev/). You then register that configuration
+in the `Registry` and bind it to your component. From that point on, the `Registry`
+handles construction, validation, type-checking, and dependency resolution automatically.
+
+The result is a project where every component is independently swappable, every
+parameter is validated and documented, and the full experiment can be reproduced by a
+single `RegistrationKey`.
+
+---
 
 ## Features
 
-#### General-purpose
-``cinnamon`` is meant to **simplify** your code organization for better **re-use**.
+- **Pydantic-backed configurations** — field types, constraints (`ge`, `le`, `Literal`), and cross-field validators via `@model_validator`.
+- **Registry-based dependency injection** — register a `Configuration`, bind it to a `Component`, and let cinnamon build the dependency graph automatically.
+- **Variants** — declare alternative parameter values alongside their defaults and enumerate every valid combination.
+- **Conditions** — attach runtime invariants to configurations via `add_condition`, validated before any component is built.
+- **Dependency nesting** — compose configurations by pointing fields at `RegistrationKey` instances; the `Registry` resolves the dependency graph bottom-up.
+- **Community-ready** — import `Component` and `Configuration` from external projects via `external_directories` and build on top of them.
+- **CLI included** — `cmn-build`, `cmn-run`, and `cmn-generate` for running and generating experiment scripts without boilerplate.
 
-#### Simple
-``cinnamon`` is a small library that acts as a **high-level wrapper** for your projects.
+---
 
-#### Community-based
-``cinnamon`` components and configurations can be imported from project!
+## Installation
 
-#### Flexible
-``cinnamon`` imposes **minimal APIs** for a quick learning curve and keeps freedom of coding.
+```bash
+pip install cinnamon
+```
 
+Optional extras:
+
+| Extra | What it adds | Install |
+|---|---|---|
+| `cli` | `cmn-run`, `cmn-generate` interactive prompts | `pip install "cinnamon[cli]"` |
+| `examples` | Dependencies for the built-in examples | `pip install "cinnamon[examples]"` |
+| `dev` | pytest, ruff, mypy | `pip install "cinnamon[dev]"` |
+
+---
+
+## Quickstart
+
+**1. Define a component** — plain Python, inherits from `Component`:
+
+```python
+from cinnamon.component import Component
+
+class DataLoader(Component):
+
+    def __init__(self, folder_name: str, batch_size: int):
+        self.folder_name = folder_name
+        self.batch_size  = batch_size
+
+    def load(self):
+        ...
+```
+
+**2. Define its configuration** — a Pydantic model with typed, documented fields:
+
+```python
+from cinnamon.configuration import Configuration, Param
+from cinnamon.registry import register_method
+
+class DataLoaderConfig(Configuration):
+    folder_name: str = Param('data/', description='Root data directory')
+    batch_size: int  = Param(32, ge=1,  description='Samples per batch',
+                             variants=[16, 32, 64])
+
+    @classmethod
+    @register_method(name='loader', tags={'default'}, namespace='myproject',
+                     component='components.DataLoader')
+    def default(cls) -> 'DataLoaderConfig':
+        return super().default()
+```
+
+**3. Build the registry** — cinnamon scans your `configurations/` folder and resolves dependencies:
+
+```python
+from pathlib import Path
+from cinnamon.registry import Registry
+
+Registry.build(directory=Path('.'))
+```
+
+**4. Instantiate** — retrieve and build a component from its registration key:
+
+```python
+loader = DataLoader.instantiate(name='loader', tags={'default'}, namespace='myproject')
+loader.load()
+```
+
+**5. Enumerate variants** — generate every parameter combination automatically:
+
+```python
+config = DataLoaderConfig.default()
+for combo in config.variants:
+    variant = config.model_copy(update=combo['values'])
+    loader = DataLoader(**variant.values)
+```
+
+That's it. See the [full quickstart](https://nlp-unibo.github.io/cinnamon/quickstart.html)
+for the complete walkthrough.
+
+---
+
+## Key concepts
+
+| Concept | Description | Docs |
+|---|---|---|
+| `Configuration` | A Pydantic `BaseModel` holding typed, validated parameters | [→](https://nlp-unibo.github.io/cinnamon/configuration.html) |
+| `Param` | A `Field` wrapper that adds `tags`, `variants`, and cinnamon metadata | [→](https://nlp-unibo.github.io/cinnamon/configuration.html) |
+| `Component` | Any class that inherits from `Component` | [→](https://nlp-unibo.github.io/cinnamon/component.html) |
+| `RegistrationKey` | A `(name, tags, namespace)` identifier that binds a config to a component | [→](https://nlp-unibo.github.io/cinnamon/registration.html) |
+| `Registry` | Stores registrations, resolves the dependency DAG, and builds components | [→](https://nlp-unibo.github.io/cinnamon/registration.html) |
+| Dependencies | Nested configurations declared as `RegistrationKey` fields | [→](https://nlp-unibo.github.io/cinnamon/dependencies.html) |
+
+---
+
+## Examples
+
+The `examples/` folder contains a complete ML pipeline: data loading, preprocessing,
+SVM classification, and evaluation on the IMDB sentiment dataset.
+
+```bash
+pip install "cinnamon[examples]"
+cd examples && python demos/demo_benchmark.py
+```
+
+See the [examples documentation](https://nlp-unibo.github.io/cinnamon/examples/index.html)
+for a full walkthrough.
+
+---
 
 ## Documentation
 
-Check the online documentation of [cinnamon](https://nlp-unibo.github.io/cinnamon/) for more information.
+Full documentation is available at **[nlp-unibo.github.io/cinnamon](https://nlp-unibo.github.io/cinnamon/)**.
 
-## Projects
+---
 
-The following projects have been developed with ``cinnamon``
+## Contributing
 
-- [``cinnamon-examples``](https://github.com/nlp-unibo/cinnamon_examples)
+Contributions are welcome. To add new components and configurations, open a pull request
+with your implementation and a matching entry in the examples or tests.
 
-## Motivation
+For questions, issues, or feature requests, open a
+[GitHub issue](https://github.com/nlp-unibo/cinnamon/issues) or contact:
 
-Consider a code logic that has to load some data.
+**Federico Ruggeri** — [federico.ruggeri6@unibo.it](mailto:federico.ruggeri6@unibo.it)
 
-```python
+---
 
-   class DataLoader:
+## License
 
-      def load(...):
-          data = read_from_file(folder_name=self.folder_name)
-          return data
-```
-
-The data loader reads from a file located according to ``self.folder_name`` value.
-
-If ``self.folder_name`` has multiple values, we can use the same code logic to load data from different folders.
-
-Hypothetically, we would define multiple data loaders:
-
-```python
-
-   data_loader_1 = DataLoader(folder_name='*folder_name1*')
-   data_loader_2 = DataLoader(folder_name='*folder_name2*')
-   ...
-```
-
-Now, if the data loader code block is used in a project, we require some code modularity to avoid
-defining several versions of the same script.
-One common solution is to rely on **configuration files** (e.g., JSON file) or commandline arguments.
-
-```python
-   {
-      'data_loader' : {
-         'folder_name': '*folder_name1*'
-      }
-   }
-```
-
-The main script is modified to load our configuration file so that each code logic is properly initialized.
-
-### Cinnamon
-
-Cinnamon keeps this <configuration, code logic> dichotomy where a configuration is written in **plain Python code**.
-
-```python
-
-from cinnamon.configuration import Configuration
-
-class DataLoaderConfig(Configuration):
-
-    @classmethod
-    def default(cls):
-        config = super().default()
-
-        config.add(name='folder_name',
-                   type_hint=str,
-                   variants=['*folder_name1*', '*folder_name2*', ...],
-                   description="Base folder name from which to look for data files.")
-        return config
-```
-
-Cinnamon allows **high-level configuration definition** (constraints, type-checking, description, variants, etc...)
-
-To quickly load any instance of our data loader, we
-
-#### Register
-Register the configuration via a **registration key** as <name, tags, namespace> tuple.
-
-```python
-      Registry.register_configuration(config_class=DataLoaderConfig,
-                                      component='DataLoader',
-                                      name='data_loader',
-                                      tags={'example'},
-                                      namespace='showcase')
-```
-
-#### Instantiate
-Instantiate the ``DataLoader`` via the used **registration key**
-
-   ```python
-
-      data_loader = DataLoader.instantiate(name='data_loader',
-                                               tags={'example'},
-                                               namespace='showcase')
-      variant_loader = DataLoader.instantiate(name='data_loader',
-                                                  tags={'example', 'folder_name=*folder_name1*'},
-                                                  namespace='showcase')
-   ```
-
-
-**That's it!** This is all of you need to use cinnamon.
-
-
-
-**You are still free to code as you like!**
-
-## Install
-
-      git clone https://github.com/nlp-unibo/cinnamon
-      pip install ./cinnamon
-
-## Contribute
-
-Want to contribute with new ``Component`` and ``Configuration``?
-
-Write your content and release it in a Github repository. That's all!
-
-Cinnamon is meant to be a community project :)
-
-
-## Contact
-
-Don't hesitate to contact:
-- Federico Ruggeri @ [federico.ruggeri6@unibo.it](https://www.unibo.it/sitoweb/federico.ruggeri6/en)
-
-for questions/doubts/issues!
+[MIT](LICENSE)

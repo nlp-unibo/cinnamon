@@ -1,127 +1,101 @@
 .. _processor:
 
-Parsing data with ``Processor``
+Processors
 *************************************
 
-We still need to parse loaded data in order to train and evaluate our SVM classifier.
+Before training the SVM classifier, the raw text and labels need to be
+converted into numerical form. Two processor components handle this.
 
-We can define several plug-and-play ``Processor`` to
+=============================================
+``TfIdfProcessor``
+=============================================
 
-- Process input data
-- Process classification labels
-- Process data for the classifier
-
---------------------
-Input data
---------------------
-
-To process input data, we rely on tf-idf processing since we are dealing with a SVM classifier.
-
-We define a ``TfIdfProcessor`` as follows
+``TfIdfProcessor`` wraps scikit-learn's ``TfidfVectorizer`` to convert raw text
+into a sparse tf-idf matrix:
 
 .. code-block:: python
 
     class TfIdfProcessor(Component):
 
-        def __init__(
-                self,
-                **kwargs
-        ):
+        def __init__(self, **kwargs):
             self.vectorizer = TfidfVectorizer(**kwargs)
 
         def process(
-                self,
-                data: Optional[pd.DataFrame],
-                is_training_data: bool = False,
+            self,
+            data: Optional[pd.DataFrame],
+            is_training_data: bool = False,
         ) -> Optional[Any]:
             if data is None:
                 return data
-
             if is_training_data:
                 self.vectorizer.fit(data.x.values)
-
             return self.vectorizer.transform(data.x.values)
 
+The ``**kwargs`` constructor accepts any ``TfidfVectorizer`` parameter.
+Configuration fields are forwarded directly since ``config.values`` unpacks into
+``TfIdfProcessor(**config.values)``.
 
-The ``TfIdfProcessor`` has an internal ``TfidfVectorizer`` from sklearn. The vectorizer is used in ``process()`` to convert textual input data into numerical format.
-
-We define a corresponding ``TfIdfProcessorConfig`` with minimal view (for simplicity) of the vectorizer.
+``TfIdfProcessorConfig`` exposes ``ngram_range`` as the primary configurable parameter:
 
 .. code-block:: python
 
     class TfIdfProcessorConfig(Configuration):
+        ngram_range: Tuple[int, int] = Param(
+            (1, 1),
+            description='Vectorizer ngram_range hyper-parameter'
+        )
 
         @classmethod
-        @register_method(name='processor',
-                         tags={'tf-idf'},
-                         namespace='examples',
-                         component_class=TfIdfProcessor)
-        def default(
-                cls
-        ):
-            config = super().default()
+        @register_method(
+            name='processor',
+            tags={'tf-idf'},
+            namespace='examples',
+            component='examples.components.processor.TfIdfProcessor'
+        )
+        def default(cls) -> 'TfIdfProcessorConfig':
+            return super().default()
 
-            config.add(name='ngram_range',
-                       value=(1, 1),
-                       type_hint=Any,
-                       description='Vectorizer ngram_range hyper-parameter')
+=============================================
+``LabelProcessor``
+=============================================
 
-            return config
-
-
-We register the ``TfIdfProcessorConfig`` via ``RegistrationKey`` (``name=processor``, ``tags={'tf-idf'}``, ``namespace=examples``) and bind it to ``TfIdfProcessor``.
-
-
------------------------
-Classification Labels
------------------------
-
-To process classification labels, we rely on one-hot encoding via ``LabelEncoder`` from sklearn.
-
-We define a ``LabelProcessor`` as follows
+``LabelProcessor`` wraps scikit-learn's ``LabelEncoder`` to convert string labels
+(``'pos'``, ``'neg'``) into integers:
 
 .. code-block:: python
 
     class LabelProcessor(Component):
 
-        def __init__(
-                self
-        ):
+        def __init__(self):
             self.label_encoder = LabelEncoder()
 
         def process(
-                self,
-                data: Optional[pd.DataFrame],
-                is_training_data: bool = False
+            self,
+            data: Optional[pd.DataFrame],
+            is_training_data: bool = False,
         ) -> Optional[Any]:
             if data is None:
                 return data
-
             labels = data.y.values
             if is_training_data:
                 self.label_encoder.fit(labels)
-
             return self.label_encoder.transform(labels)
 
-The ``LabelProcessor`` doesn't require any specific configuration since it has no hyper-parameters.
-
-Thus, we can bind it to ``Configuration``.
+``LabelProcessor`` takes no constructor parameters, so it can be bound directly to
+the base ``Configuration`` without defining a custom subclass:
 
 .. code-block:: python
 
     @register
     def register_processors():
-        Registry.register_configuration(config_class=Configuration,
-                                        component_class=LabelProcessor,
-                                        name='processor',
-                                        tags={'label'},
-                                        namespace='examples')
+        Registry.register_configuration(
+            config=Configuration.default(),
+            component='examples.components.processor.LabelProcessor',
+            name='processor',
+            tags={'label'},
+            namespace='examples'
+        )
 
-
-----------------
-Next!
-----------------
-
-That's it! We have defined processors to parse input data so that it can be digested by our SVM classifier.
-
-Next, we define the SVM classifier as a custom ``Model`` component.
+The ``@register`` decorator marks this function for automatic discovery by
+``Registry.build()``. The base ``Configuration.default()`` produces an empty
+configuration with no fields, which is all ``LabelProcessor`` needs.
