@@ -26,7 +26,7 @@ class IMDBLoaderConfig(Configuration):
         name="data_loader",
         tags={"imdb"},
         namespace="examples",
-        component="examples.components.IMDBLoader",
+        component="examples.components.data_loader.IMDBLoader",
         run_method="load_data",
     )
     def default(cls):

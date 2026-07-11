@@ -94,7 +94,6 @@ def test_build_component_with_child(reset_registry):
     assert isinstance(parent_component.c1, ChildConfig)
     assert parent_component.c1.y is False
 
-
 def test_build_component_with_child_variants(reset_registry):
     """
     Build component with child component and also build one of its variant

@@ -1,6 +1,5 @@
 import sys
-from itertools import islice, product
-from typing import Dict, List, Tuple
+from itertools import islice
 
 __all__ = ["batched"]
 

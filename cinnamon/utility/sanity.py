@@ -13,12 +13,7 @@ __all__ = ["check_directory", "check_external_json_path", "time_it"]
 
 
 def check_directory(directory_path: Union[Path, str] = None) -> Path:
-    directory_path = (
-        directory_path if directory_path is not None else Path(".").resolve()
-    )
-    directory_path = (
-        Path(directory_path) if type(directory_path) != Path else directory_path
-    )
+    directory_path = Path(directory_path) if directory_path else Path('.')
     directory_path = directory_path.resolve()
     if not directory_path.exists():
         raise FileNotFoundError(f"Directory {directory_path} does not exist!")
@@ -30,8 +25,7 @@ def check_directory(directory_path: Union[Path, str] = None) -> Path:
 
 
 def check_external_json_path(jsonpath: Union[Path, str]) -> List[Path]:
-    jsonpath = Path(jsonpath) if type(jsonpath) != Path else jsonpath
-    jsonpath = jsonpath.resolve()
+    jsonpath = Path(jsonpath).resolve()
 
     if not jsonpath.exists():
         raise FileNotFoundError(

@@ -236,7 +236,7 @@ from cinnamon.registry import Registry, RegistrationKey
 
 if __name__ == '__main__':
     Registry.build(directory=Path('{run_directory}'))
-    logging.basicConfig()
+    logging.basicConfig(level=logging.INFO)
     logger = getLogger(__name__)
     
     keys = [

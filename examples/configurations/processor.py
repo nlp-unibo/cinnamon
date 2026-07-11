@@ -14,7 +14,7 @@ class TfIdfProcessorConfig(Configuration):
         name="processor",
         tags={"tf-idf"},
         namespace="examples",
-        component="examples.components.TfIdfProcessor",
+        component="examples.components.processor.TfIdfProcessor",
     )
     def default(cls):
         config = super().default()
@@ -25,7 +25,7 @@ class TfIdfProcessorConfig(Configuration):
 def register_processors():
     Registry.register_configuration(
         config=Configuration.default(),
-        component="examples.components.LabelProcessor",
+        component="examples.components.processor.LabelProcessor",
         name="processor",
         tags={"label"},
         namespace="examples",

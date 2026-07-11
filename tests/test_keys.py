@@ -1,8 +1,9 @@
 import json
 from pathlib import Path
 
+from cinnamon.configuration import Configuration
 from cinnamon.registry import RegistrationKey
-from tests.fixtures import ConfigWithNonTaggableVariants, ConfigWithVariants
+from tests.fixtures import ConfigWithNonTaggableVariants, ConfigWithVariants, ConfigWithChild
 
 
 def test_key_to_json():
@@ -99,3 +100,9 @@ def test_tags_simplification():
     assert simplified_key.tags == {"z"}
     assert simplified_key.name == key.name
     assert simplified_key.namespace == key.namespace
+
+
+def test_key_pydantic_serializable():
+    config = ConfigWithChild()
+    config_json = config.model_dump_json()
+    assert config_json == '{"c1":"name=test--tags=[\'t2\']--namespace=testing"}'

@@ -25,8 +25,9 @@ class SVCBenchmarkConfig(Configuration):
         name="benchmark",
         tags={"svc"},
         namespace="examples",
-        component="examples.components.SVCBenchmark",
+        component="examples.components.benchmark.SVCBenchmark",
         run_method="run",
+        resolve_automatically=False
     )
     def default(cls):
         config = super().default()

@@ -31,6 +31,7 @@ class BaseConfig(Configuration):
     def default(cls: Type[C]) -> C:
         return cls(x=5, y=10)
 
+
 class ConfigWithVariants(Configuration):
     x: int = Param(1, variants=[2, 3])
 
@@ -126,3 +127,12 @@ class LeafWithVariants(Configuration):
 class CustomRunnableComponent(Component):
     def run(self):
         return "this is a mock runnable component"
+
+
+class CustomRunnableComponentWithArgs(Component):
+
+    def __init__(self, x: int):
+        self.x = x
+
+    def run(self):
+        return self.x

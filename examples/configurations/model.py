@@ -17,7 +17,7 @@ class SVCModelConfig(Configuration):
         name="model",
         tags={"svc"},
         namespace="examples",
-        component="examples.components.SVCModel",
+        component="examples.components.model.SVCModel",
     )
     def default(cls):
         config = super().default()

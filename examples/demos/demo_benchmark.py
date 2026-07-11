@@ -13,7 +13,7 @@ if __name__ == "__main__":
 
     directory = Path(__file__).parent.parent.resolve()
     Registry.build(directory=directory)
-    logging.basicConfig()
+    logging.basicConfig(level=logging.INFO)
     logger = getLogger(__name__)
 
     benchmark = SVCBenchmark.instantiate(

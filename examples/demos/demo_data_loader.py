@@ -14,11 +14,11 @@ if __name__ == "__main__":
 
     directory = Path(__file__).parent.parent.resolve()
     Registry.build(directory=directory)
-    logging.basicConfig()
+    logging.basicConfig(level=logging.INFO)
     logger = getLogger(__name__)
 
     loader = IMDBLoader.instantiate(
         name="data_loader", tags={"imdb"}, namespace="examples"
     )
     df = loader.load_data()
-    print(df)
+    logging.info(df)
