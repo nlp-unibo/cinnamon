@@ -20,8 +20,8 @@ classifiers = [
 # Adjust your minimum Python version requirement here if needed
 requires-python = ">=3.10"
 dependencies = [
-    "networkx>=3.4.2",
-    "pydantic>=2.0"
+    "networkx>=3.4.2,<4",
+    "pydantic>=2.0,<3"
 ]
 
 [project.optional-dependencies]

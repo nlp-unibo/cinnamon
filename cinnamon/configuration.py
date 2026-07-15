@@ -4,6 +4,7 @@ import copy
 import itertools
 import logging
 import typing
+import warnings
 from dataclasses import dataclass
 from typing import (
     Any,
@@ -158,7 +159,7 @@ class Configuration(BaseModel):
         registration_key: Optional[cinnamon.registry.Registration] = None,
         name: Optional[str] = None,
         namespace: Optional[str] = None,
-        tags: cinnamon.configuration.Tags = None,
+        tags: Tags = None,
     ) -> C:
         """
         Syntactic sugar for retrieving a `Configuration` from a
@@ -301,8 +302,9 @@ class Configuration(BaseModel):
              already exists in the Configuration instance.
         """
         if name in self._conditions:
-            raise RuntimeWarning(
-                "Condition with name {name} already exists! Overwriting..."
+            warnings.warn(
+                "Condition with name {name} already exists! Overwriting...",
+                RuntimeWarning
             )
 
         self._conditions[name] = ConditionInfo(

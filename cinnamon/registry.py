@@ -665,7 +665,7 @@ class Registry:
                 )
 
                 if spec is None:
-                    logging.error(f"Could not load {python_script}.")
+                    logger.error(f"Could not load {python_script}.")
                     raise RuntimeError(f"Could not load {python_script}.")
 
                 # import module and run registration methods
@@ -675,7 +675,7 @@ class Registry:
                     module = importlib.util.module_from_spec(spec=spec)
                     spec.loader.exec_module(module)
                 except Exception as e:
-                    logging.error(f"Failed to execute module {python_script.name}. {e}")
+                    logger.error(f"Failed to execute module {python_script.name}. {e}")
                     raise RuntimeError(
                         f"Failed to execute module {python_script.name}. {e}"
                     )

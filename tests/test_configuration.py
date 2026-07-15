@@ -46,6 +46,14 @@ def test_add_condition():
         copy_config.validate_conditions()
 
 
+def test_add_existing_condition():
+    config = BaseConfig.default()
+    config.add_condition(name="x_y_pairing", condition=lambda c: c.x == c.y / 2)
+
+    with pytest.warns(RuntimeWarning):
+        config.add_condition(name="x_y_pairing", condition=lambda c: c.x == c.y / 2)
+
+
 def test_add_condition_conflicting_name():
     config = BaseConfig.default()
     config.add_condition(name="x", condition=lambda c: c.x > 1)
@@ -66,8 +74,8 @@ def test_variants():
     v_combinations = config.variants
     assert len(v_combinations) == 8
     for comb in v_combinations:
-        alt_config = config.model_copy(update=comb['values'])
-        for key, value in comb['values'].items():
+        alt_config = config.model_copy(update=comb["values"])
+        for key, value in comb["values"].items():
             assert getattr(alt_config, key) == value
 
 
@@ -167,12 +175,12 @@ def test_configuration_with_multiple_variant_keys():
             variant_kwargs=variant_info["values"],
             variant_indexes=variant_info["indexes"],
         )
-        if variant_info['indexes']['x'] != 0:
+        if variant_info["indexes"]["x"] != 0:
             assert (
                 f"x{key.KEY_VALUE_SEPARATOR}{variant_info['values']['x']}"
                 in variant_key.tags
             )
-        if variant_info['indexes']['y'] != 0:
+        if variant_info["indexes"]["y"] != 0:
             assert (
                 f"y{key.KEY_VALUE_SEPARATOR}{variant_info['values']['y']}"
                 in variant_key.tags
