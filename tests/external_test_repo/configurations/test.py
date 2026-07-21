@@ -8,7 +8,7 @@ def register_configurations():
         config=Configuration.default(),
         name="test",
         namespace="external",
-        component="cinnamon.component.Component",
+        component="tests.fixtures.EmptyComponent",
     )
 
 

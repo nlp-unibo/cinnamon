@@ -3,20 +3,28 @@ from __future__ import annotations
 import ast
 import importlib.util
 import json
-import logging
 import math
 import sys
 from dataclasses import dataclass
 from logging import getLogger
 from pathlib import Path
-from typing import Any, AnyStr, Callable, Dict, List, Optional, Set, Tuple, Union
+from typing import (
+    Any,
+    AnyStr,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Set,
+    Tuple,
+    Union,
+)
 
 import networkx as nx
 import pydantic
 from pydantic import GetCoreSchemaHandler
 from pydantic_core import core_schema
 
-import cinnamon.component
 import cinnamon.configuration
 from cinnamon.utility.configuration import batched
 from cinnamon.utility.exceptions import (
@@ -60,14 +68,14 @@ class RegistrationKey:
     MAX_TAGS_PER_LINE: int = 6
 
     def __init__(
-            self,
-            name: str,
-            namespace: Optional[str] = None,
-            tags: Tags = None,
-            description: Optional[str] = None,
-            metadata: Optional[str] = None,
-            special_tags: Tags = None,
-            resolve_automatically: bool = True,
+        self,
+        name: str,
+        namespace: Optional[str] = None,
+        tags: Tags = None,
+        description: Optional[str] = None,
+        metadata: Optional[str] = None,
+        special_tags: Tags = None,
+        resolve_automatically: bool = True,
     ):
         """
 
@@ -99,13 +107,15 @@ class RegistrationKey:
         self.resolve_automatically = resolve_automatically
 
     @classmethod
-    def __get_pydantic_core_schema__(cls, source_type: Any, handler: GetCoreSchemaHandler):
+    def __get_pydantic_core_schema__(
+        cls, source_type: Any, handler: GetCoreSchemaHandler
+    ):
         return core_schema.no_info_plain_validator_function(
             function=lambda v: v if isinstance(v, cls) else cls.from_string(str(v)),
             serialization=core_schema.plain_serializer_function_ser_schema(
                 function=str,
                 return_schema=core_schema.str_schema(),
-                when_used='json',  # ← only stringify in JSON mode
+                when_used="json",  # ← only stringify in JSON mode
             ),
         )
 
@@ -138,16 +148,16 @@ class RegistrationKey:
 
     def check_tags(self, tags: Tags):
         if (self.tags is not None and tags is not None and self.tags == tags) or (
-                self.tags is None and tags is None
+            self.tags is None and tags is None
         ):
             return True
         return False
 
     def check_namespace(self, namespace: str):
         if (
-                self.namespace is not None
-                and namespace is not None
-                and self.namespace == namespace
+            self.namespace is not None
+            and namespace is not None
+            and self.namespace == namespace
         ) or (self.namespace is None and namespace is None):
             return True
         return False
@@ -157,9 +167,9 @@ class RegistrationKey:
             return False
 
         return (
-                self.check_name(other.name)
-                and self.check_tags(other.tags)
-                and self.check_namespace(other.namespace)
+            self.check_name(other.name)
+            and self.check_tags(other.tags)
+            and self.check_namespace(other.namespace)
         )
 
     @property
@@ -171,7 +181,7 @@ class RegistrationKey:
         return {tag for tag in self.tags if self.HIERARCHY_SEPARATOR in tag}
 
     def sanitize_variant_tag(
-            self, param_name: str, param_index: int, param_value: Any
+        self, param_name: str, param_index: int, param_value: Any
     ) -> str:
         if isinstance(param_value, tuple(TAGGABLE_TYPES)):
             sanitized_tag = f"{param_name}{self.KEY_VALUE_SEPARATOR}{param_value}"
@@ -182,7 +192,9 @@ class RegistrationKey:
         return sanitized_tag
 
     def from_variant(
-            self, variant_kwargs: Dict[str, Any], variant_indexes: Dict[str, int] = None
+        self,
+        variant_kwargs: Dict[str, Any],
+        variant_indexes: Dict[str, int] | None = None,
     ) -> RegistrationKey:
         variant_tags = []
         variant_indexes = (
@@ -217,7 +229,7 @@ class RegistrationKey:
             resolve_automatically=self.resolve_automatically,
         )
 
-    def from_tags_simplification(self, tags: Tags):
+    def from_tags_simplification(self, tags: Tags) -> RegistrationKey:
         """
         Builds a new ``RegistrationKey`` from current instance
          by removing provided tags.
@@ -230,6 +242,7 @@ class RegistrationKey:
              but with ``tags`` removed.
 
         """
+        tags = tags or set()
         remaining_tags = self.tags.difference(tags)
         return RegistrationKey(
             name=self.name, tags=remaining_tags, namespace=self.namespace
@@ -267,11 +280,11 @@ class RegistrationKey:
 
     @classmethod
     def parse(
-            cls,
-            registration_key: Optional[Union[RegistrationKey, str]] = None,
-            name: Optional[str] = None,
-            namespace: Optional[str] = None,
-            tags: Tags = None,
+        cls,
+        registration_key: Optional[Union[RegistrationKey, str]] = None,
+        name: Optional[str] = None,
+        namespace: Optional[str] = None,
+        tags: Tags = None,
     ) -> RegistrationKey:
         """
         Parses a given ``RegistrationKey`` instance.
@@ -295,7 +308,7 @@ class RegistrationKey:
         if isinstance(registration_key, RegistrationKey):
             return registration_key
         elif isinstance(registration_key, str):
-            registration_key = RegistrationKey.from_string(
+            registration_key: RegistrationKey = RegistrationKey.from_string(
                 string_format=registration_key
             )
         else:
@@ -336,14 +349,14 @@ class RegistrationKey:
 
 class BufferedRegistration:
     def __init__(
-            self,
-            func: Callable,
-            name: str,
-            namespace: str,
-            tags: Tags = None,
-            component: Optional[str] = None,
-            run_method: Optional[str] = None,
-            resolve_automatically: bool = True,
+        self,
+        func: Callable,
+        name: str,
+        namespace: str,
+        tags: Tags = None,
+        component: Optional[str] = None,
+        run_method: Optional[str] = None,
+        resolve_automatically: bool = True,
     ):
         self.func = func
         self.name = name
@@ -355,19 +368,19 @@ class BufferedRegistration:
 
 
 def register_method(
-        name: str,
-        namespace: str,
-        tags: Tags = None,
-        component: Optional[str] = None,
-        run_method: Optional[str] = None,
-        resolve_automatically: bool = True,
+    name: str,
+    namespace: str,
+    tags: Tags = None,
+    component: Optional[str] = None,
+    run_method: Optional[str] = None,
+    resolve_automatically: bool = True,
 ) -> Callable:
     def register_wrapper(func):
         key = RegistrationKey(name=name, tags=tags, namespace=namespace)
         if (
-                hasattr(Registry, "REGISTRATION_CONTEXT")
-                and Registry.REGISTRATION_CONTEXT.is_registering
-                and key not in Registry.REGISTRATION_METHODS
+            hasattr(Registry, "REGISTRATION_CONTEXT")
+            and Registry.REGISTRATION_CONTEXT.is_registering
+            and key not in Registry.REGISTRATION_METHODS
         ):
             Registry.REGISTRATION_METHODS[str(key)] = BufferedRegistration(
                 func=func,
@@ -389,9 +402,9 @@ def register(func: Callable) -> Callable:
     method_name = f"{filename}-{qualifier_name}"
 
     if (
-            hasattr(Registry, "REGISTRATION_CONTEXT")
-            and Registry.REGISTRATION_CONTEXT.is_registering
-            and method_name not in Registry.REGISTRATION_METHODS
+        hasattr(Registry, "REGISTRATION_CONTEXT")
+        and Registry.REGISTRATION_CONTEXT.is_registering
+        and method_name not in Registry.REGISTRATION_METHODS
     ):
         Registry.REGISTRATION_METHODS[method_name] = func
     return func
@@ -480,9 +493,9 @@ class Registry:
     @classmethod
     @time_it
     def build(
-            cls,
-            directory: Union[Path, AnyStr],
-            external_directories: List[Union[AnyStr, Path]] = None,
+        cls,
+        directory: Union[Path, AnyStr],
+        external_directories: List[Union[AnyStr, Path]] | None = None,
     ) -> Tuple[Set[RegistrationKey], Set[RegistrationKey]]:
         """
         Main entrypoint of cinnamon.
@@ -550,7 +563,7 @@ class Registry:
     @classmethod
     @time_it
     def update_namespaces(
-            cls, namespaces: List[str], module_mapping: Dict[str, List[str]]
+        cls, namespaces: List[str], module_mapping: Dict[str, List[str]]
     ):
         for key in module_mapping:
             if key in cls._MODULE_MAPPING:
@@ -564,7 +577,7 @@ class Registry:
     @classmethod
     @time_it
     def parse_configuration_files(
-            cls, directories: List[Path]
+        cls, directories: List[Path]
     ) -> Tuple[List[str], Dict[str, List[str]]]:
         """
         Runs a static code analyzer to inspect code scripts containing
@@ -597,8 +610,8 @@ class Registry:
     @classmethod
     @time_it
     def resolve_external_directories(
-            cls,
-            external_directories: List[Union[AnyStr, Path]],
+        cls,
+        external_directories: List[Union[AnyStr, Path]],
     ) -> List[Path]:
         """
         Checks if provided directories are valid directories and exist.
@@ -626,8 +639,8 @@ class Registry:
     @classmethod
     @time_it
     def load_registrations(
-            cls,
-            directory: Union[AnyStr, Path],
+        cls,
+        directory: Union[AnyStr, Path],
     ):
         """
         Imports a Python's module for registration.
@@ -706,8 +719,8 @@ class Registry:
 
     @classmethod
     def in_registry(
-            cls,
-            registration_key: RegistrationKey,
+        cls,
+        registration_key: RegistrationKey,
     ) -> bool:
         return registration_key in cls._REGISTRY
 
@@ -717,11 +730,11 @@ class Registry:
 
     @classmethod
     def in_graph(
-            cls,
-            registration_key: Optional[Registration] = None,
-            name: Optional[str] = None,
-            namespace: Optional[str] = None,
-            tags: Tags = None,
+        cls,
+        registration_key: Optional[Registration] = None,
+        name: Optional[str] = None,
+        namespace: Optional[str] = None,
+        tags: Tags = None,
     ) -> bool:
         registration_key = RegistrationKey.parse(
             registration_key=registration_key, name=name, tags=tags, namespace=namespace
@@ -793,10 +806,10 @@ class Registry:
 
     @classmethod
     def expand_configuration(
-            cls,
-            key: RegistrationKey,
-            valid_key_buffer: Set[RegistrationKey] = None,
-            invalid_key_buffer: Set[RegistrationKey] = None,
+        cls,
+        key: RegistrationKey,
+        valid_key_buffer: Set[RegistrationKey] | None = None,
+        invalid_key_buffer: Set[RegistrationKey] | None = None,
     ) -> Set[RegistrationKey]:
         valid_key_buffer = valid_key_buffer if valid_key_buffer is not None else set()
         invalid_key_buffer = (
@@ -844,8 +857,8 @@ class Registry:
         # variants
         for variant_info in config.variants:
             variant_key = key.from_variant(
-                variant_kwargs=variant_info['values'],
-                variant_indexes=variant_info['indexes']
+                variant_kwargs=variant_info["values"],
+                variant_indexes=variant_info["indexes"],
             )
 
             if not cls.in_graph(variant_key):
@@ -853,8 +866,9 @@ class Registry:
             cls._DEPENDENCY_DAG.add_edge(key, variant_key, type="variant")
 
             try:
-                variant_config = config.model_copy(update=variant_info['values'],
-                                                   deep=True)
+                variant_config = config.model_copy(
+                    update=variant_info["values"], deep=True
+                )
             except pydantic.ValidationError as validation_result:
                 variant_key.metadata = repr(validation_result)
                 invalid_key_buffer.add(variant_key)
@@ -915,14 +929,15 @@ class Registry:
     # Component
 
     @classmethod
-    def instantiate_component(
-            cls,
-            registration_key: Optional[Registration] = None,
-            name: Optional[str] = None,
-            namespace: Optional[str] = None,
-            tags: Tags = None,
-            **build_args,
-    ) -> cinnamon.component.Component:
+    def instantiate(
+        cls,
+        registration_key: Optional[Registration] = None,
+        name: Optional[str] = None,
+        namespace: Optional[str] = None,
+        tags: Tags = None,
+        expected_type: type | None = None,
+        **build_args,
+    ) -> Any:
         """
         Builds a ``Component`` instance from its bounded ``Configuration``
          via the implicit ``RegistrationKey``.
@@ -933,10 +948,11 @@ class Registry:
             name: the ``name`` attribute of ``RegistrationKey``
             tags: the ``tags`` attribute of ``RegistrationKey``
             namespace: the ``namespace`` attribute of ``RegistrationKey``
+            expected_type: type of the component to be cast
             build_args: additional custom component constructor args
 
         Returns:
-            The built ``Component`` instance
+            The built component instance
 
         Raises:
             ``InvalidConfigurationTypeException``: if there's a mismatch between
@@ -945,7 +961,7 @@ class Registry:
             ``constructor`` method (see ``ConfigurationInfo`` arguments).
 
             ``NotBoundException``: if the ``Configuration`` is not bound to
-             any ``Component``.
+             any component.
         """
         if not cls.expanded:
             raise NotExpandedException()
@@ -965,6 +981,13 @@ class Registry:
 
         component_args = {**config.values, **build_args}
         component_class = import_class_from_string(config_info.component)
+
+        if expected_type is not None and not issubclass(component_class, expected_type):
+            raise TypeError(
+                f"'{config_info.component}' resolves to {component_class.__name__}, "
+                f"which is not a subclass of {expected_type.__name__}."
+            )
+
         component = component_class(**component_args)
 
         return component
@@ -973,14 +996,14 @@ class Registry:
 
     @classmethod
     def register_configuration(
-            cls,
-            config: cinnamon.configuration.Configuration,
-            name: str,
-            namespace: str,
-            tags: Tags = None,
-            component: Optional[str] = None,
-            resolve_automatically: bool = True,
-            run_method: Optional[str] = None,
+        cls,
+        config: cinnamon.configuration.Configuration,
+        name: str,
+        namespace: str,
+        tags: Tags = None,
+        component: Optional[str] = None,
+        resolve_automatically: bool = True,
+        run_method: Optional[str] = None,
     ):
         """
         Registers a ``Configuration`` in the registry.
@@ -1072,7 +1095,7 @@ class Registry:
 
     @classmethod
     def resolve_configuration(
-            cls, config: cinnamon.configuration.Configuration
+        cls, config: cinnamon.configuration.Configuration
     ) -> cinnamon.configuration.Configuration:
         for dependency_name, dependency in config.dependencies.items():
             if dependency is not None and isinstance(dependency, RegistrationKey):
@@ -1092,11 +1115,11 @@ class Registry:
 
     @classmethod
     def _retrieve(
-            cls,
-            registration_key: Optional[Registration] = None,
-            name: Optional[str] = None,
-            namespace: Optional[str] = None,
-            tags: Tags = None,
+        cls,
+        registration_key: Optional[Registration] = None,
+        name: Optional[str] = None,
+        namespace: Optional[str] = None,
+        tags: Tags = None,
     ) -> ConfigurationInfo:
         """
             Retrieves a ``ConfigurationInfo`` instance from the registry via
@@ -1124,11 +1147,11 @@ class Registry:
 
     @classmethod
     def retrieve_configuration(
-            cls,
-            registration_key: Optional[Registration] = None,
-            name: Optional[str] = None,
-            namespace: Optional[str] = None,
-            tags: Tags = None,
+        cls,
+        registration_key: Optional[Registration] = None,
+        name: Optional[str] = None,
+        namespace: Optional[str] = None,
+        tags: Tags = None,
     ) -> cinnamon.configuration.C:
         """
             Retrieves a ``Configuration`` instance from the registry
@@ -1149,11 +1172,11 @@ class Registry:
 
     @classmethod
     def retrieve_configuration_info(
-            cls,
-            registration_key: Optional[Registration] = None,
-            name: Optional[str] = None,
-            namespace: Optional[str] = None,
-            tags: Tags = None,
+        cls,
+        registration_key: Optional[Registration] = None,
+        name: Optional[str] = None,
+        namespace: Optional[str] = None,
+        tags: Tags = None,
     ) -> ConfigurationInfo:
         """
             Retrieves a ``Configuration`` instance from the registry
@@ -1174,12 +1197,12 @@ class Registry:
 
     @classmethod
     def retrieve_keys(
-            cls,
-            names: Optional[Union[List[str], str]] = None,
-            namespaces: Optional[Union[List[str], str]] = None,
-            tags: Tags = None,
-            special_tags: Tags = None,
-            keys: List[RegistrationKey] = None,
+        cls,
+        names: Optional[Union[List[str], str]] = None,
+        namespaces: Optional[Union[List[str], str]] = None,
+        tags: Tags = None,
+        special_tags: Tags = None,
+        keys: List[RegistrationKey] | None = None,
     ) -> List[RegistrationKey]:
         """
         Retrieves ``RegistrationKey`` via given name, tags, namespaces filters.
@@ -1201,9 +1224,9 @@ class Registry:
             key
             for key in keys
             if match_name(name=key.name, names=names)
-               and match_namespace(namespace=key.namespace, namespaces=namespaces)
-               and match_tags(a_tags=key.tags, b_tags=tags)
-               and match_tags(a_tags=key.special_tags, b_tags=special_tags)
+            and match_namespace(namespace=key.namespace, namespaces=namespaces)
+            and match_tags(a_tags=key.tags, b_tags=tags)
+            and match_tags(a_tags=key.special_tags, b_tags=special_tags)
         ]
 
     @classmethod

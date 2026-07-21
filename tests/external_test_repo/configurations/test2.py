@@ -6,7 +6,7 @@ from cinnamon.registry import Registry, register
 def register_configurations():
     Registry.register_configuration(
         config=Configuration(),
-        component="cinnamon.component.Component",
+        component="tests.fixtures.EmptyComponent",
         name="test2",
         namespace="external",
     )

@@ -29,7 +29,6 @@ from tests.fixtures import (
     reset_registry,
 )
 
-
 # Basic Registrations
 
 
@@ -385,7 +384,8 @@ def test_resolution_config_with_child_and_param_variants(reset_registry):
 
 def test_resolution_config_with_child_variants_pointing_to_variants(reset_registry):
     """
-    We test the case where a config has a child with some variants, one of which points to another child
+    We test the case where a config has a child with some variants,
+     one of which points to another child.
     DAG resolution should consider all combinations
     """
     parent_key = Registry.register_configuration(
@@ -656,7 +656,7 @@ def test_retrieve_custom_runnable_component(reset_registry):
     Registry.dag_resolution()
 
     config_info = Registry.retrieve_configuration_info(registration_key=key)
-    component = CustomRunnableComponent.instantiate(registration_key=key)
+    component = Registry.instantiate(registration_key=key)
 
     assert config_info.run_method is not None
     assert hasattr(component, config_info.run_method)
@@ -678,7 +678,7 @@ def test_retrieve_custom_runnable_component_with_variants(reset_registry):
     Registry.dag_resolution()
 
     config_info = Registry.retrieve_configuration_info(registration_key=key)
-    component = CustomRunnableComponentWithArgs.instantiate(registration_key=key)
+    component = Registry.instantiate(registration_key=key)
 
     assert config_info.run_method is not None
     assert hasattr(component, config_info.run_method)
@@ -689,7 +689,7 @@ def test_retrieve_custom_runnable_component_with_variants(reset_registry):
 
     variant_key = key.from_variant(variant_kwargs={'x': 2})
     variant_info = Registry.retrieve_configuration_info(registration_key=variant_key)
-    variant_component = CustomRunnableComponentWithArgs.instantiate(registration_key=variant_key)
+    variant_component = Registry.instantiate(registration_key=variant_key)
 
     assert variant_info.run_method is not None
     assert hasattr(variant_component, variant_info.run_method)

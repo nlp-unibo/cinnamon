@@ -2,7 +2,6 @@ from pathlib import Path
 
 import pytest
 
-from cinnamon.component import Component
 from cinnamon.registry import (
     RegistrationKey,
     Registry,
@@ -12,7 +11,7 @@ from cinnamon.utility.exceptions import (
     NamespaceNotFoundException,
 )
 from cinnamon.utility.registration import NamespaceExtractor
-from tests.fixtures import reset_registry
+from tests.fixtures import EmptyComponent, reset_registry
 
 
 def test_parse_configuration_files_with_register():
@@ -97,11 +96,11 @@ def test_chained_register_decorator(reset_registry):
 
     Registry.dag_resolution()
 
-    c1 = Registry.instantiate_component(registration_key=key1)
-    assert isinstance(c1, Component)
+    c1 = Registry.instantiate(registration_key=key1)
+    assert isinstance(c1, EmptyComponent)
 
-    c2 = Registry.instantiate_component(registration_key=key2)
-    assert isinstance(c2, Component)
+    c2 = Registry.instantiate(registration_key=key2)
+    assert isinstance(c2, EmptyComponent)
 
 
 def test_deeply_nested_config(reset_registry):

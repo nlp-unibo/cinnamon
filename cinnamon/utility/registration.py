@@ -114,7 +114,7 @@ def match_tags(a_tags: "cinnamon.registry.Tags", b_tags: "cinnamon.registry.Tags
     return False
 
 
-def import_class_from_string(path: str):
+def import_class_from_string(path: str) -> type:
     module_path, class_name = path.rsplit(".", 1)
     module = importlib.import_module(module_path)
     return getattr(module, class_name)

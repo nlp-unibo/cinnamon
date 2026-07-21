@@ -2,16 +2,15 @@ from pathlib import Path
 
 import pytest
 
-from cinnamon.component import Component
 from cinnamon.configuration import Configuration
 from cinnamon.registry import RegistrationKey, Registry
 from tests.fixtures import (
     BaseComponent,
     BaseConfig,
     ChildConfig,
-    ComponentWithChild,
     ConfigWithChild,
     ConfigWithExternalDependency,
+    EmptyComponent,
     reset_registry,
 )
 
@@ -23,13 +22,13 @@ def test_build_empty_component(reset_registry):
 
     key = Registry.register_configuration(
         config=Configuration.default(),
-        component="cinnamon.component.Component",
+        component="tests.fixtures.EmptyComponent",
         name="component",
         namespace="testing",
     )
     Registry.expanded = True
-    component = Component.instantiate(registration_key=key)
-    assert isinstance(component, Component)
+    component: EmptyComponent = Registry.instantiate(registration_key=key)
+    assert isinstance(component, EmptyComponent)
 
 
 def test_build_component(reset_registry):
@@ -44,12 +43,12 @@ def test_build_component(reset_registry):
     )
     Registry.expanded = True
 
-    component = BaseComponent.instantiate(registration_key=key)
+    component = Registry.instantiate(registration_key=key)
     assert isinstance(component, BaseComponent)
     assert component.x == 5
     assert component.y == 10
 
-    component = Component.instantiate(registration_key=key)
+    component = Registry.instantiate(registration_key=key)
     assert isinstance(component, BaseComponent)
     assert component.x == 5
     assert component.y == 10
@@ -67,7 +66,7 @@ def test_trigger_invalid_build_component(reset_registry):
     )
     Registry.expanded = True
     with pytest.raises(TypeError):
-        Registry.instantiate_component(registration_key=key)
+        Registry.instantiate(registration_key=key)
 
 
 def test_build_component_with_child(reset_registry):
@@ -89,10 +88,11 @@ def test_build_component_with_child(reset_registry):
     )
     Registry.dag_resolution()
 
-    parent_component = ComponentWithChild.instantiate(registration_key=parent_key)
+    parent_component = Registry.instantiate(registration_key=parent_key)
 
     assert isinstance(parent_component.c1, ChildConfig)
     assert parent_component.c1.y is False
+
 
 def test_build_component_with_child_variants(reset_registry):
     """
@@ -113,7 +113,7 @@ def test_build_component_with_child_variants(reset_registry):
     )
     Registry.dag_resolution()
 
-    parent_component = ComponentWithChild.instantiate(registration_key=parent_key)
+    parent_component = Registry.instantiate(registration_key=parent_key)
     assert isinstance(parent_component.c1, ChildConfig)
     assert parent_component.c1.y is False
 
@@ -154,7 +154,7 @@ def test_build_component_with_external_dependency(reset_registry):
     )
     Registry.dag_resolution()
 
-    component = ComponentWithChild.instantiate(registration_key=key)
+    component = Registry.instantiate(registration_key=key)
     assert isinstance(component.c1, Configuration)
 
 
@@ -166,5 +166,5 @@ def test_build_after_setup(reset_registry):
     Registry.build(directory=main_path, external_directories=external_directories)
     key = RegistrationKey(name="config", namespace="testing")
 
-    component = ComponentWithChild.instantiate(registration_key=key)
+    component = Registry.instantiate(registration_key=key)
     assert isinstance(component.c1, Configuration)

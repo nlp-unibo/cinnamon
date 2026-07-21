@@ -144,7 +144,7 @@ def run():
         config_info = Registry.retrieve_configuration_info(registration_key=key)
         logger.info(config_info.config.model_dump())
 
-        component = Registry.instantiate_component(registration_key=key)
+        component = Registry.instantiate(registration_key=key)
 
         assert config_info.run_method is not None
         if hasattr(component, config_info.run_method):
@@ -238,11 +238,11 @@ if __name__ == '__main__':
     Registry.build(directory=Path('{run_directory}'))
     logging.basicConfig(level=logging.INFO)
     logger = getLogger(__name__)
-    
+
     keys = [
         {code_keys}
 ]
-    
+
     # Use RegistrationKey.from_string() to retrieve the RegistrationKey instance from string
     for key in keys:
         key = RegistrationKey.from_string(key)

@@ -10,13 +10,13 @@ class MockConfiguration(Configuration):
         name="config",
         tags={"nest2"},
         namespace="testing",
-        component="cinnamon.component.Component",
+        component="tests.fixtures.EmptyComponent",
     )
     @register_method(
         name="config",
         tags={"nest1"},
         namespace="testing",
-        component="cinnamon.component.Component",
+        component="tests.fixtures.EmptyComponent",
     )
     def default(cls: Type[C]) -> C:
         return cls()

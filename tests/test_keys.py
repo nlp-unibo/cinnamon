@@ -1,9 +1,12 @@
 import json
 from pathlib import Path
 
-from cinnamon.configuration import Configuration
 from cinnamon.registry import RegistrationKey
-from tests.fixtures import ConfigWithNonTaggableVariants, ConfigWithVariants, ConfigWithChild
+from tests.fixtures import (
+    ConfigWithChild,
+    ConfigWithNonTaggableVariants,
+    ConfigWithVariants,
+)
 
 
 def test_key_to_json():

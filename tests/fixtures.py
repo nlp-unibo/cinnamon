@@ -2,7 +2,6 @@ from typing import Literal, Type
 
 import pytest
 
-from cinnamon.component import Component
 from cinnamon.configuration import C, Configuration, Param
 from cinnamon.registry import RegistrationKey, Registry
 
@@ -17,7 +16,11 @@ def expand_registry():
     Registry.expanded = True
 
 
-class BaseComponent(Component):
+class EmptyComponent:
+    pass
+
+
+class BaseComponent:
     def __init__(self, x: int, y: int):
         self.x = x
         self.y = y
@@ -53,7 +56,7 @@ class ChildConfig(Configuration):
     y: bool = Param(False, variants=[True])
 
 
-class ChildComponent(Component):
+class ChildComponent:
     def __init__(self, y: bool):
         self.y = y
 
@@ -71,7 +74,7 @@ class ConfigWithVariantChild(Configuration):
     c1: RegistrationKey = RegistrationKey(name="test", namespace="testing")
 
 
-class ComponentWithChild(Component):
+class ComponentWithChild:
     def __init__(self, c1):
         self.c1 = c1
 
@@ -124,13 +127,12 @@ class LeafWithVariants(Configuration):
     x: int = Param(1, variants=[2])
 
 
-class CustomRunnableComponent(Component):
+class CustomRunnableComponent:
     def run(self):
         return "this is a mock runnable component"
 
 
-class CustomRunnableComponentWithArgs(Component):
-
+class CustomRunnableComponentWithArgs:
     def __init__(self, x: int):
         self.x = x
 
