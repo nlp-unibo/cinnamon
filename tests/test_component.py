@@ -88,9 +88,10 @@ def test_build_component_with_child(reset_registry):
     )
     Registry.dag_resolution()
 
-    parent_component = Registry.instantiate(registration_key=parent_key)
+    parent_component = Registry.from_key(registration_key=parent_key)
+    assert isinstance(parent_component.c1, RegistrationKey)
 
-    assert isinstance(parent_component.c1, ChildConfig)
+    parent_component.c1 = Registry.from_key(parent_component.c1)
     assert parent_component.c1.y is False
 
 
@@ -114,7 +115,8 @@ def test_build_component_with_child_variants(reset_registry):
     Registry.dag_resolution()
 
     parent_component = Registry.instantiate(registration_key=parent_key)
-    assert isinstance(parent_component.c1, ChildConfig)
+    assert isinstance(parent_component.c1, RegistrationKey)
+    parent_component.c1 = Registry.from_key(parent_component.c1)
     assert parent_component.c1.y is False
 
     variant_parent_config = ConfigWithChild.retrieve(
@@ -122,6 +124,7 @@ def test_build_component_with_child_variants(reset_registry):
             {"c1": child_key.from_variant({"y": True})}
         )
     )
+    variant_parent_config.c1 = Registry.from_key(variant_parent_config.c1)
     assert variant_parent_config.c1.y is True
 
 
@@ -155,7 +158,7 @@ def test_build_component_with_external_dependency(reset_registry):
     Registry.dag_resolution()
 
     component = Registry.instantiate(registration_key=key)
-    assert isinstance(component.c1, Configuration)
+    assert isinstance(component.c1, RegistrationKey)
 
 
 def test_build_after_setup(reset_registry):
@@ -167,4 +170,4 @@ def test_build_after_setup(reset_registry):
     key = RegistrationKey(name="config", namespace="testing")
 
     component = Registry.instantiate(registration_key=key)
-    assert isinstance(component.c1, Configuration)
+    assert isinstance(component.c1, RegistrationKey)

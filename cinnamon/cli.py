@@ -144,7 +144,7 @@ def run():
         config_info = Registry.retrieve_configuration_info(registration_key=key)
         logger.info(config_info.config.model_dump())
 
-        component = Registry.instantiate(registration_key=key)
+        component = Registry.from_key(registration_key=key)
 
         assert config_info.run_method is not None
         if hasattr(component, config_info.run_method):
@@ -250,7 +250,7 @@ if __name__ == '__main__':
         config_info = Registry.retrieve_configuration_info(registration_key=key)
         logger.info(config_info.config.model_dump())
 
-        component = Registry.instantiate(registration_key=key)
+        component = Registry.from_key(registration_key=key)
 
         if hasattr(component, config_info.run_method):
             getattr(component, config_info.run_method)()
