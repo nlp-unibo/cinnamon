@@ -916,7 +916,8 @@ class Registry:
         registration_key: RegistrationKey[T],
         **build_args,
     ) -> T:
-        return Registry.instantiate(registration_key=registration_key, **build_args)
+        instance: T = Registry.instantiate(registration_key=registration_key, **build_args)
+        return instance
 
     @classmethod
     def instantiate(

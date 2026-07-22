@@ -13,7 +13,6 @@ from typing import (
     Dict,
     List,
     Mapping,
-    Optional,
     Set,
     Type,
     TypeVar,
@@ -51,7 +50,7 @@ logger = logging.getLogger(__name__)
 class ConditionInfo:
     condition: Condition
     tags: Tags
-    description: Optional[str] = None
+    description: str | None = None
 
 
 class ParamMeta:
@@ -66,9 +65,9 @@ class ParamMeta:
 def Param(
     default: Any = PydanticUndefined,
     *,
-    description: Optional[str] = None,
-    tags: Optional[Set[str]] = None,
-    variants: Optional[List[Any]] = None,
+    description: str | None = None,
+    tags: Set[str] | None = None,
+    variants: List[Any] | None = None,
     **kwargs: Any,
 ) -> Any:
     return Field(
@@ -156,9 +155,9 @@ class Configuration(BaseModel):
     @classmethod
     def retrieve(
         cls: Type[C],
-        registration_key: Optional[cinnamon.registry.Registration] = None,
-        name: Optional[str] = None,
-        namespace: Optional[str] = None,
+        registration_key: cinnamon.registry.Registration | None = None,
+        name: str | None = None,
+        namespace: str | None = None,
         tags: Tags = None,
     ) -> C:
         """
@@ -284,7 +283,7 @@ class Configuration(BaseModel):
         self,
         condition: Condition,
         name: str,
-        description: Optional[str] = None,
+        description: str | None = None,
         tags: Tags = None,
     ):
         """

@@ -24,8 +24,8 @@ from tests.fixtures import (
     VariantConfigWithChild,
     VariantConfigWithVariantChild,
     expand_registry,
-    reset_registry,
-)
+    reset_registry, )
+
 
 # Basic Registrations
 
@@ -114,7 +114,7 @@ def test_trigger_unregistered_config_error(reset_registry, expand_registry):
 
 
 def test_retrieve_config(
-    reset_registry,
+        reset_registry,
 ):
     """
     Register and retrieve configuration with success
@@ -230,17 +230,17 @@ def test_register_config_with_child_and_child_variants_no_expansion(reset_regist
     assert len(Registry._DEPENDENCY_DAG.edges) == 2
 
     assert (
-        key.from_variant({"x": 1}),
-        child_key.from_variant({"y": False}),
-    ) not in Registry._DEPENDENCY_DAG.edges
+               key.from_variant({"x": 1}),
+               child_key.from_variant({"y": False}),
+           ) not in Registry._DEPENDENCY_DAG.edges
     assert (
-        key.from_variant({"x": 2}),
-        child_key.from_variant({"y": False}),
-    ) not in Registry._DEPENDENCY_DAG.edges
+               key.from_variant({"x": 2}),
+               child_key.from_variant({"y": False}),
+           ) not in Registry._DEPENDENCY_DAG.edges
     assert (
-        key.from_variant({"x": 3}),
-        child_key.from_variant({"y": False}),
-    ) not in Registry._DEPENDENCY_DAG.edges
+               key.from_variant({"x": 3}),
+               child_key.from_variant({"y": False}),
+           ) not in Registry._DEPENDENCY_DAG.edges
 
 
 def test_register_config_from_variant(reset_registry):
@@ -344,32 +344,32 @@ def test_resolution_config_with_child_and_param_variants(reset_registry):
     assert Registry.in_registry(child_key)
     assert parent_key in valid_keys
     assert (
-        parent_key.from_variant(
-            variant_kwargs={
-                "x": 2,
-                "c1": child_key.from_variant(variant_kwargs={"y": True}),
-            }
-        )
-        in valid_keys
+            parent_key.from_variant(
+                variant_kwargs={
+                    "x": 2,
+                    "c1": child_key.from_variant(variant_kwargs={"y": True}),
+                }
+            )
+            in valid_keys
     )
     assert (
-        parent_key.from_variant(
-            variant_kwargs={
-                "x": 3,
-                "c1": child_key.from_variant(variant_kwargs={"y": True}),
-            }
-        )
-        in valid_keys
+            parent_key.from_variant(
+                variant_kwargs={
+                    "x": 3,
+                    "c1": child_key.from_variant(variant_kwargs={"y": True}),
+                }
+            )
+            in valid_keys
     )
     assert parent_key.from_variant(variant_kwargs={"x": 2}) in valid_keys
     assert parent_key.from_variant(variant_kwargs={"x": 3}) in valid_keys
     assert (
-        parent_key.from_variant(
-            variant_kwargs={
-                "c1": child_key.from_variant(variant_kwargs={"y": True}),
-            }
-        )
-        in valid_keys
+            parent_key.from_variant(
+                variant_kwargs={
+                    "c1": child_key.from_variant(variant_kwargs={"y": True}),
+                }
+            )
+            in valid_keys
     )
     assert child_key in valid_keys
     assert child_key.from_variant(variant_kwargs={"y": True}) in valid_keys
@@ -425,7 +425,7 @@ def test_resolution_where_key_is_shared_in_more_than_one_path(reset_registry):
 
 
 def test_resolution_where_key_with_variants_is_shared_in_more_than_one_path(
-    reset_registry,
+        reset_registry,
 ):
     Registry.register_configuration(
         config=ConfigWithChild.default(), name="config", tags={"a"}, namespace="testing"
@@ -524,7 +524,7 @@ def test_retrieve_keys_with_no_tags(reset_registry):
         config=Configuration.default(), name="config", namespace="testing"
     )
 
-    keys = Registry.retrieve_keys(tags={None})
+    keys = Registry.retrieve_keys(tags=None)
     assert len(keys) == 1
     assert key in keys
 
@@ -583,7 +583,7 @@ def test_dag_resolution_with_variants(reset_registry):
 
 
 def test_dag_resolution_with_invalid_variants(
-    reset_registry,
+        reset_registry,
 ):
     config = ParentWithVariantsAndChild.default()
     config.meta.x.variants = [2, 3]
@@ -651,8 +651,8 @@ def test_retrieve_custom_runnable_component(reset_registry):
     assert config_info.run_method is not None
     assert hasattr(component, config_info.run_method)
     assert (
-        getattr(component, config_info.run_method)()
-        == "this is a mock runnable component"
+            getattr(component, config_info.run_method)()
+            == "this is a mock runnable component"
     )
 
 
