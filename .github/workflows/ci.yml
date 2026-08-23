@@ -37,4 +37,8 @@ jobs:
     # 6. Run your unit test suite via pytest
     - name: Test with pytest
       run: |
-        pytest
+        if [ "${{ matrix.python-version }}" = "3.12" ]; then
+          pytest --cov-fail-under=100
+        else
+          pytest
+        fi

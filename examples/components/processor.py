@@ -4,10 +4,8 @@ import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.preprocessing import LabelEncoder
 
-from cinnamon.component import Component
 
-
-class TfIdfProcessor(Component):
+class TfIdfProcessor:
     def __init__(self, **kwargs):
         self.vectorizer = TfidfVectorizer(**kwargs)
 
@@ -25,7 +23,7 @@ class TfIdfProcessor(Component):
         return self.vectorizer.transform(data.x.values)
 
 
-class LabelProcessor(Component):
+class LabelProcessor:
     def __init__(self):
         self.label_encoder = LabelEncoder()
 

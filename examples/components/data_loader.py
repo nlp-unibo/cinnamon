@@ -7,8 +7,6 @@ from urllib.request import urlretrieve
 import pandas as pd
 from tqdm import tqdm
 
-from cinnamon.component import Component
-
 
 class DownloadProgressBar(tqdm):
     def update_to(self, b=1, bsize=1, tsize=None):
@@ -24,7 +22,7 @@ def download_url(download_path: Path, url: str):
         urlretrieve(url, filename=download_path, reporthook=t.update_to)
 
 
-class IMDBLoader(Component):
+class IMDBLoader:
     def __init__(
         self,
         download_directory: Path,

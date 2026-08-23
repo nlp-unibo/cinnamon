@@ -108,3 +108,52 @@ def test_deeply_nested_config(reset_registry):
     Registry.load_registrations(directory=directory)
     key = RegistrationKey(name="config", namespace="testing")
     assert Registry.in_registry(key)
+
+
+def test_load_registrations_idempotent(reset_registry):
+    """
+    Calling load_registrations twice on the same directory must not
+     double-register: the second call hits the early-return guard.
+    """
+    directory = Path(".", "tests", "external_test_repo")
+    key = RegistrationKey(name="test", namespace="external")
+    key2 = RegistrationKey(name="test2", namespace="external")
+
+    Registry.load_registrations(directory=directory)
+    assert Registry.in_registry(key)
+    assert Registry.in_registry(key2)
+
+    Registry.load_registrations(directory=directory)
+    assert Registry.in_registry(key)
+    assert Registry.in_registry(key2)
+    # registry was not re-populated / duplicated
+    assert len(Registry._REGISTRY) == 2
+
+
+def test_update_namespaces_duplicate_warns(reset_registry):
+    """
+    Duplicate namespace across directories raises RuntimeWarning. This is
+     currently raised (not warned) inside update_namespaces, so test the raise.
+    """
+    Registry.update_namespaces(namespaces=["ns1"], module_mapping={"ns1": Path(".")})
+
+    with pytest.raises(RuntimeWarning):
+        Registry.update_namespaces(
+            namespaces=["ns1"], module_mapping={"ns1": Path(".", "tests")}
+        )
+
+
+def test_load_registrations_module_exec_error(tmp_path, reset_registry):
+    """
+    A configuration script that fails to execute (e.g. SyntaxError) raises
+     RuntimeError wrapping the original failure.
+    """
+    configs_dir = tmp_path / "configurations"
+    configs_dir.mkdir()
+    (configs_dir / "bad.py").write_text(
+        "def register():\n"
+        '    Registry.register_configuration(config=1, name="x", namespace="n"\n'
+    )  # unterminated paren => SyntaxError
+
+    with pytest.raises(RuntimeError, match="Failed to execute module"):
+        Registry.load_registrations(directory=tmp_path)

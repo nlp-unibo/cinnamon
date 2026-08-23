@@ -3,8 +3,8 @@ from typing import Callable
 import pydantic
 import pytest
 
-from cinnamon.configuration import Configuration
-from cinnamon.registry import RegistrationKey
+from cinnamon.configuration import Configuration, Param, ParamMeta
+from cinnamon.registry import RegistrationKey, Registry
 from cinnamon.utility.exceptions import ValidationFailureException
 from tests.fixtures import (
     BaseConfig,
@@ -12,6 +12,7 @@ from tests.fixtures import (
     ConfigWithVariants,
     InvalidConfig,
     NestedConfig,
+    reset_registry,
 )
 
 
@@ -185,3 +186,126 @@ def test_configuration_with_multiple_variant_keys():
                 f"y{key.KEY_VALUE_SEPARATOR}{variant_info['values']['y']}"
                 in variant_key.tags
             )
+
+
+# -- has_at_least_two_variants --
+
+
+def test_has_at_least_two_variants_two_fields():
+    config = ConfigWithMultipleVariants.default()
+    assert config.has_at_least_two_variants is True
+
+
+def test_has_at_least_two_variants_single_field():
+    config = ConfigWithVariants.default()
+    assert config.has_at_least_two_variants is False
+
+
+# -- FieldMetaProxy error paths --
+
+
+def test_meta_bracket_missing_field_raises():
+    config = BaseConfig.default()
+    with pytest.raises(KeyError):
+        config.meta["nope"]
+
+
+def test_meta_attribute_missing_field_raises():
+    config = BaseConfig.default()
+    with pytest.raises(AttributeError):
+        config.meta.nope
+
+
+# -- MetaDescriptor class-level access --
+
+
+def test_meta_class_context_variants():
+    # Class context (instance is None): owner.model_fields is used.
+    assert ConfigWithVariants.meta.x.variants == [2, 3]
+
+
+def test_meta_class_context_missing_field_raises():
+    with pytest.raises(AttributeError):
+        ConfigWithVariants.meta.nope
+
+
+# -- Configuration.retrieve type mismatch --
+
+
+def test_retrieve_type_mismatch_raises(reset_registry):
+    """
+    Retrieve a config whose registered type is not an instance of the
+     requesting Configuration subclass.
+    """
+    Registry.register_configuration(
+        config=Configuration.default(), name="x", namespace="testing"
+    )
+    with pytest.raises(RuntimeError):
+        BaseConfig.retrieve(name="x", namespace="testing")
+
+
+# -- validate_variants: default value also in variants --
+
+
+def test_validate_variants_default_in_variants_raises():
+    """
+    A default value that is also listed in its own ``variants`` is rejected.
+    """
+
+    class BadVariantConfig(Configuration):
+        x: int = Param(5, variants=[5, 6])
+
+    with pytest.raises(ValueError):
+        BadVariantConfig.default()
+
+
+def test_validate_variants_required_field_skipped():
+    """
+    A required (no-default) field with variants is not checked against the
+     default value: the ``PydanticUndefined`` branch short-circuits cleanly.
+    """
+
+    class RequiredVariantConfig(Configuration):
+        x: int = Param(variants=[1, 2])
+
+    config = RequiredVariantConfig(x=1)
+    assert config.x == 1
+
+
+# -- validate_conditions nested early-return with strict=False --
+
+
+def test_validate_nested_failure_returns_child_result(reset_registry):
+    """
+    When a child dependency fails and ``strict=False``, the result of the
+    failing child is returned early (the parent's own conditions are not
+    evaluated).
+    """
+    parent = NestedConfig.default()
+    parent.child.add_condition(
+        name="child_fail", condition=lambda c: c.x > 100
+    )
+    parent.add_condition(name="parent_fail", condition=lambda c: c.y > 100)
+
+    result = parent.validate_conditions(strict=False)
+    assert result.passed is False
+    assert result.source == "BaseConfig"  # child failing first, early-return
+
+
+# -- ParamMeta / FieldMetaProxy leftovers --
+
+
+def test_param_meta_call_no_op():
+    """ParamMeta.__call__(schema) is a no-op and must not raise."""
+    ParamMeta(tags=set(), variants=[]).__call__({})
+
+
+def test_meta_class_context_none_schema_extra():
+    """
+    Class-context meta access on a field whose json_schema_extra is None
+     lazily materializes a ParamMeta.
+    """
+    BaseConfig.model_fields["x"].json_schema_extra = None
+    meta = BaseConfig.meta.x
+    assert meta.variants == []
+    assert BaseConfig.model_fields["x"].json_schema_extra is not None

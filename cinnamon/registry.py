@@ -64,6 +64,8 @@ class RegistrationKey(Generic[T]):
     Compound key used for registration.
     """
 
+    _IMMUTABLE = frozenset({"name", "namespace", "tags"})
+
     KEY_VALUE_SEPARATOR: str = "="
     ATTRIBUTE_SEPARATOR: str = "--"
     HIERARCHY_SEPARATOR: str = "."
@@ -99,12 +101,27 @@ class RegistrationKey(Generic[T]):
              ``RegistrationKey``
             special_tags: set of special tags for internal use.
         """
-        self.name = name
-        self.namespace = namespace if namespace is not None else "default"
-        self.tags = tags if tags is not None else set()
+
+        object.__setattr__(self, "name", name)
+        object.__setattr__(
+            self, "namespace", namespace if namespace is not None else "default"
+        )
+        object.__setattr__(
+            self, "tags", frozenset(tags) if tags is not None else frozenset()
+        )
+
         self.description = description
         self.metadata = metadata
         self.special_tags = special_tags if special_tags is not None else set()
+
+        self._hash = hash(str(self))
+
+    def __setattr__(self, attr: str, value: Any) -> None:
+        if attr in RegistrationKey._IMMUTABLE:
+            raise AttributeError(
+                f"RegistrationKey.{attr!r} is immutable and cannot be reassigned."
+            )
+        super().__setattr__(attr, value)
 
     @classmethod
     def __get_pydantic_core_schema__(
@@ -118,7 +135,7 @@ class RegistrationKey(Generic[T]):
         )
 
     def __hash__(self) -> int:
-        return hash(self.__str__())
+        return self._hash
 
     def __str__(self) -> str:
         to_return = [f"name{self.KEY_VALUE_SEPARATOR}{self.name}"]
@@ -242,7 +259,12 @@ class RegistrationKey(Generic[T]):
         tags = tags or set()
         remaining_tags = self.tags.difference(tags)
         return RegistrationKey[T](
-            name=self.name, tags=remaining_tags, namespace=self.namespace
+            name=self.name,
+            tags=remaining_tags,
+            namespace=self.namespace,
+            description=self.description,
+            special_tags=self.special_tags,
+            metadata=self.metadata,
         )
 
     @classmethod
@@ -261,7 +283,7 @@ class RegistrationKey(Generic[T]):
         registration_dict = {}
         for registration_attribute in registration_attributes:
             try:
-                key, value = registration_attribute.split(cls.KEY_VALUE_SEPARATOR)
+                key, value = registration_attribute.split(cls.KEY_VALUE_SEPARATOR, 1)
                 if key == "tags":
                     value = set(ast.literal_eval(value))
 
@@ -565,7 +587,7 @@ class Registry:
                 )
 
         cls._EXP_NAMESPACES.extend(namespaces)
-        cls._MODULE_MAPPING = {**cls._MODULE_MAPPING, **module_mapping}
+        cls._MODULE_MAPPING.update(module_mapping)
 
     @classmethod
     @time_it
@@ -592,10 +614,9 @@ class Registry:
                 for python_script in config_folder.glob("*.py"):
                     dir_namespaces = extractor.process(filename=python_script)
                     namespaces.extend(dir_namespaces)
-                    mapping = {
-                        **mapping,
-                        **{namespace: directory for namespace in dir_namespaces},
-                    }
+                    mapping.update(
+                        {namespace: directory for namespace in dir_namespaces}
+                    )
 
         namespaces = list(set(namespaces))
         return namespaces, mapping
@@ -670,7 +691,9 @@ class Registry:
                     name=python_script.name, location=python_script
                 )
 
-                if spec is None:
+                # unreachable via rglob("*.py"); defensive guard kept for
+                # non-standard loaders and excluded from coverage.
+                if spec is None:  # pragma: no cover
                     logger.error(f"Could not load {python_script}.")
                     raise RuntimeError(f"Could not load {python_script}.")
 
@@ -916,7 +939,9 @@ class Registry:
         registration_key: RegistrationKey[T],
         **build_args,
     ) -> T:
-        instance: T = Registry.instantiate(registration_key=registration_key, **build_args)
+        instance: T = Registry.instantiate(
+            registration_key=registration_key, **build_args
+        )
         return instance
 
     @classmethod

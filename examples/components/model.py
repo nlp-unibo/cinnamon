@@ -3,10 +3,8 @@ from typing import Any, Dict, Optional, Tuple
 from sklearn.metrics import accuracy_score, f1_score
 from sklearn.svm import SVC
 
-from cinnamon.component import Component
 
-
-class SVCModel(Component):
+class SVCModel:
     def __init__(self, C: float, kernel: str, class_weight: Optional[str] = "balanced"):
         self.C = C
         self.kernel = kernel

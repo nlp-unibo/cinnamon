@@ -5,16 +5,12 @@ import itertools
 import logging
 import typing
 import warnings
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import (
     Any,
     Callable,
     ClassVar,
-    Dict,
-    List,
-    Mapping,
-    Set,
-    Type,
     TypeVar,
 )
 
@@ -54,7 +50,7 @@ class ConditionInfo:
 
 
 class ParamMeta:
-    def __init__(self, tags: Set[str], variants: List[Any]):
+    def __init__(self, tags: set[str], variants: list[Any]):
         self.tags = tags
         self.variants = variants
 
@@ -66,8 +62,8 @@ def Param(
     default: Any = PydanticUndefined,
     *,
     description: str | None = None,
-    tags: Set[str] | None = None,
-    variants: List[Any] | None = None,
+    tags: set[str] | None = None,
+    variants: list[Any] | None = None,
     **kwargs: Any,
 ) -> Any:
     return Field(
@@ -132,11 +128,11 @@ class Configuration(BaseModel):
     Configurations store parameters and allow flow control via conditions.
     """
 
-    _conditions: Dict[str, ConditionInfo] = PrivateAttr(default_factory=dict)
+    _conditions: dict[str, ConditionInfo] = PrivateAttr(default_factory=dict)
     _expanded: bool = PrivateAttr(default=False)
 
     # ignore this variable during serialization
-    _instance_meta: Dict[str, ParamMeta] = PrivateAttr(default_factory=dict)
+    _instance_meta: dict[str, ParamMeta] = PrivateAttr(default_factory=dict)
 
     meta: ClassVar[MetaDescriptor] = MetaDescriptor()
 
@@ -154,7 +150,7 @@ class Configuration(BaseModel):
 
     @classmethod
     def retrieve(
-        cls: Type[C],
+        cls: type[C],
         registration_key: cinnamon.registry.Registration | None = None,
         name: str | None = None,
         namespace: str | None = None,
@@ -202,6 +198,9 @@ class Configuration(BaseModel):
 
     @model_validator(mode="after")
     def validate_variants(self) -> C:
+        if not self.has_variants:
+            return self
+
         for field_name, field_info in self.fields.items():
             field_variants = self.meta[field_name].variants
             if not field_variants:
@@ -224,14 +223,10 @@ class Configuration(BaseModel):
     def model_copy(
         self, *, update: Mapping[str, Any] | None = None, deep: bool = False
     ) -> Self:
-        # 1. Get a pydantic copy with the updates applied
         model_copy = super().model_copy(update=update, deep=deep)
-
-        # 2. Re-validate public fields only (this is what was broken before —
-        #    the old code discarded the validated result)
         validated = self.model_validate(model_copy.model_dump(mode="python"))
 
-        # 3. Manually propagate private attributes that model_validate doesn't touch
+        # propagate private attributes that model_validate doesn't touch
         conditions = copy.deepcopy(self._conditions) if deep else dict(self._conditions)
         object.__setattr__(validated, "_conditions", conditions)
         object.__setattr__(validated, "_expanded", self._expanded)
@@ -259,11 +254,11 @@ class Configuration(BaseModel):
         self._expanded = expanded
 
     @property
-    def fields(self) -> Dict[str, FieldInfo]:
+    def fields(self) -> dict[str, FieldInfo]:
         return self.__class__.model_fields
 
     @property
-    def values(self) -> Dict[str, Any]:
+    def values(self) -> dict[str, Any]:
         return {
             field_name: getattr(self, field_name)
             for field_name, field in self.fields.items()
@@ -272,7 +267,7 @@ class Configuration(BaseModel):
     @property
     def dependencies(
         self,
-    ) -> Dict[str, cinnamon.registry.RegistrationKey | Configuration]:
+    ) -> dict[str, cinnamon.registry.RegistrationKey | Configuration]:
         return {
             field_name: getattr(self, field_name)
             for field_name, field in self.fields.items()
@@ -303,7 +298,7 @@ class Configuration(BaseModel):
         if name in self._conditions:
             warnings.warn(
                 "Condition with name {name} already exists! Overwriting...",
-                RuntimeWarning
+                RuntimeWarning,
             )
 
         self._conditions[name] = ConditionInfo(
@@ -350,7 +345,7 @@ class Configuration(BaseModel):
         return ValidationResult(passed=True, source=self.__class__.__name__)
 
     @classmethod
-    def default(cls: Type[C]) -> C:
+    def default(cls: type[C]) -> C:
         """
         Returns the default ``Configuration`` instance.
 
@@ -379,7 +374,7 @@ class Configuration(BaseModel):
     @property
     def variants(
         self,
-    ) -> List[Dict[str, Dict[str, Any]]]:
+    ) -> list[dict[str, dict[str, Any]]]:
         """
         Computes all unique combinations of a configuration's fields along
          with their indices.

@@ -1,19 +1,18 @@
 import logging
 
-from cinnamon.component import Component
 from cinnamon.registry import RegistrationKey
 from examples.components.data_loader import IMDBLoader
 from examples.components.model import SVCModel
 from examples.components.processor import LabelProcessor, TfIdfProcessor
 
 
-class SVCBenchmark(Component):
+class SVCBenchmark:
     def __init__(
-            self,
-            data_loader: RegistrationKey,
-            model: RegistrationKey,
-            text_processor: RegistrationKey,
-            label_processor: RegistrationKey,
+        self,
+        data_loader: RegistrationKey,
+        model: RegistrationKey,
+        text_processor: RegistrationKey,
+        label_processor: RegistrationKey,
     ):
         self.data_loader = data_loader
         self.model = model

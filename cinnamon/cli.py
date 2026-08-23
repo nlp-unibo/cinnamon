@@ -66,6 +66,11 @@ def build():
     if not registration_path.exists():
         registration_path.mkdir(parents=True, exist_ok=True)
 
+    # RegistrationKey is not JSON-serializable; its str() form round-trips
+    # via RegistrationKey.from_string() (used by cmn-run / cmn-generate).
+    valid_keys = [str(key) for key in valid_keys]
+    invalid_keys = [str(key) for key in invalid_keys]
+
     with registration_path.joinpath("valid_keys.json").open("w") as f:
         json.dump(valid_keys, f)
     with registration_path.joinpath("invalid_keys.json").open("w") as f:
@@ -235,7 +240,7 @@ from pathlib import Path
 from cinnamon.registry import Registry, RegistrationKey
 
 if __name__ == '__main__':
-    Registry.build(directory=Path('{run_directory}'))
+    Registry.build(directory=Path('{directory}'), external_directories={external_directories or "None"})
     logging.basicConfig(level=logging.INFO)
     logger = getLogger(__name__)
 

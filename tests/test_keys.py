@@ -1,7 +1,10 @@
 import json
 from pathlib import Path
 
+import pytest
+
 from cinnamon.registry import RegistrationKey
+from cinnamon.utility.registration import match_tags
 from tests.fixtures import (
     ConfigWithChild,
     ConfigWithNonTaggableVariants,
@@ -72,11 +75,11 @@ def test_from_config_variants_with_taggable_params():
 
     for variant_info in config.variants:
         variant_key = config_key.from_variant(
-            variant_kwargs=variant_info['values'],
-            variant_indexes=variant_info['indexes']
+            variant_kwargs=variant_info["values"],
+            variant_indexes=variant_info["indexes"],
         )
 
-        if variant_info['indexes']['x'] != 0:
+        if variant_info["indexes"]["x"] != 0:
             assert variant_key.tags == {
                 f"x{config_key.KEY_VALUE_SEPARATOR}{variant_info['values']['x']}"
             }
@@ -88,8 +91,8 @@ def test_from_config_variants_with_non_taggable_params():
 
     for variant_info in config.variants:
         variant_key = config_key.from_variant(
-            variant_kwargs=variant_info['values'],
-            variant_indexes=variant_info['indexes']
+            variant_kwargs=variant_info["values"],
+            variant_indexes=variant_info["indexes"],
         )
 
         assert variant_key.tags == {f"x{config_key.KEY_VALUE_SEPARATOR}variant-1"}
@@ -109,3 +112,158 @@ def test_key_pydantic_serializable():
     config = ConfigWithChild()
     config_json = config.model_dump_json()
     assert config_json == '{"c1":"name=test--tags=[\'t2\']--namespace=testing"}'
+
+
+def test_from_string():
+    key_str = "name=test--tags=[]--namespace=testing"
+    key = RegistrationKey.from_string(key_str)
+    assert key.name == "test"
+    assert key.namespace == "testing"
+    assert key.tags == set()
+
+
+def test_from_string_with_tags():
+    key_str = "name=test--tags=['x=1']--namespace=testing"
+    key = RegistrationKey.from_string(key_str)
+    assert key.name == "test"
+    assert key.namespace == "testing"
+    assert key.tags == {"x=1"}
+
+
+# -- immutability --
+
+
+def test_key_name_immutable():
+    key = RegistrationKey(name="test", namespace="testing")
+    with pytest.raises(AttributeError):
+        key.name = "other"
+
+
+def test_key_namespace_immutable():
+    key = RegistrationKey(name="test", namespace="testing")
+    with pytest.raises(AttributeError):
+        key.namespace = "other"
+
+
+def test_key_tags_immutable():
+    key = RegistrationKey(name="test", namespace="testing")
+    with pytest.raises(AttributeError):
+        key.tags = {"other"}
+
+
+# -- equality / check helpers --
+
+
+def test_key_eq_not_registration_key():
+    key = RegistrationKey(name="test", namespace="testing")
+    assert key != "test"
+    assert key != None  # noqa: E711
+
+
+def test_key_eq_different_tags():
+    a = RegistrationKey(name="test", tags={"t1"}, namespace="testing")
+    b = RegistrationKey(name="test", tags={"t2"}, namespace="testing")
+    assert a != b
+    assert a.check_tags(b.tags) is False
+
+
+def test_key_eq_different_name():
+    a = RegistrationKey(name="test", namespace="testing")
+    b = RegistrationKey(name="other", namespace="testing")
+    assert a != b
+    assert a.check_name(b.name) is False
+
+
+def test_key_check_namespace_false():
+    a = RegistrationKey(name="test", namespace="testing")
+    b = RegistrationKey(name="test", namespace="other")
+    assert a.check_namespace(b.namespace) is False
+
+
+# -- match (key-vs-key tag subset) --
+
+
+def test_key_match_tag_intersection():
+    key = RegistrationKey(name="test", tags={"a", "b", "c"}, namespace="testing")
+    other = RegistrationKey(name="test", tags={"b", "c", "d"}, namespace="testing")
+    assert key.match(other, {"b", "c"})
+    assert not key.match(other, {"d"})
+
+
+# -- compound / hierarchy tags --
+
+
+def test_compound_tags():
+    key = RegistrationKey(name="test", tags={"x=1", "plain"}, namespace="testing")
+    assert key.compound_tags == {"x=1"}
+
+
+def test_hierarchy_tags():
+    key = RegistrationKey(name="test", tags={"child.x=1", "plain"}, namespace="testing")
+    assert key.hierarchy_tags == {"child.x=1"}
+
+
+# -- pretty string wrap --
+
+
+def test_pretty_string_multiple_tag_lines():
+    key = RegistrationKey(
+        name="test", tags={f"t{i}" for i in range(7)}, namespace="testing"
+    )
+    pretty = key.to_pretty_string()
+    tags_section = pretty.split("tags:")[1].split("namespace:")[0]
+    tag_lines = [ln for ln in tags_section.split("\n") if ln.strip()]
+    assert len(tag_lines) > 1
+
+
+def test_pretty_string_single_tag_line():
+    key = RegistrationKey(name="test", tags={"t1"}, namespace="testing")
+    pretty = key.to_pretty_string()
+    tags_section = pretty.split("tags:")[1].split("namespace:")[0]
+    tag_lines = [ln for ln in tags_section.split("\n") if ln.strip()]
+    assert len(tag_lines) == 1
+
+
+# -- parse / from_string failure paths --
+
+
+def test_from_string_malformed_raises():
+    with pytest.raises(ValueError):
+        RegistrationKey.from_string("name=test--badtag--namespace=testing")
+
+
+def test_parse_no_args_raises():
+    with pytest.raises(AttributeError):
+        RegistrationKey.parse()
+
+
+def test_parse_unsupported_key_type_raises():
+    with pytest.raises(AttributeError):
+        RegistrationKey.parse(registration_key=12345)
+
+
+# -- match_tags (registration.tag matching) --
+
+
+def test_match_tags_none_filter_is_true():
+    assert match_tags(a_tags={"t1"}, b_tags=None) is True
+
+
+def test_match_tags_empty_a_and_none_b():
+    # empty a_tags + b containing None => match
+    assert match_tags(a_tags=set(), b_tags={None}) is True
+
+
+def test_match_tags_removes_none_from_b():
+    # non-empty a_tags + None in b_tags => None is removed, then subset check
+    a = {"t1", "t2"}
+    b = {"t1", "t2", None}
+    assert match_tags(a_tags=a, b_tags=set(b)) is True
+
+
+def test_match_tags_subset_match():
+    assert match_tags(a_tags={"t1", "t2"}, b_tags={"t1"}) is True
+
+
+def test_match_tags_no_match():
+    assert match_tags(a_tags={"t1"}, b_tags={"t2"}) is False
