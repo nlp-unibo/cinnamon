@@ -48,6 +48,7 @@ class UninspectableComponent:
 
 
 def test_signature_required_and_params():
+    """Test test signature required and params."""
     sig = _get_component_signature("tests.fixtures.BaseComponent")
     assert sig.params == frozenset({"x", "y"})
     assert sig.required == frozenset({"x", "y"})
@@ -55,6 +56,7 @@ def test_signature_required_and_params():
 
 
 def test_signature_no_args_component():
+    """Test test signature no args component."""
     sig = _get_component_signature(__name__ + ".NoArgsComponent")
     assert sig.params == frozenset()
     assert sig.required == frozenset()
@@ -62,6 +64,7 @@ def test_signature_no_args_component():
 
 
 def test_signature_var_kwargs():
+    """Test test signature var kwargs."""
     sig = _get_component_signature(__name__ + ".VarKwargsComponent")
     assert sig.accepts_var_kwargs
     assert not sig.accepts_var_args
@@ -69,6 +72,7 @@ def test_signature_var_kwargs():
 
 
 def test_signature_var_args():
+    """Test test signature var args."""
     sig = _get_component_signature(__name__ + ".VarArgsComponent")
     assert sig.accepts_var_args
     assert not sig.accepts_var_kwargs
@@ -76,11 +80,13 @@ def test_signature_var_args():
 
 
 def test_signature_is_cached():
+    """Test test signature is cached."""
     sig = _get_component_signature("tests.fixtures.BaseComponent")
     assert _get_component_signature("tests.fixtures.BaseComponent") is sig
 
 
 def test_signature_unknown_component_raises():
+    """Test test signature unknown component raises."""
     with pytest.raises(RuntimeError):
         _get_component_signature("tests.fixtures.NoSuchComponent")
 
@@ -95,10 +101,12 @@ def test_signature_uninspectable_component_raises():
 
 
 def test_check_signature_matching_config():
+    """Test test check signature matching config."""
     assert _check_signature("tests.fixtures.BaseComponent", BaseConfig.default()) == []
 
 
 def test_check_signature_missing_required():
+    """Test test check signature missing required."""
     problems = _check_signature(
         "tests.fixtures.BaseComponent", Configuration.default()
     )
@@ -108,6 +116,7 @@ def test_check_signature_missing_required():
 
 
 def test_check_signature_extra_fields():
+    """Test test check signature extra fields."""
     problems = _check_signature(
         __name__ + ".NoArgsComponent", BaseConfig.default()
     )
@@ -117,6 +126,7 @@ def test_check_signature_extra_fields():
 
 
 def test_check_signature_var_kwargs_allows_extra():
+    """Test test check signature var kwargs allows extra."""
     assert (
         _check_signature(__name__ + ".VarKwargsComponent", VarKwargsConfig())
         == []
@@ -124,6 +134,7 @@ def test_check_signature_var_kwargs_allows_extra():
 
 
 def test_check_signature_import_error_reported_as_problem():
+    """Test test check signature import error reported as problem."""
     problems = _check_signature(
         "tests.fixtures.NoSuchComponent", Configuration.default()
     )
@@ -156,6 +167,7 @@ def _build_default_registry():
 
 
 def test_analyze_registry_states(reset_registry):
+    """Test test analyze registry states."""
     _build_default_registry()
     results = analyze_registry()
 
@@ -177,6 +189,7 @@ def test_analyze_registry_states(reset_registry):
 
 
 def test_analyze_registry_rejects_unexpanded(reset_registry):
+    """Test test analyze registry rejects unexpanded."""
     Registry.register_configuration(
         config=Configuration.default(),
         name="valid",
@@ -188,6 +201,7 @@ def test_analyze_registry_rejects_unexpanded(reset_registry):
 
 
 def test_analyze_registry_raise_on_error(reset_registry):
+    """Test test analyze registry raise on error."""
     _build_default_registry()
     with pytest.raises(RuntimeError, match="Binding error"):
         analyze_registry(raise_on_error=True)
@@ -231,6 +245,7 @@ def test_analysis_summary_all_clean(reset_registry, capsys):
 
 
 def test_print_analysis_summary_smoke(reset_registry, capsys):
+    """Test test print analysis summary smoke."""
     _build_default_registry()
     print_analysis_summary(analyze_registry())
     out = capsys.readouterr().out
@@ -265,6 +280,7 @@ def test_quick_validate_external_test_repo():
 
 
 def test_quick_validate_nonexistent_directory():
+    """Test test quick validate nonexistent directory."""
     from cinnamon.utility.exceptions import InvalidDirectoryException
 
     with pytest.raises(InvalidDirectoryException):

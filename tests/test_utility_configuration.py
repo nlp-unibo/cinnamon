@@ -10,16 +10,20 @@ from cinnamon.utility.configuration import batched
 
 
 def test_batched_even_chunks():
+    """Test test batched even chunks."""
     assert list(batched(range(6), 3)) == [(0, 1, 2), (3, 4, 5)]
 
 
 def test_batched_shorter_last_chunk():
+    """Test test batched shorter last chunk."""
     assert list(batched(range(5), 2)) == [(0, 1), (2, 3), (4,)]
 
 
 def test_batched_chunk_larger_than_input():
+    """Test test batched chunk larger than input."""
     assert list(batched(range(3), 10)) == [(0, 1, 2)]
 
 
 def test_batched_empty_input():
+    """Test test batched empty input."""
     assert list(batched([], 3)) == []

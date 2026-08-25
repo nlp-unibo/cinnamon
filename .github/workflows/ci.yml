@@ -1,6 +1,5 @@
 name: Continuous Integration
 
-# 1. Trigger the workflow on pushes or pull requests to your main branch
 on:
   push:
     branches: [ "main" ]
@@ -8,37 +7,50 @@ on:
     branches: [ "main" ]
 
 jobs:
-  test-and-lint:
+  test-core:
+    name: Test Core (no CLI deps)
     runs-on: ubuntu-latest
-
-    # 2. Matrix Strategy: Test multiple Python versions in parallel!
     strategy:
       fail-fast: false
       matrix:
         python-version: ["3.10", "3.11", "3.12"]
-
     steps:
-    # 3. Checkout your Cinnamon source code
-    - name: Check out repository
-      uses: actions/checkout@v4
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install core dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .[dev]
+      - name: Run core tests
+        run: |
+          if [ "${{ matrix.python-version }}" = "3.12" ]; then
+            pytest --cov-fail-under=100 -k "not cli and not inquirer"
+          else
+            pytest -k "not cli and not inquirer"
+          fi
 
-    # 4. Set up the specific Python runtime for this matrix runner
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
-      with:
-        python-version: ${{ matrix.python-version }}
-
-    # 5. Upgrade pip and install the core framework + dev tools
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -e .[dev]
-
-    # 6. Run your unit test suite via pytest
-    - name: Test with pytest
-      run: |
-        if [ "${{ matrix.python-version }}" = "3.12" ]; then
-          pytest --cov-fail-under=100
-        else
-          pytest
-        fi
+  test-cli:
+    name: Test CLI (with InquirerPy)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install CLI dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .[cli,dev]
+      - name: Run CLI tests
+        run: |
+          pytest -k "cli or inquirer" tests/test_cli.py tests/test_inquirer.py

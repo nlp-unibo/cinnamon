@@ -22,6 +22,7 @@ from tests.fixtures import reset_registry
 
 
 def test_require_inquirer_raises_import_error(monkeypatch):
+    """Test test require inquirer raises import error."""
     monkeypatch.setitem(sys.modules, "InquirerPy", None)
     with pytest.raises(ImportError, match="cinnamon\\[cli\\]"):
         cli._require_inquirer()
@@ -86,6 +87,7 @@ def test_cli_build_with_invalid_keys(tmp_path, monkeypatch, reset_registry):
 
 
 def test_cli_build_nonexistent_directory_raises(monkeypatch, reset_registry):
+    """Test test cli build nonexistent directory raises."""
     monkeypatch.setattr(
         "sys.argv", ["cmn-build", "-dir", str(Path("/nonexistent/cinnamon-dir"))]
     )

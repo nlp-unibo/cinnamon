@@ -492,6 +492,7 @@ class Registry:
 
     @classmethod
     def initialize(cls):
+        """Reset registry to empty state."""
         cls._REGISTRY = {}
 
         cls.REGISTRATION_METHODS = {}
@@ -580,6 +581,7 @@ class Registry:
     def update_namespaces(
         cls, namespaces: List[str], module_mapping: Dict[str, List[str]]
     ):
+        """Merge namespaces into registry mappings."""
         for key in module_mapping:
             if key in cls._MODULE_MAPPING:
                 raise RuntimeWarning(
@@ -737,10 +739,12 @@ class Registry:
         cls,
         registration_key: RegistrationKey[T],
     ) -> bool:
+        """Return True if key is stored."""
         return registration_key in cls._REGISTRY
 
     @classmethod
     def is_namespace_covered(cls, registration_key: RegistrationKey[T]) -> bool:
+        """Return True if namespace covered."""
         return registration_key.namespace in cls._EXP_NAMESPACES
 
     @classmethod
@@ -751,6 +755,7 @@ class Registry:
         namespace: str | None = None,
         tags: Tags = None,
     ) -> bool:
+        """Return True if key in dependency DAG."""
         registration_key = RegistrationKey.parse(
             registration_key=registration_key, name=name, tags=tags, namespace=namespace
         )
@@ -828,6 +833,7 @@ class Registry:
         valid_key_buffer: Set[RegistrationKey[T]] | None = None,
         invalid_key_buffer: Set[RegistrationKey[T]] | None = None,
     ) -> Set[RegistrationKey[Any]]:
+        """Recursively expand configuration and dependencies."""
         valid_key_buffer = valid_key_buffer if valid_key_buffer is not None else set()
         invalid_key_buffer = (
             invalid_key_buffer if invalid_key_buffer is not None else set()
@@ -939,6 +945,7 @@ class Registry:
         registration_key: RegistrationKey[T],
         **build_args,
     ) -> T:
+        """Build component from key."""
         instance: T = Registry.instantiate(
             registration_key=registration_key, **build_args
         )
@@ -1108,6 +1115,7 @@ class Registry:
     def resolve_configuration(
         cls, config: cinnamon.configuration.Configuration
     ) -> cinnamon.configuration.Configuration:
+        """Resolve dependency keys to configs."""
         for dependency_name, dependency in config.dependencies.items():
             if dependency is not None and isinstance(dependency, RegistrationKey):
                 dependency = Registry.retrieve_configuration(
@@ -1200,7 +1208,7 @@ class Registry:
             tags: the ``tags`` field of ``RegistrationKey``
 
         Returns:
-            config: the built configuration instance
+            The ConfigurationInfo stored under the parsed key.
         """
         return cls._retrieve(
             registration_key=registration_key, name=name, namespace=namespace, tags=tags
@@ -1227,6 +1235,7 @@ class Registry:
             keys: an optional list of ``RegistrationKey`` on which to apply the search.
 
         Returns:
+            Matching RegistrationKey instances.
         """
 
         keys = keys if keys is not None else cls._REGISTRY.keys()
@@ -1242,4 +1251,5 @@ class Registry:
 
     @classmethod
     def retrieve_runnable_keys(cls) -> List[RegistrationKey[Any]]:
+        """Return keys marked runnable (run_method set)."""
         return cls.retrieve_keys(special_tags={"__runnable"})

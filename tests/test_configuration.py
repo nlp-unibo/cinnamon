@@ -17,18 +17,21 @@ from tests.fixtures import (
 
 
 def test_empty_configuration():
+    """Test test empty configuration."""
     config = Configuration.default()
     assert len(config._conditions) == 0
     assert len(config.dependencies) == 0
 
 
 def test_one_field_configuration():
+    """Test test one field configuration."""
     config = BaseConfig.default()
     assert config.x == 5
     assert config.y == 10
 
 
 def test_invalid_configuration():
+    """Test test invalid configuration."""
     with pytest.raises(pydantic.ValidationError):
         InvalidConfig.default()
 
@@ -48,6 +51,7 @@ def test_add_condition():
 
 
 def test_add_existing_condition():
+    """Test test add existing condition."""
     config = BaseConfig.default()
     config.add_condition(name="x_y_pairing", condition=lambda c: c.x == c.y / 2)
 
@@ -56,6 +60,7 @@ def test_add_existing_condition():
 
 
 def test_add_condition_conflicting_name():
+    """Test test add condition conflicting name."""
     config = BaseConfig.default()
     config.add_condition(name="x", condition=lambda c: c.x > 1)
 
@@ -70,6 +75,7 @@ def test_validate_empty():
 
 
 def test_variants():
+    """Test test variants."""
     config = ConfigWithMultipleVariants.default()
 
     v_combinations = config.variants
@@ -81,6 +87,7 @@ def test_variants():
 
 
 def test_copy_with_custom_condition():
+    """Test test copy with custom condition."""
     config = Configuration.default()
     config.add_condition(name="test-condition", condition=lambda c: True)
     assert "test-condition" in config._conditions
@@ -125,18 +132,21 @@ def test_get_delta_copy_built_nested():
 
 
 def test_to_value_dict():
+    """Test test to value dict."""
     config = BaseConfig.default()
     value_dict = config.model_dump()
     assert value_dict == {"x": 5, "y": 10}
 
 
 def test_nested_to_value_dict():
+    """Test test nested to value dict."""
     config = NestedConfig.default()
     value_dict = config.model_dump()
     assert value_dict == {"x": 10, "child": {"x": 5, "y": 10}}
 
 
 def test_validate_nested_config():
+    """Test test validate nested config."""
     parent = NestedConfig.default()
     parent.add_condition(name="check_x", condition=lambda c: c.x > 0)
     parent.child.add_condition(name="check_x", condition=lambda c: c.x > 3)
@@ -152,6 +162,7 @@ def test_validate_nested_config():
 
 
 def test_configuration_variant_keys():
+    """Test test configuration variant keys."""
     config = ConfigWithVariants.default()
     key = RegistrationKey(name="config", namespace="testing")
 
@@ -168,6 +179,7 @@ def test_configuration_variant_keys():
 
 
 def test_configuration_with_multiple_variant_keys():
+    """Test test configuration with multiple variant keys."""
     config = ConfigWithMultipleVariants.default()
     key = RegistrationKey(name="config", namespace="testing")
 
@@ -192,11 +204,13 @@ def test_configuration_with_multiple_variant_keys():
 
 
 def test_has_at_least_two_variants_two_fields():
+    """Test test has at least two variants two fields."""
     config = ConfigWithMultipleVariants.default()
     assert config.has_at_least_two_variants is True
 
 
 def test_has_at_least_two_variants_single_field():
+    """Test test has at least two variants single field."""
     config = ConfigWithVariants.default()
     assert config.has_at_least_two_variants is False
 
@@ -205,12 +219,14 @@ def test_has_at_least_two_variants_single_field():
 
 
 def test_meta_bracket_missing_field_raises():
+    """Test test meta bracket missing field raises."""
     config = BaseConfig.default()
     with pytest.raises(KeyError):
         config.meta["nope"]
 
 
 def test_meta_attribute_missing_field_raises():
+    """Test test meta attribute missing field raises."""
     config = BaseConfig.default()
     with pytest.raises(AttributeError):
         config.meta.nope
@@ -220,11 +236,13 @@ def test_meta_attribute_missing_field_raises():
 
 
 def test_meta_class_context_variants():
+    """Test test meta class context variants."""
     # Class context (instance is None): owner.model_fields is used.
     assert ConfigWithVariants.meta.x.variants == [2, 3]
 
 
 def test_meta_class_context_missing_field_raises():
+    """Test test meta class context missing field raises."""
     with pytest.raises(AttributeError):
         ConfigWithVariants.meta.nope
 

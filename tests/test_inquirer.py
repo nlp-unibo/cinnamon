@@ -56,6 +56,7 @@ def _register(name, namespace, tags=None):
 
 
 def test_select_namespace_single_no_prompt(reset_registry, monkeypatch):
+    """Test test select namespace single no prompt."""
     _register("a", "ns1")
     _register("b", "ns1")
     keys = list(Registry.retrieve_keys())
@@ -71,6 +72,7 @@ def test_select_namespace_single_no_prompt(reset_registry, monkeypatch):
 
 
 def test_select_namespace_multiple_prompts(reset_registry, monkeypatch):
+    """Test test select namespace multiple prompts."""
     _register("a", "ns1")
     _register("b", "ns2")
     keys = list(Registry.retrieve_keys())
@@ -89,6 +91,7 @@ def test_select_namespace_multiple_prompts(reset_registry, monkeypatch):
 
 
 def test_select_name_cancel(reset_registry, monkeypatch):
+    """Test test select name cancel."""
     _register("a", "ns1")
     keys = list(Registry.retrieve_keys())
 
@@ -102,6 +105,7 @@ def test_select_name_cancel(reset_registry, monkeypatch):
 
 
 def test_select_name_selection(reset_registry, monkeypatch):
+    """Test test select name selection."""
     _register("a", "ns1")
     _register("b", "ns1")
     keys = list(Registry.retrieve_keys())
@@ -120,6 +124,7 @@ def test_select_name_selection(reset_registry, monkeypatch):
 
 
 def test_select_tags_proceed(reset_registry, monkeypatch):
+    """Test test select tags proceed."""
     _register("a", "ns1", tags={"t1"})
     keys = list(Registry.retrieve_keys())
 
@@ -136,6 +141,7 @@ def test_select_tags_proceed(reset_registry, monkeypatch):
 
 
 def test_select_keys_checkbox(reset_registry, monkeypatch):
+    """Test test select keys checkbox."""
     _register("a", "ns1")
     _register("b", "ns1")
     keys = sorted(list(Registry.retrieve_keys()), key=lambda k: k.name)
@@ -152,6 +158,7 @@ def test_select_keys_checkbox(reset_registry, monkeypatch):
 
 
 def test_filter_keys_full_flow(reset_registry, monkeypatch):
+    """Test test filter keys full flow."""
     _register("a", "ns1", tags={"t1"})
     keys = list(Registry.retrieve_keys())
 
@@ -167,6 +174,7 @@ def test_filter_keys_full_flow(reset_registry, monkeypatch):
 
 
 def test_filter_keys_namespace_filter_empty(reset_registry, monkeypatch):
+    """Test test filter keys namespace filter empty."""
     # Two namespaces so select_namespace prompts; fake returns an unknown one.
     _register("a", "ns1")
     _register("b", "ns2")
@@ -181,6 +189,7 @@ def test_filter_keys_namespace_filter_empty(reset_registry, monkeypatch):
 
 
 def test_filter_keys_name_cancel(reset_registry, monkeypatch):
+    """Test test filter keys name cancel."""
     _register("a", "ns1")
     keys = list(Registry.retrieve_keys())
 
@@ -193,6 +202,7 @@ def test_filter_keys_name_cancel(reset_registry, monkeypatch):
 
 
 def test_filter_keys_tags_cancel(reset_registry, monkeypatch):
+    """Test test filter keys tags cancel."""
     _register("a", "ns1", tags={"t1"})
     keys = list(Registry.retrieve_keys())
 
@@ -205,6 +215,7 @@ def test_filter_keys_tags_cancel(reset_registry, monkeypatch):
 
 
 def test_select_tags_cancel(reset_registry, monkeypatch):
+    """Test test select tags cancel."""
     _register("a", "ns1", tags={"t1"})
     keys = list(Registry.retrieve_keys())
 
@@ -218,6 +229,7 @@ def test_select_tags_cancel(reset_registry, monkeypatch):
 
 
 def test_select_tags_go_back(reset_registry, monkeypatch):
+    """Test test select tags go back."""
     _register("a", "ns1", tags={"t1"})
     keys = list(Registry.retrieve_keys())
 
@@ -230,6 +242,7 @@ def test_select_tags_go_back(reset_registry, monkeypatch):
 
 
 def test_select_tags_no_tags_option(reset_registry, monkeypatch):
+    """Test test select tags no tags option."""
     _register("a", "ns1", tags={"t1"})
     keys = list(Registry.retrieve_keys())
 

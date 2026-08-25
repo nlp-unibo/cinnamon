@@ -251,6 +251,7 @@ class Configuration(BaseModel):
 
     @expanded.setter
     def expanded(self, expanded: bool) -> None:
+        """Set the expanded flag."""
         self._expanded = expanded
 
     @property

@@ -13,6 +13,7 @@ from tests.fixtures import (
 
 
 def test_key_to_json():
+    """Test test key to json."""
     key = RegistrationKey(name="test", tags={"tag1", "tag2"}, namespace="testing")
     json_key = key.toJSON()
     assert json_key == (
@@ -24,6 +25,7 @@ def test_key_to_json():
 
 
 def test_key_json_serialization():
+    """Test test key json serialization."""
     key = RegistrationKey(name="test", tags={"tag1", "tag2"}, namespace="testing")
     json_file = Path("tmp.json")
     with json_file.open("w") as f:
@@ -38,6 +40,7 @@ def test_key_json_serialization():
 
 
 def test_from_variant():
+    """Test test from variant."""
     base_key = RegistrationKey(name="config", namespace="testing")
     variant_kwargs = {"x": 1}
     variant_key = base_key.from_variant(variant_kwargs=variant_kwargs)
@@ -47,6 +50,7 @@ def test_from_variant():
 
 
 def test_from_variant_with_key_and_conflicting_param():
+    """Test test from variant with key and conflicting param."""
     base_key = RegistrationKey(name="config", namespace="testing")
     key = RegistrationKey(name="config", tags={"x=1"}, namespace="testing")
     variant_kwargs = {"key": key, "x": 2}
@@ -57,6 +61,7 @@ def test_from_variant_with_key_and_conflicting_param():
 
 
 def test_from_variant_with_multiple_keys():
+    """Test test from variant with multiple keys."""
     base_key = RegistrationKey(name="config", namespace="testing")
     key = RegistrationKey(name="config", tags={"x=1"}, namespace="testing")
     other_key = RegistrationKey(name="config", tags={"x=2", "y=1"}, namespace="testing")
@@ -70,6 +75,7 @@ def test_from_variant_with_multiple_keys():
 
 
 def test_from_config_variants_with_taggable_params():
+    """Test test from config variants with taggable params."""
     config = ConfigWithVariants.default()
     config_key = RegistrationKey(name="config", namespace="testing")
 
@@ -86,6 +92,7 @@ def test_from_config_variants_with_taggable_params():
 
 
 def test_from_config_variants_with_non_taggable_params():
+    """Test test from config variants with non taggable params."""
     config = ConfigWithNonTaggableVariants.default()
     config_key = RegistrationKey(name="config", namespace="testing")
 
@@ -99,6 +106,7 @@ def test_from_config_variants_with_non_taggable_params():
 
 
 def test_tags_simplification():
+    """Test test tags simplification."""
     key = RegistrationKey(name="test", tags={"x", "y", "z"}, namespace="testing")
     simplified_key = key.from_tags_simplification({"x", "y"})
 
@@ -109,12 +117,14 @@ def test_tags_simplification():
 
 
 def test_key_pydantic_serializable():
+    """Test test key pydantic serializable."""
     config = ConfigWithChild()
     config_json = config.model_dump_json()
     assert config_json == '{"c1":"name=test--tags=[\'t2\']--namespace=testing"}'
 
 
 def test_from_string():
+    """Test test from string."""
     key_str = "name=test--tags=[]--namespace=testing"
     key = RegistrationKey.from_string(key_str)
     assert key.name == "test"
@@ -123,6 +133,7 @@ def test_from_string():
 
 
 def test_from_string_with_tags():
+    """Test test from string with tags."""
     key_str = "name=test--tags=['x=1']--namespace=testing"
     key = RegistrationKey.from_string(key_str)
     assert key.name == "test"
@@ -134,18 +145,21 @@ def test_from_string_with_tags():
 
 
 def test_key_name_immutable():
+    """Test test key name immutable."""
     key = RegistrationKey(name="test", namespace="testing")
     with pytest.raises(AttributeError):
         key.name = "other"
 
 
 def test_key_namespace_immutable():
+    """Test test key namespace immutable."""
     key = RegistrationKey(name="test", namespace="testing")
     with pytest.raises(AttributeError):
         key.namespace = "other"
 
 
 def test_key_tags_immutable():
+    """Test test key tags immutable."""
     key = RegistrationKey(name="test", namespace="testing")
     with pytest.raises(AttributeError):
         key.tags = {"other"}
@@ -155,12 +169,14 @@ def test_key_tags_immutable():
 
 
 def test_key_eq_not_registration_key():
+    """Test test key eq not registration key."""
     key = RegistrationKey(name="test", namespace="testing")
     assert key != "test"
     assert key != None  # noqa: E711
 
 
 def test_key_eq_different_tags():
+    """Test test key eq different tags."""
     a = RegistrationKey(name="test", tags={"t1"}, namespace="testing")
     b = RegistrationKey(name="test", tags={"t2"}, namespace="testing")
     assert a != b
@@ -168,6 +184,7 @@ def test_key_eq_different_tags():
 
 
 def test_key_eq_different_name():
+    """Test test key eq different name."""
     a = RegistrationKey(name="test", namespace="testing")
     b = RegistrationKey(name="other", namespace="testing")
     assert a != b
@@ -175,6 +192,7 @@ def test_key_eq_different_name():
 
 
 def test_key_check_namespace_false():
+    """Test test key check namespace false."""
     a = RegistrationKey(name="test", namespace="testing")
     b = RegistrationKey(name="test", namespace="other")
     assert a.check_namespace(b.namespace) is False
@@ -184,6 +202,7 @@ def test_key_check_namespace_false():
 
 
 def test_key_match_tag_intersection():
+    """Test test key match tag intersection."""
     key = RegistrationKey(name="test", tags={"a", "b", "c"}, namespace="testing")
     other = RegistrationKey(name="test", tags={"b", "c", "d"}, namespace="testing")
     assert key.match(other, {"b", "c"})
@@ -194,11 +213,13 @@ def test_key_match_tag_intersection():
 
 
 def test_compound_tags():
+    """Test test compound tags."""
     key = RegistrationKey(name="test", tags={"x=1", "plain"}, namespace="testing")
     assert key.compound_tags == {"x=1"}
 
 
 def test_hierarchy_tags():
+    """Test test hierarchy tags."""
     key = RegistrationKey(name="test", tags={"child.x=1", "plain"}, namespace="testing")
     assert key.hierarchy_tags == {"child.x=1"}
 
@@ -207,6 +228,7 @@ def test_hierarchy_tags():
 
 
 def test_pretty_string_multiple_tag_lines():
+    """Test test pretty string multiple tag lines."""
     key = RegistrationKey(
         name="test", tags={f"t{i}" for i in range(7)}, namespace="testing"
     )
@@ -217,6 +239,7 @@ def test_pretty_string_multiple_tag_lines():
 
 
 def test_pretty_string_single_tag_line():
+    """Test test pretty string single tag line."""
     key = RegistrationKey(name="test", tags={"t1"}, namespace="testing")
     pretty = key.to_pretty_string()
     tags_section = pretty.split("tags:")[1].split("namespace:")[0]
@@ -228,16 +251,19 @@ def test_pretty_string_single_tag_line():
 
 
 def test_from_string_malformed_raises():
+    """Test test from string malformed raises."""
     with pytest.raises(ValueError):
         RegistrationKey.from_string("name=test--badtag--namespace=testing")
 
 
 def test_parse_no_args_raises():
+    """Test test parse no args raises."""
     with pytest.raises(AttributeError):
         RegistrationKey.parse()
 
 
 def test_parse_unsupported_key_type_raises():
+    """Test test parse unsupported key type raises."""
     with pytest.raises(AttributeError):
         RegistrationKey.parse(registration_key=12345)
 
@@ -246,15 +272,18 @@ def test_parse_unsupported_key_type_raises():
 
 
 def test_match_tags_none_filter_is_true():
+    """Test test match tags none filter is true."""
     assert match_tags(a_tags={"t1"}, b_tags=None) is True
 
 
 def test_match_tags_empty_a_and_none_b():
+    """Test test match tags empty a and none b."""
     # empty a_tags + b containing None => match
     assert match_tags(a_tags=set(), b_tags={None}) is True
 
 
 def test_match_tags_removes_none_from_b():
+    """Test test match tags removes none from b."""
     # non-empty a_tags + None in b_tags => None is removed, then subset check
     a = {"t1", "t2"}
     b = {"t1", "t2", None}
@@ -262,8 +291,10 @@ def test_match_tags_removes_none_from_b():
 
 
 def test_match_tags_subset_match():
+    """Test test match tags subset match."""
     assert match_tags(a_tags={"t1", "t2"}, b_tags={"t1"}) is True
 
 
 def test_match_tags_no_match():
+    """Test test match tags no match."""
     assert match_tags(a_tags={"t1"}, b_tags={"t2"}) is False
