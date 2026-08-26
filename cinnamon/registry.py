@@ -355,6 +355,8 @@ class RegistrationKey(Generic[T]):
     def to_pretty_string(self):
         tags = list(sorted(list(self.tags)))
         num_intervals = math.ceil(len(tags) / RegistrationKey.MAX_TAGS_PER_LINE)
+        # guard against empty tags: batched() requires chunk_size >= 1
+        num_intervals = max(1, num_intervals)
         splits = list(batched(tags, num_intervals))
         tags = "\n".join([", ".join(item) for item in splits])
 

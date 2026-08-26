@@ -28,9 +28,9 @@ jobs:
       - name: Run core tests
         run: |
           if [ "${{ matrix.python-version }}" = "3.12" ]; then
-            pytest --cov-fail-under=100 -k "not cli and not inquirer"
+            pytest --cov-fail-under=100 --ignore=tests/test_cli.py --ignore=tests/test_inquirer.py
           else
-            pytest -k "not cli and not inquirer"
+            pytest --ignore=tests/test_cli.py --ignore=tests/test_inquirer.py
           fi
 
   test-cli:
@@ -53,4 +53,4 @@ jobs:
           pip install -e .[cli,dev]
       - name: Run CLI tests
         run: |
-          pytest -k "cli or inquirer" tests/test_cli.py tests/test_inquirer.py
+          pytest tests/test_cli.py tests/test_inquirer.py --cov --cov-report=term
