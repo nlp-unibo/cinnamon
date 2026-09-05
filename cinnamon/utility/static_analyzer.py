@@ -22,7 +22,7 @@ from typing import Dict, List, Tuple, Union
 
 from cinnamon.configuration import Configuration
 from cinnamon.registry import Registry
-from cinnamon.utility.registration import import_class_from_string
+from cinnamon.utility.registration import import_class_from_string, locate_module
 
 Key = Tuple[str, str, frozenset]
 Analysis = Dict[Key, Tuple[bool, List[str], List[str]]]
@@ -86,6 +86,68 @@ def _get_component_signature(component_path: str) -> _ComponentSignature:
     )
 
 
+def _check_component_path(component_path: str) -> Tuple[List[str], List[str]]:
+    """
+    Verify a component path as far as is possible without importing it.
+
+    Returns ``(errors, warnings)``. Walks the path segment by segment through
+    :func:`locate_module`, which touches the filesystem only.
+
+    The walk stops at the first segment that is not a module -- normally the
+    class name. What that means depends on how much is left over:
+
+    * nothing resolved at all -> the top-level package is missing, which is
+      unambiguous and an error;
+    * everything but the last segment resolved -> as verified as it gets;
+    * something in between -> either a wrong module path or a nested class, and
+      no amount of filesystem inspection can tell those apart, so it is a
+      warning rather than an error.
+
+    Whether the *class* exists inside the module is not checkable either:
+    re-export is the norm, and ``sklearn/svm/__init__.py`` -- to pick the case
+    that killed the idea -- defines no classes of its own at all.
+    """
+    segments = component_path.split(".")
+    if len(segments) < 2:
+        return (
+            [
+                f"Component '{component_path}' is not a dotted path; "
+                f"expected something like 'package.module.ClassName'."
+            ],
+            [],
+        )
+
+    resolved = 0
+    for split in range(1, len(segments)):
+        origin, _ = locate_module(".".join(segments[:split]))
+        if origin is None:
+            break
+        resolved = split
+
+    if resolved == 0:
+        return (
+            [
+                f"Component '{component_path}' cannot be found: no module or "
+                f"package named '{segments[0]}' is importable."
+            ],
+            [],
+        )
+
+    if resolved < len(segments) - 1:
+        unresolved = segments[resolved]
+        return (
+            [],
+            [
+                f"Component '{component_path}': '{'.'.join(segments[:resolved])}' "
+                f"resolves, but '{unresolved}' is not a module. That is expected "
+                f"for a nested class, and a typo otherwise -- run with deep "
+                f"analysis to be sure."
+            ],
+        )
+
+    return [], []
+
+
 def _check_signature(component_path: str, config: Configuration) -> List[str]:
     """Return a list of problems, empty if the signature is compatible."""
     try:
@@ -131,6 +193,7 @@ def analyze_registry(
     registry: type[Registry] = Registry,
     *,
     raise_on_error: bool = False,
+    deep: bool = True,
 ) -> Analysis:
     """
     Analyze every registered configuration's component binding.
@@ -139,6 +202,16 @@ def analyze_registry(
     * ``ok`` is ``True`` when there are no errors.
     * An unbound config (``component is None``) is a warning, not an error,
       since unbound configs are valid when used purely as dependencies.
+
+    Args:
+        deep: when ``True`` (the default) each component is imported so its
+            ``__init__`` can be checked against the configuration's fields.
+            When ``False`` the component path is only resolved on the
+            filesystem -- no imports, so no cost proportional to how heavy the
+            components are, at the price of catching only path mistakes.
+            Importing every component of a torch-based project to look for
+            typos costs seconds; the shallow pass costs a tenth of a
+            millisecond per component.
     """
     if not registry.expanded:
         raise RuntimeError(
@@ -155,8 +228,12 @@ def analyze_registry(
 
         if info.component is None:
             warnings.append("Configuration is not bound to any component.")
-        else:
+        elif deep:
             errors.extend(_check_signature(info.component, info.config))
+        else:
+            path_errors, path_warnings = _check_component_path(info.component)
+            errors.extend(path_errors)
+            warnings.extend(path_warnings)
 
         results[(key.name, key.namespace, key.tags)] = (
             not bool(errors),
@@ -190,8 +267,12 @@ def print_analysis_summary(results: Analysis) -> None:
             continue
         tag_str = f"tags={tags}" if tags else "no tags"
         print(f"\n  • {name} (ns={ns}, {tag_str})")
-        for msg in errs + warns:
-            print(f"      - {msg}")
+        # Labelled, because the shallow pass reports both and only errors count
+        # towards the exit status.
+        for msg in errs:
+            print(f"      [error]   {msg}")
+        for msg in warns:
+            print(f"      [warning] {msg}")
 
 
 def quick_validate(

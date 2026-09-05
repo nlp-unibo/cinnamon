@@ -81,6 +81,15 @@ def _build_parser(
             action="store_true",
             help="Treat warnings as failures",
         )
+        parser.add_argument(
+            "--deep",
+            action="store_true",
+            help=(
+                "Import every component to check its __init__ against the "
+                "configuration's fields. Slower: the cost is that of importing "
+                "your components, not of the registry"
+            ),
+        )
     return parser
 
 
@@ -297,6 +306,11 @@ def check() -> None:
     2. **Bindings** -- only once the keys resolve, since the component analyzer
        needs an expanded registry.
 
+    The binding pass resolves component paths on the filesystem without
+    importing them, so the command stays fast whatever the components weigh.
+    ``--deep`` imports each one to check its ``__init__`` against the
+    configuration's fields, at the cost of that import.
+
     Exits non-zero when errors are found, so it can gate a commit or a CI job.
     """
     _configure_logging()
@@ -324,8 +338,14 @@ def check() -> None:
         raise SystemExit(1)
 
     Registry.dag_resolution()
-    bindings = analyze_registry(Registry)
+    deep = getattr(args, "deep", False)
+    bindings = analyze_registry(Registry, deep=deep)
     print()
+    if not deep:
+        print(
+            "(component paths checked without importing; --deep also checks "
+            "each __init__ signature)"
+        )
     print_analysis_summary(bindings)
 
     binding_errors = sum(1 for ok_flag, _, _ in bindings.values() if not ok_flag)

@@ -748,4 +748,48 @@ def test_cli_check_fails_on_binding_errors(
         cli.check()
 
     assert raised.value.code == 1
-    assert "cannot be imported" in capsys.readouterr().out
+    # the shallow default resolves the path on disk rather than importing it
+    assert "no module or package named 'nope'" in capsys.readouterr().out
+
+
+def test_cli_check_is_shallow_by_default(tmp_path, monkeypatch, capsys, reset_registry):
+    """Component paths are resolved on disk, not imported."""
+    project = _write_project(
+        tmp_path,
+        CLEAN_PROJECT.replace(
+            'name="tokenizer", namespace="nlp")',
+            'name="tokenizer", namespace="nlp", component="json.encoder.JSONEncoder")',
+        ),
+    )
+    monkeypatch.setattr("sys.argv", ["cmn-check", "-dir", str(project)])
+
+    cli.check()
+
+    output = capsys.readouterr().out
+    assert "without importing" in output
+    assert "All bindings are valid!" in output
+
+
+def test_cli_check_deep_flag_checks_signatures(
+    tmp_path, monkeypatch, capsys, reset_registry
+):
+    """A field the component cannot accept is only visible with --deep."""
+    body = CLEAN_PROJECT.replace(
+        "class Leaf(Configuration):\n    x: int = 1",
+        "class Leaf(Configuration):\n    unexpected: int = 1",
+    ).replace(
+        'name="tokenizer", namespace="nlp")',
+        'name="tokenizer", namespace="nlp", component="json.encoder.JSONEncoder")',
+    )
+    project = _write_project(tmp_path, body)
+
+    monkeypatch.setattr("sys.argv", ["cmn-check", "-dir", str(project)])
+    cli.check()
+    assert "All bindings are valid!" in capsys.readouterr().out
+
+    monkeypatch.setattr("sys.argv", ["cmn-check", "-dir", str(project), "--deep"])
+    with pytest.raises(SystemExit) as raised:
+        cli.check()
+
+    assert raised.value.code == 1
+    assert "does not accept in __init__" in capsys.readouterr().out

@@ -3,10 +3,12 @@ from __future__ import annotations
 import copy
 import itertools
 import logging
+import re
 import warnings
 from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     ClassVar,
@@ -18,6 +20,7 @@ from pydantic import (
     ConfigDict,
     Field,
     PrivateAttr,
+    PydanticSchemaGenerationError,
     model_validator,
 )
 from pydantic.fields import FieldInfo
@@ -27,6 +30,7 @@ from typing_extensions import Self
 import cinnamon.registry
 from cinnamon.utility.dependencies import DependencyShape, dependency_shape
 from cinnamon.utility.exceptions import (
+    UnsupportedFieldTypeException,
     ValidationFailureException,
     ValidationResult,
 )
@@ -122,7 +126,89 @@ class MetaDescriptor:
             return FieldMetaProxy(instance._instance_meta, is_instance=True)
 
 
-class Configuration(BaseModel):
+if TYPE_CHECKING:  # pragma: no cover - type checkers only
+    from pydantic._internal._model_construction import ModelMetaclass
+
+    _ModelMetaclass = ModelMetaclass
+else:
+    #: Obtained from ``BaseModel`` rather than imported from
+    #: ``pydantic._internal``: the same object, reached through public API only,
+    #: so a move of that private module cannot break cinnamon at import time.
+    #: Type checkers cannot follow ``type(BaseModel)`` as a base class, hence
+    #: the TYPE_CHECKING branch above.
+    _ModelMetaclass = type(BaseModel)
+
+#: The pydantic error code for "this annotation is not a type I can schema".
+_UNKNOWN_TYPE_CODE = "schema-for-unknown-type"
+
+
+def _class_body_annotations(namespace: dict[str, Any]) -> dict[str, Any]:
+    """Read a class body's annotations across Python versions.
+
+    Python 3.14 (PEP 649) defers annotation evaluation: the namespace carries an
+    ``__annotate_func__`` instead of a ready ``__annotations__`` dict. Calling it
+    can raise when an annotation names something undefined, so failure just means
+    "no annotations available" rather than an error.
+    """
+    annotations = namespace.get("__annotations__")
+    if annotations:
+        return annotations
+
+    annotate = namespace.get("__annotate_func__") or namespace.get("__annotate__")
+    if annotate is None:
+        return {}
+    try:
+        return annotate(1)  # annotationlib.Format.VALUE
+    except Exception:  # pragma: no cover - defensive, unresolvable annotations
+        return {}
+
+
+def _offending_field(namespace: dict[str, Any], field_type: str | None) -> str | None:
+    """Best-effort: name the annotation pydantic choked on."""
+    if field_type is None:
+        return None
+
+    for field_name, annotation in _class_body_annotations(namespace).items():
+        module = getattr(annotation, "__module__", None)
+        qualname = getattr(annotation, "__qualname__", None)
+        if module and qualname and f"{module}.{qualname}" == field_type:
+            return field_name
+        # `from __future__ import annotations` leaves the annotation as source
+        # text, so fall back to matching the bare class name.
+        if isinstance(annotation, str) and annotation == field_type.rsplit(".", 1)[-1]:
+            return field_name
+    return None
+
+
+class ConfigurationMeta(_ModelMetaclass):
+    """Turns pydantic's "unknown type" error into cinnamon's explanation.
+
+    Only that one error code is intercepted; every other schema problem is left
+    to pydantic, whose messages for those are good.
+    """
+
+    def __new__(
+        mcs,
+        name: str,
+        bases: tuple[type, ...],
+        namespace: dict[str, Any],
+        **kwargs: Any,
+    ) -> type:
+        try:
+            return super().__new__(mcs, name, bases, namespace, **kwargs)
+        except PydanticSchemaGenerationError as error:
+            if getattr(error, "code", None) != _UNKNOWN_TYPE_CODE:
+                raise
+            match = re.search(r"schema for <class '([^']+)'>", str(error))
+            field_type = match.group(1) if match else None
+            raise UnsupportedFieldTypeException(
+                configuration_name=name,
+                field_type=field_type,
+                field_name=_offending_field(namespace, field_type),
+            ) from error
+
+
+class Configuration(BaseModel, metaclass=ConfigurationMeta):
     """
     A Configuration specifies the parameters of a Component.
     Configurations store parameters and allow flow control via conditions.

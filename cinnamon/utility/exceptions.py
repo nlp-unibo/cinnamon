@@ -34,6 +34,7 @@ __all__ = [
     "InvalidDirectoryException",
     "ValidationResult",
     "ValidationFailureException",
+    "UnsupportedFieldTypeException",
 ]
 
 
@@ -167,4 +168,38 @@ class ValidationFailureException(Exception):
             f"The validation process has failed!{os.linesep}"
             f"Passed: {validation_result.passed}{os.linesep}"
             f"Error message: {validation_result.error_message}"
+        )
+
+
+class UnsupportedFieldTypeException(Exception):
+    """A ``Configuration`` field is typed as something too heavy to configure.
+
+    Raised in place of pydantic's schema-generation error, whose advice --
+    "set ``arbitrary_types_allowed=True``" -- is correct for pydantic and
+    exactly wrong here: taking it merges the component and configuration
+    concepts that cinnamon exists to keep apart.
+    """
+
+    def __init__(
+        self,
+        configuration_name: str,
+        field_type: Optional[str] = None,
+        field_name: Optional[str] = None,
+    ):
+        where = f"Field '{field_name}' on" if field_name else "A field on"
+        what = f" is annotated '{field_type}', which" if field_type else ", which"
+
+        super().__init__(
+            f"{where} configuration '{configuration_name}'{what} cannot be used "
+            f"as a configuration value.{os.linesep}{os.linesep}"
+            f"Configurations stay lightweight: they describe what a component "
+            f"needs, they do not hold it. Either pass the parameters the object "
+            f"is built from, or register it as its own component and depend on "
+            f"it with a RegistrationKey:{os.linesep}"
+            f"    child: RegistrationKey = RegistrationKey("
+            f"name=..., namespace=...){os.linesep}{os.linesep}"
+            f"Pydantic's own advice for this error -- arbitrary_types_allowed=True "
+            f"-- does lift the restriction, at the cost of deep-copying that "
+            f"object once per configuration and twice per variant during "
+            f"expansion."
         )
