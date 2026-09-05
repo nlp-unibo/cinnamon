@@ -77,15 +77,12 @@ as a typed class annotation, optionally wrapped with ``Param``:
             description='Path to the CSV file to load'
         )
 
-Define your component by subclassing ``Component``.
-The class structure stays exactly as you would write it in plain Python — cinnamon
-imposes no additional APIs on your code logic:
+Define your component as an ordinary class. There is no base class to inherit and
+nothing to import — cinnamon imposes no APIs on your code logic:
 
 .. code-block:: python
 
-    from cinnamon.component import Component
-
-    class DataLoader(Component):
+    class DataLoader:
 
         def __init__(self, df_path: Path):
             self.df_path = df_path
@@ -116,7 +113,7 @@ Registration
 In practice, cinnamon encourages a **register, bind, and build** workflow rather
 than directly instantiating configurations and components.
 
-Once you have defined a ``Configuration`` and its corresponding ``Component``,
+Once you have defined a ``Configuration`` and its corresponding component,
 you **register** the configuration in the ``Registry`` and **bind** it to the component.
 This is done via a ``RegistrationKey``: a compound identifier made up of a ``name``,
 an optional ``tags`` set, and a ``namespace``.
@@ -186,18 +183,16 @@ After a successful build, construct a ``DataLoader`` instance from its registere
 
 .. code-block:: python
 
-    # Via the Registry directly
-    loader = Registry.instantiate_component(
-        name='data_loader',
-        tags={'test'},
-        namespace='showcasing'
-    )
+    # From a key
+    key = RegistrationKey(name='data_loader', tags={'test'}, namespace='showcasing')
+    loader = Registry.from_key(key)
 
-    # Or via the Component class (syntactic sugar — also type-checks the result)
-    loader = DataLoader.instantiate(
+    # Or with the key spelled out, optionally checking the type of the result
+    loader = Registry.instantiate(
         name='data_loader',
         tags={'test'},
-        namespace='showcasing'
+        namespace='showcasing',
+        expected_type=DataLoader,
     )
 
     data = loader.load()
@@ -215,9 +210,9 @@ Beyond quickstart
 
 The **register, bind, and build** workflow unlocks a number of powerful features:
 
-- **Nesting** ``Component`` and ``Configuration`` to compose more sophisticated pipelines.
+- **Nesting** components and configurations to compose more sophisticated pipelines.
 - Automatically generating ``Configuration`` **variants** for hyperparameter search.
-- Integrating **external** ``Component`` and ``Configuration`` written by other users.
+- Integrating **external** components and configurations written by other users.
 - Static and dynamic **condition** validation.
 
 See `Configuration <https://nlp-unibo.github.io/cinnamon/configuration.html>`_ for a

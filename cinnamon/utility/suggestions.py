@@ -4,8 +4,7 @@ Ranked "did you mean ...?" suggestions for registration keys.
 A ``RegistrationKey`` is a compound of name, namespace and tags, so a typo in
 any one of the three produces the same failure: the key is simply not found.
 This module scores registered keys against the one that was asked for and
-explains *which part* differs, which is usually the whole answer.
-"""
+explains *which part* differs, which is usually the whole answer."""
 
 from __future__ import annotations
 

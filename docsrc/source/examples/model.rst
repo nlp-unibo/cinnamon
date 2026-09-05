@@ -11,7 +11,7 @@ The model stage wraps scikit-learn's ``SVC`` as a cinnamon ``Component``.
 
 .. code-block:: python
 
-    class SVCModel(Component):
+    class SVCModel:
 
         def __init__(self, C: float, kernel: str, class_weight: Optional[str] = 'balanced'):
             self.C = C

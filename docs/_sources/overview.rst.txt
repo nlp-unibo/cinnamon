@@ -3,32 +3,54 @@
 Overview
 *********************************************
 
-Cinnamon is a lightweight library for general-purpose configuration and code logic de-coupling.
+**Components carry the weight. Configurations describe it.**
 
-It has been developed to offer two main functionalities:
+That sentence is most of cinnamon. Everything else follows from it, and the parts
+of the API that look odd at first usually make sense once it is in mind.
 
-**De-coupling**
-   a code logic from its regulating parameters
+- A **component** is where your logic lives — a data loader, a model, an evaluation
+  pipeline. It is an ordinary Python class. cinnamon asks nothing of it: no base
+  class, no decorator, no import.
+- A **configuration** describes the parameters that component runs with. It is
+  lightweight, and there are usually many of them, because the interesting question
+  is rarely "what does this do?" but "what does it do with *these* settings?".
 
-**Re-use**
-   of code logic without effort
+The motivating case is research — running the same model over a grid of
+hyper-parameters, and being able to say afterwards exactly which combination
+produced which number. The shape generalises to anything with expensive reusable
+logic and a large space of choices.
 
 ===============================================
-Features
+What that buys you
 ===============================================
 
-**General-purpose**
-   ``cinnamon`` is meant to **simplify** your code organization for better **re-use**.
+**Sweeps you declare rather than script.** Say a field has variants and cinnamon
+enumerates the combinations, giving each one a key derived from its values:
 
-**Simple**
-   ``cinnamon`` is a small library that acts as a **high-level wrapper** for your projects.
+.. code-block:: python
 
-**Community-based**
-   ``cinnamon`` components and configurations can be imported from project!
+    class ClassifierConfig(Configuration):
+        learning_rate: float = Param(1e-3, variants=[1e-2, 1e-4])
+        hidden_size: int = Param(128, variants=[256])
 
-**Flexible**
-   ``cinnamon`` imposes **minimal APIs** for a quick learning curve and keeps freedom of coding.
+    # six configurations, each addressable as
+    #   classifier--tags=['hidden_size=256', 'learning_rate=0.01']
 
+Those keys are derived, not written down, and they are stable across runs and
+machines. That is what makes a result reproducible: the key *is* the description of
+the experiment.
+
+**Composition without wiring.** A configuration can depend on another by key. When
+a child has variants, the parent gains one configuration per child variant —
+sweeps compose down the graph without anyone joining them up.
+
+**Mistakes caught before anything runs.** ``cmn-check`` reports unresolved keys with
+suggestions, and checks that components match the configurations bound to them —
+all without importing your components.
+
+**Nothing imported until it is needed.** A component is bound by its import path as
+a string, so building a registry never imports torch. On a project whose components
+take 650 ms to import, the registry builds in 8 ms.
 
 ===============================================
 Install
@@ -36,20 +58,33 @@ Install
 
 .. code-block:: bash
 
-   git clone https://github.com/nlp-unibo/cinnamon
-   pip install ./cinnamon
+    pip install cinnamon              # core
+    pip install "cinnamon[cli]"       # adds cmn-run and cmn-generate
+
+From source:
+
+.. code-block:: bash
+
+    git clone https://github.com/nlp-unibo/cinnamon
+    pip install ./cinnamon
 
 ===============================================
-Quickstart
+Where to start
 ===============================================
 
-Check `quickstart <https://nlp-unibo.github.io/cinnamon/quickstart.html>`_ for a quick introduction to how ``cinnamon`` works.
+:doc:`quickstart` walks through a first configuration, component and registration.
 
-===============================================
-Demos
-===============================================
+The **tutorial** in the repository is seven runnable files that need nothing beyond
+cinnamon itself — configuration, registration, variants, dependencies, collections,
+conditions, and a worked project with the real directory layout:
 
-Check `cinnamon-examples <https://nlp-unibo.github.io/cinnamon_examples>`_ for a quick overview on how to evaluate a SVM classifier on a binary classification task with cinnamon!
+.. code-block:: bash
+
+    python examples/tutorial/01_configuration.py
+
+Then :doc:`configuration`, :doc:`component`, :doc:`registration` and
+:doc:`dependencies` cover each concept properly, and :doc:`commands` covers the
+command line.
 
 ===============================================
 Contact

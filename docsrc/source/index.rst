@@ -1,20 +1,31 @@
-.. Cinnamon documentation master file, created by
-   sphinx-quickstart on Wed Aug 23 17:17:36 2023.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+.. Cinnamon documentation master file.
 
 .. toctree::
    :maxdepth: 4
    :hidden:
-   :caption: Contents:
+   :caption: Getting started:
    :titlesonly:
 
    Overview <overview.rst>
    Quickstart <quickstart.rst>
+
+.. toctree::
+   :maxdepth: 4
+   :hidden:
+   :caption: Concepts:
+   :titlesonly:
+
    Configuration <configuration.rst>
    Component <component.rst>
    Registration <registration.rst>
    Dependencies <dependencies.rst>
+
+.. toctree::
+   :maxdepth: 4
+   :hidden:
+   :caption: Reference:
+   :titlesonly:
+
    Commands <commands.rst>
    Code Documentation <modules.rst>
 

@@ -12,7 +12,7 @@ runnable pipeline.
 
 .. code-block:: python
 
-    class SVCBenchmark(Component):
+    class SVCBenchmark:
 
         def __init__(
             self,
@@ -29,11 +29,11 @@ runnable pipeline.
         def run(self):
             logging.basicConfig(level=logging.INFO)
 
-            data_loader = IMDBLoader.instantiate(self.data_loader)
+            data_loader = Registry.from_key(self.data_loader)
             train_df, val_df, test_df = data_loader.get_splits()
 
-            text_processor  = TfIdfProcessor.instantiate(self.text_processor)
-            label_processor = LabelProcessor.instantiate(self.label_processor)
+            text_processor  = Registry.from_key(self.text_processor)
+            label_processor = Registry.from_key(self.label_processor)
 
             x_train = text_processor.process(data=train_df, is_training_data=True)
             y_train = label_processor.process(data=train_df, is_training_data=True)
@@ -42,7 +42,7 @@ runnable pipeline.
             x_test  = text_processor.process(data=test_df)
             y_test  = label_processor.process(data=test_df)
 
-            model = SVCModel.instantiate(self.model)
+            model = Registry.from_key(self.model)
             train_info, val_info = model.fit(
                 x_train=x_train, y_train=y_train,
                 x_val=x_val,     y_val=y_val
@@ -55,7 +55,7 @@ runnable pipeline.
 
 Notice that ``SVCBenchmark.__init__`` receives ``RegistrationKey`` objects, not built
 component instances. Each dependency is built lazily inside ``run()`` via
-``Component.instantiate(key)``.
+``Registry.from_key(key)``.
 
 This is a deliberate design choice enabled by ``resolve_automatically=False`` in the
 benchmark's registration (see below). It means:
@@ -131,13 +131,13 @@ Demo script
         directory = Path(__file__).parent.parent.resolve()
         Registry.build(directory=directory)
 
-        benchmark = SVCBenchmark.instantiate(
+        benchmark = Registry.instantiate(
             name='benchmark', tags={'svc'}, namespace='examples'
         )
         benchmark.run()
 
 ``Registry.build()`` discovers and registers all four component configurations.
-``SVCBenchmark.instantiate()`` builds the benchmark with its four ``RegistrationKey``
+``Registry.instantiate()`` builds the benchmark with its four ``RegistrationKey``
 fields intact. ``benchmark.run()`` then builds and runs each nested component in sequence.
 
 .. note::

@@ -107,6 +107,27 @@ jobs:
       - name: Run example checks
         run: pytest tests/test_examples.py --no-cov
 
+  docs:
+    name: Documentation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .[cli]
+          pip install sphinx sphinx_autodoc_typehints sphinx_rtd_theme
+      # docs.yml publishes from main. This builds on every pull request, with
+      # warnings as errors, so documentation for a removed API fails review
+      # rather than being noticed after it is live.
+      - name: Build documentation
+        run: sphinx-build -b html -W --keep-going docsrc/source /tmp/docs
+
   all-green:
     # One check to require in branch protection. Requiring the eleven
     # underlying jobs by name would mean editing the protection rule every time
@@ -114,7 +135,7 @@ jobs:
     # stop being required without anyone noticing.
     name: All checks passed
     if: always()
-    needs: [lint, test-core, test-full, examples]
+    needs: [lint, test-core, test-full, examples, docs]
     runs-on: ubuntu-latest
     steps:
       - name: Verify that every job succeeded
@@ -124,4 +145,4 @@ jobs:
           echo '${{ toJSON(needs) }}'
           exit 1
       - name: Report success
-        run: echo "lint, test-core, test-full and examples all passed."
+        run: echo "every job passed."

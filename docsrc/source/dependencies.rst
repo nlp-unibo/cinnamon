@@ -4,7 +4,7 @@ Registration Dependencies
 *********************************************
 
 In `registration <https://nlp-unibo.github.io/cinnamon/registration.html>`_, we saw that
-cinnamon pairs ``Configuration`` to ``Component`` via ``RegistrationKey``.
+cinnamon pairs a ``Configuration`` to its component via a ``RegistrationKey``.
 Moreover, ``Configuration`` instances can nest other ``Configuration`` instances to compose
 more sophisticated ones (see `configuration <https://nlp-unibo.github.io/cinnamon/configuration.html>`_).
 
@@ -40,9 +40,7 @@ For the above example the files would look like:
 
 .. code-block:: python
 
-    from cinnamon.component import Component
-
-    class DataLoader(Component):
+    class DataLoader:
 
         def __init__(self, folder_name: str):
             self.folder_name = folder_name
@@ -155,11 +153,63 @@ decorator it finds, and then resolve the full dependency graph.
 
 
 =============================================
+Depending on many registrations
+=============================================
+
+A dependency field can hold a ``list`` of keys, or a ``dict`` of them keyed by
+string. Use a list when order is what matters — a pipeline of stages, a set of loss
+terms — and a dict when the members need names:
+
+.. code-block:: python
+
+    from cinnamon.configuration import Configuration, Param
+    from cinnamon.registry import RegistrationKey, Registry
+
+    def key(name):
+        return RegistrationKey(name=name, namespace='nlp')
+
+    class ModelConfig(Configuration):
+        losses: list[RegistrationKey] = Param([key('cross_entropy'), key('sparsity')])
+        metrics: dict[str, RegistrationKey] = Param({'accuracy': key('accuracy')})
+
+Every member becomes an edge in the dependency graph, so a typo in any one of them
+is reported by ``cmn-check`` rather than surfacing when you try to build.
+
+The component receives the container of keys, exactly as declared.
+:meth:`~cinnamon.registry.Registry.from_keys` builds the whole thing while keeping
+its shape:
+
+.. code-block:: python
+
+    class Model:
+
+        def __init__(self, losses, metrics):
+            self.losses = Registry.from_keys(losses)     # list -> list, in order
+            self.metrics = Registry.from_keys(metrics)   # dict -> dict, same labels
+
+It accepts a single key too, so a field typed
+``RegistrationKey | list[RegistrationKey]`` needs no branch, and passes ``None``
+through so an optional dependency left unset stays unset. It builds eagerly — keep
+an explicit loop when a child should only be built under some condition.
+
+Only one level of nesting is supported. ``list[list[RegistrationKey]]`` and
+``dict[str, list[RegistrationKey]]`` raise ``TypeError`` when the dependency is
+inspected, with a message saying so.
+
+.. note::
+    **A container does not multiply its members' variants into the parent, while a
+    scalar dependency does.** Three losses with three variants each would otherwise
+    be twenty-seven parent keys from a single field. To vary a container, vary the
+    whole thing::
+
+        losses: list[RegistrationKey] = Param([A], variants=[[A, B], [A, B, C]])
+
+=============================================
 External dependencies
 =============================================
 
 Cinnamon is designed to be a community framework. You may need to import
-``Configuration`` and ``Component`` definitions written by others and build on top of them.
+configurations and components written by others and build on top of them.
 
 The ``Registry`` supports loading registrations from directories outside your own project.
 You can also define ``Configuration`` fields that point to externally registered keys.

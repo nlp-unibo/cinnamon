@@ -4,7 +4,7 @@ Configuration
 *********************************************
 
 A ``Configuration`` is a `Pydantic <https://docs.pydantic.dev/latest/>`_ ``BaseModel`` subclass
-that stores all the parameters of a ``Component``.
+that stores all the parameters of a component.
 Each field is defined as a typed class annotation, optionally wrapped with ``Param`` to attach
 cinnamon-specific metadata such as descriptions, tags, and variants.
 

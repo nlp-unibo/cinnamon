@@ -10,8 +10,7 @@ typed parts. Nothing stops you writing ``tags={'imbd'}``, and the failure --
 when it comes -- is a lookup miss that names the key you asked for but not the
 one you meant.
 
-Run it through ``cmn-check``, or call :func:`analyze_keys` directly.
-"""
+Run it through ``cmn-check``, or call :func:`analyze_keys` directly."""
 
 from __future__ import annotations
 

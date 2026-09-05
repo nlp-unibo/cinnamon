@@ -42,30 +42,40 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+              <p class="caption" role="heading"><span class="caption-text">Getting started:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../overview.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Concepts:</span></p>
+<ul>
 <li class="toctree-l1"><a class="reference internal" href="../configuration.html">Configuration</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../component.html">Component</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../registration.html">Registration</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../dependencies.html">Dependencies</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference:</span></p>
+<ul>
 <li class="toctree-l1"><a class="reference internal" href="../commands.html">Commands</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../modules.html">Code Documentation</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Examples</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="index.html">Examples</a><ul class="current">
-<li class="toctree-l2"><a class="reference internal" href="overview.html">Overview</a></li>
-<li class="toctree-l2"><a class="reference internal" href="data_loader.html">Data Loader</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Processor</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#tfidfprocessor"><code class="docutils literal notranslate"><span class="pre">TfIdfProcessor</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#labelprocessor"><code class="docutils literal notranslate"><span class="pre">LabelProcessor</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#tutorial">Tutorial</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html#a-full-pipeline">A full pipeline</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="overview.html">Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="data_loader.html">Data Loader</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Processor</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#tfidfprocessor"><code class="docutils literal notranslate"><span class="pre">TfIdfProcessor</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#labelprocessor"><code class="docutils literal notranslate"><span class="pre">LabelProcessor</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="model.html">Model</a></li>
-<li class="toctree-l2"><a class="reference internal" href="benchmark.html">Benchmark</a></li>
-<li class="toctree-l2"><a class="reference internal" href="catalog.html">Catalog</a></li>
+<li class="toctree-l3"><a class="reference internal" href="model.html">Model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="benchmark.html">Benchmark</a></li>
+<li class="toctree-l3"><a class="reference internal" href="catalog.html">Catalog</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -103,7 +113,7 @@ converted into numerical form. Two processor components handle this.</p>
 <h2><code class="docutils literal notranslate"><span class="pre">TfIdfProcessor</span></code><a class="headerlink" href="#tfidfprocessor" title="Link to this heading"></a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">TfIdfProcessor</span></code> wraps scikit-learn’s <code class="docutils literal notranslate"><span class="pre">TfidfVectorizer</span></code> to convert raw text
 into a sparse tf-idf matrix:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">TfIdfProcessor</span><span class="p">(</span><span class="n">Component</span><span class="p">):</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">TfIdfProcessor</span><span class="p">:</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">vectorizer</span> <span class="o">=</span> <span class="n">TfidfVectorizer</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
@@ -127,17 +137,17 @@ Configuration fields are forwarded directly since <code class="docutils literal 
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">TfIdfProcessorConfig</span><span class="p">(</span><span class="n">Configuration</span><span class="p">):</span>
     <span class="n">ngram_range</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="n">Param</span><span class="p">(</span>
         <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
-        <span class="n">description</span><span class="o">=</span><span class="s1">&#39;Vectorizer ngram_range hyper-parameter&#39;</span>
+        <span class="n">description</span><span class="o">=</span><span class="s1">'Vectorizer ngram_range hyper-parameter'</span>
     <span class="p">)</span>
 
     <span class="nd">@classmethod</span>
     <span class="nd">@register_method</span><span class="p">(</span>
-        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;processor&#39;</span><span class="p">,</span>
-        <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;tf-idf&#39;</span><span class="p">},</span>
-        <span class="n">namespace</span><span class="o">=</span><span class="s1">&#39;examples&#39;</span><span class="p">,</span>
-        <span class="n">component</span><span class="o">=</span><span class="s1">&#39;examples.components.processor.TfIdfProcessor&#39;</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">'processor'</span><span class="p">,</span>
+        <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">'tf-idf'</span><span class="p">},</span>
+        <span class="n">namespace</span><span class="o">=</span><span class="s1">'examples'</span><span class="p">,</span>
+        <span class="n">component</span><span class="o">=</span><span class="s1">'examples.components.processor.TfIdfProcessor'</span>
     <span class="p">)</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">default</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;TfIdfProcessorConfig&#39;</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">default</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">'TfIdfProcessorConfig'</span><span class="p">:</span>
         <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">default</span><span class="p">()</span>
 </pre></div>
 </div>
@@ -146,7 +156,7 @@ Configuration fields are forwarded directly since <code class="docutils literal 
 <h2><code class="docutils literal notranslate"><span class="pre">LabelProcessor</span></code><a class="headerlink" href="#labelprocessor" title="Link to this heading"></a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">LabelProcessor</span></code> wraps scikit-learn’s <code class="docutils literal notranslate"><span class="pre">LabelEncoder</span></code> to convert string labels
 (<code class="docutils literal notranslate"><span class="pre">'pos'</span></code>, <code class="docutils literal notranslate"><span class="pre">'neg'</span></code>) into integers:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">LabelProcessor</span><span class="p">(</span><span class="n">Component</span><span class="p">):</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">LabelProcessor</span><span class="p">:</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">label_encoder</span> <span class="o">=</span> <span class="n">LabelEncoder</span><span class="p">()</span>
@@ -170,10 +180,10 @@ the base <code class="docutils literal notranslate"><span class="pre">Configurat
 <span class="k">def</span><span class="w"> </span><span class="nf">register_processors</span><span class="p">():</span>
     <span class="n">Registry</span><span class="o">.</span><span class="n">register_configuration</span><span class="p">(</span>
         <span class="n">config</span><span class="o">=</span><span class="n">Configuration</span><span class="o">.</span><span class="n">default</span><span class="p">(),</span>
-        <span class="n">component</span><span class="o">=</span><span class="s1">&#39;examples.components.processor.LabelProcessor&#39;</span><span class="p">,</span>
-        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;processor&#39;</span><span class="p">,</span>
-        <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;label&#39;</span><span class="p">},</span>
-        <span class="n">namespace</span><span class="o">=</span><span class="s1">&#39;examples&#39;</span>
+        <span class="n">component</span><span class="o">=</span><span class="s1">'examples.components.processor.LabelProcessor'</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">'processor'</span><span class="p">,</span>
+        <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">'label'</span><span class="p">},</span>
+        <span class="n">namespace</span><span class="o">=</span><span class="s1">'examples'</span>
     <span class="p">)</span>
 </pre></div>
 </div>

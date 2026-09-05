@@ -42,14 +42,20 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
-<ul class="current">
+              <p class="caption" role="heading"><span class="caption-text">Getting started:</span></p>
+<ul>
 <li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Concepts:</span></p>
+<ul>
 <li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration</a></li>
 <li class="toctree-l1"><a class="reference internal" href="component.html">Component</a></li>
 <li class="toctree-l1"><a class="reference internal" href="registration.html">Registration</a></li>
 <li class="toctree-l1"><a class="reference internal" href="dependencies.html">Dependencies</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference:</span></p>
+<ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Commands</a><ul class="simple">
 </ul>
 </li>
@@ -86,7 +92,7 @@
              
   <section id="cinnamon-entry-points">
 <span id="commands"></span><h1>Cinnamon entry points<a class="headerlink" href="#cinnamon-entry-points" title="Link to this heading"></a></h1>
-<p>Cinnamon ships three console scripts for working with <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> and <code class="docutils literal notranslate"><span class="pre">Component</span></code>
+<p>Cinnamon ships four console scripts for working with configurations and components
 without writing boilerplate code.</p>
 <section id="installation">
 <h2>Installation<a class="headerlink" href="#installation" title="Link to this heading"></a></h2>
@@ -95,11 +101,12 @@ To use <code class="docutils literal notranslate"><span class="pre">cmn-run</spa
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>cinnamon<span class="o">[</span>cli<span class="o">]</span>
 </pre></div>
 </div>
-<p><code class="docutils literal notranslate"><span class="pre">cmn-build</span></code> has no extra dependencies and works with the base install.</p>
+<p><code class="docutils literal notranslate"><span class="pre">cmn-build</span></code> and <code class="docutils literal notranslate"><span class="pre">cmn-check</span></code> have no extra dependencies and work with the
+base install.</p>
 </section>
 <section id="common-arguments">
 <h2>Common arguments<a class="headerlink" href="#common-arguments" title="Link to this heading"></a></h2>
-<p>All three commands accept the same two optional arguments:</p>
+<p>All four commands accept the same two optional arguments:</p>
 <dl>
 <dt><code class="docutils literal notranslate"><span class="pre">-dir</span></code> / <code class="docutils literal notranslate"><span class="pre">--directory</span></code></dt><dd><p>Path to the main project directory containing the <code class="docutils literal notranslate"><span class="pre">configurations</span></code> folder.
 Defaults to the current working directory if not provided.</p>
@@ -107,15 +114,53 @@ Defaults to the current working directory if not provided.</p>
 <dt><code class="docutils literal notranslate"><span class="pre">-ext</span></code> / <code class="docutils literal notranslate"><span class="pre">--external-path</span></code></dt><dd><p>Path to a JSON file listing external project directories to include during
 registration. The file must contain a JSON array of path strings:</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">[</span>
-<span class="w">    </span><span class="s2">&quot;/path/to/external/project_a&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="s2">&quot;/path/to/external/project_b&quot;</span>
+<span class="w">    </span><span class="s2">"/path/to/external/project_a"</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">"/path/to/external/project_b"</span>
 <span class="p">]</span>
 </pre></div>
 </div>
-<p>See <a class="reference external" href="https://nlp-unibo.github.io/cinnamon/dependencies.html">dependencies</a> for
-details on external directories.</p>
+<p>See <a class="reference internal" href="dependencies.html"><span class="doc">Registration Dependencies</span></a> for details on external directories.</p>
 </dd>
 </dl>
+</section>
+<section id="cmn-check">
+<h2>cmn-check<a class="headerlink" href="#cmn-check" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">cmn-check</span></code> reports registration problems without running anything. It is the
+cheapest thing to run after editing configurations, and it is designed to be usable
+as a pre-commit or CI gate: it exits non-zero when it finds errors.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>cmn-check<span class="w"> </span>-dir<span class="w"> </span>.
+cmn-check<span class="w"> </span>-dir<span class="w"> </span>.<span class="w"> </span>--strict<span class="w">     </span><span class="c1"># warnings fail too</span>
+cmn-check<span class="w"> </span>-dir<span class="w"> </span>.<span class="w"> </span>--deep<span class="w">       </span><span class="c1"># also import components to check signatures</span>
+</pre></div>
+</div>
+<p>It makes two passes.</p>
+<p><strong>Keys.</strong> Every dependency that resolves to nothing is reported <em>at once</em>, with the
+registrations that reference it and a ranked suggestion of what you probably meant:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>[error] unresolved-key
+  No configuration is registered under name=loader--tags=['imbd']--namespace=nlp.
+  referenced by:
+    - name=pipeline--namespace=nlp
+  did you mean:
+    - name=loader--tags=['imdb']--namespace=nlp
+        (tag 'imbd' -&gt; 'imdb')
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">Registry.build</span></code> stops at the first missing key, so a project with three typos
+would otherwise take three runs to fix. It also warns about tags that differ only
+slightly from each other — <code class="docutils literal notranslate"><span class="pre">tf-idf</span></code> against <code class="docutils literal notranslate"><span class="pre">tfidf</span></code>, <code class="docutils literal notranslate"><span class="pre">IMDB</span></code> against <code class="docutils literal notranslate"><span class="pre">imdb</span></code> —
+which resolve perfectly well today and are pure latent confusion.</p>
+<p><strong>Bindings.</strong> Component paths are resolved on the filesystem <em>without importing
+them</em>, so the command stays fast whatever your components weigh. <code class="docutils literal notranslate"><span class="pre">--deep</span></code> imports
+each one and checks its <code class="docutils literal notranslate"><span class="pre">__init__</span></code> against the configuration’s fields, at the cost
+of that import.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The shallow pass is deliberately modest. A missing top-level package is an
+error; a middle segment that is not a module is only a warning, because a wrong
+module path and a nested class are indistinguishable on disk. Whether the class
+exists inside the module is not checked at all — re-export is the norm, and many
+packages define no classes in the <code class="docutils literal notranslate"><span class="pre">__init__.py</span></code> you would be looking at.</p>
+</div>
 </section>
 <section id="cmn-build">
 <h2>cmn-build<a class="headerlink" href="#cmn-build" title="Link to this heading"></a></h2>
@@ -163,18 +208,17 @@ cmn-run<span class="w"> </span>--directory<span class="w"> </span>path/to/projec
 <h3>Registering a runnable component<a class="headerlink" href="#registering-a-runnable-component" title="Link to this heading"></a></h3>
 <p>A component becomes runnable by specifying <code class="docutils literal notranslate"><span class="pre">run_method</span></code> at registration time.
 The method must take no arguments beyond <code class="docutils literal notranslate"><span class="pre">self</span></code>:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">cinnamon.component</span><span class="w"> </span><span class="kn">import</span> <span class="n">Component</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">cinnamon.configuration</span><span class="w"> </span><span class="kn">import</span> <span class="n">Configuration</span><span class="p">,</span> <span class="n">Param</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">cinnamon.configuration</span><span class="w"> </span><span class="kn">import</span> <span class="n">Configuration</span><span class="p">,</span> <span class="n">Param</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">cinnamon.registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">register_method</span>
 
-<span class="k">class</span><span class="w"> </span><span class="nc">TrainerComponent</span><span class="p">(</span><span class="n">Component</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">TrainerComponent</span><span class="p">:</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">epochs</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">lr</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">epochs</span> <span class="o">=</span> <span class="n">epochs</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">lr</span> <span class="o">=</span> <span class="n">lr</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">train</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Training for </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">epochs</span><span class="si">}</span><span class="s1"> epochs at lr=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">lr</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">'Training for </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">epochs</span><span class="si">}</span><span class="s1"> epochs at lr=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">lr</span><span class="si">}</span><span class="s1">'</span><span class="p">)</span>
 
 <span class="k">class</span><span class="w"> </span><span class="nc">TrainerConfig</span><span class="p">(</span><span class="n">Configuration</span><span class="p">):</span>
     <span class="n">epochs</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">Param</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
@@ -182,13 +226,13 @@ The method must take no arguments beyond <code class="docutils literal notransla
 
     <span class="nd">@classmethod</span>
     <span class="nd">@register_method</span><span class="p">(</span>
-        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;trainer&#39;</span><span class="p">,</span>
-        <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;default&#39;</span><span class="p">},</span>
-        <span class="n">namespace</span><span class="o">=</span><span class="s1">&#39;my_project&#39;</span><span class="p">,</span>
-        <span class="n">component</span><span class="o">=</span><span class="s1">&#39;components.TrainerComponent&#39;</span><span class="p">,</span>
-        <span class="n">run_method</span><span class="o">=</span><span class="s1">&#39;train&#39;</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">'trainer'</span><span class="p">,</span>
+        <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">'default'</span><span class="p">},</span>
+        <span class="n">namespace</span><span class="o">=</span><span class="s1">'my_project'</span><span class="p">,</span>
+        <span class="n">component</span><span class="o">=</span><span class="s1">'components.TrainerComponent'</span><span class="p">,</span>
+        <span class="n">run_method</span><span class="o">=</span><span class="s1">'train'</span>
     <span class="p">)</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">default</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;TrainerConfig&#39;</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">default</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">'TrainerConfig'</span><span class="p">:</span>
         <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">default</span><span class="p">()</span>
 </pre></div>
 </div>

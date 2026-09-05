@@ -12,22 +12,6 @@ Subpackages
 Submodules
 ----------
 
-cinnamon.command\_line module
------------------------------
-
-.. automodule:: cinnamon.cli
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-cinnamon.component module
--------------------------
-
-.. automodule:: cinnamon.component
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 cinnamon.configuration module
 -----------------------------
 
@@ -40,6 +24,14 @@ cinnamon.registry module
 ------------------------
 
 .. automodule:: cinnamon.registry
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cinnamon.cli module
+-------------------
+
+.. automodule:: cinnamon.cli
    :members:
    :undoc-members:
    :show-inheritance:

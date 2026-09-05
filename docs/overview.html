@@ -42,16 +42,22 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+              <p class="caption" role="heading"><span class="caption-text">Getting started:</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Overview</a><ul class="simple">
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Concepts:</span></p>
+<ul>
 <li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration</a></li>
 <li class="toctree-l1"><a class="reference internal" href="component.html">Component</a></li>
 <li class="toctree-l1"><a class="reference internal" href="registration.html">Registration</a></li>
 <li class="toctree-l1"><a class="reference internal" href="dependencies.html">Dependencies</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference:</span></p>
+<ul>
 <li class="toctree-l1"><a class="reference internal" href="commands.html">Commands</a></li>
 <li class="toctree-l1"><a class="reference internal" href="modules.html">Code Documentation</a></li>
 </ul>
@@ -86,41 +92,70 @@
              
   <section id="overview">
 <span id="id1"></span><h1>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h1>
-<p>Cinnamon is a lightweight library for general-purpose configuration and code logic de-coupling.</p>
-<p>It has been developed to offer two main functionalities:</p>
-<dl class="simple">
-<dt><strong>De-coupling</strong></dt><dd><p>a code logic from its regulating parameters</p>
-</dd>
-<dt><strong>Re-use</strong></dt><dd><p>of code logic without effort</p>
-</dd>
-</dl>
-<section id="features">
-<h2>Features<a class="headerlink" href="#features" title="Link to this heading"></a></h2>
-<dl class="simple">
-<dt><strong>General-purpose</strong></dt><dd><p><code class="docutils literal notranslate"><span class="pre">cinnamon</span></code> is meant to <strong>simplify</strong> your code organization for better <strong>re-use</strong>.</p>
-</dd>
-<dt><strong>Simple</strong></dt><dd><p><code class="docutils literal notranslate"><span class="pre">cinnamon</span></code> is a small library that acts as a <strong>high-level wrapper</strong> for your projects.</p>
-</dd>
-<dt><strong>Community-based</strong></dt><dd><p><code class="docutils literal notranslate"><span class="pre">cinnamon</span></code> components and configurations can be imported from project!</p>
-</dd>
-<dt><strong>Flexible</strong></dt><dd><p><code class="docutils literal notranslate"><span class="pre">cinnamon</span></code> imposes <strong>minimal APIs</strong> for a quick learning curve and keeps freedom of coding.</p>
-</dd>
-</dl>
+<p><strong>Components carry the weight. Configurations describe it.</strong></p>
+<p>That sentence is most of cinnamon. Everything else follows from it, and the parts
+of the API that look odd at first usually make sense once it is in mind.</p>
+<ul class="simple">
+<li><p>A <strong>component</strong> is where your logic lives — a data loader, a model, an evaluation
+pipeline. It is an ordinary Python class. cinnamon asks nothing of it: no base
+class, no decorator, no import.</p></li>
+<li><p>A <strong>configuration</strong> describes the parameters that component runs with. It is
+lightweight, and there are usually many of them, because the interesting question
+is rarely “what does this do?” but “what does it do with <em>these</em> settings?”.</p></li>
+</ul>
+<p>The motivating case is research — running the same model over a grid of
+hyper-parameters, and being able to say afterwards exactly which combination
+produced which number. The shape generalises to anything with expensive reusable
+logic and a large space of choices.</p>
+<section id="what-that-buys-you">
+<h2>What that buys you<a class="headerlink" href="#what-that-buys-you" title="Link to this heading"></a></h2>
+<p><strong>Sweeps you declare rather than script.</strong> Say a field has variants and cinnamon
+enumerates the combinations, giving each one a key derived from its values:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">ClassifierConfig</span><span class="p">(</span><span class="n">Configuration</span><span class="p">):</span>
+    <span class="n">learning_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">Param</span><span class="p">(</span><span class="mf">1e-3</span><span class="p">,</span> <span class="n">variants</span><span class="o">=</span><span class="p">[</span><span class="mf">1e-2</span><span class="p">,</span> <span class="mf">1e-4</span><span class="p">])</span>
+    <span class="n">hidden_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">Param</span><span class="p">(</span><span class="mi">128</span><span class="p">,</span> <span class="n">variants</span><span class="o">=</span><span class="p">[</span><span class="mi">256</span><span class="p">])</span>
+
+<span class="c1"># six configurations, each addressable as</span>
+<span class="c1">#   classifier--tags=['hidden_size=256', 'learning_rate=0.01']</span>
+</pre></div>
+</div>
+<p>Those keys are derived, not written down, and they are stable across runs and
+machines. That is what makes a result reproducible: the key <em>is</em> the description of
+the experiment.</p>
+<p><strong>Composition without wiring.</strong> A configuration can depend on another by key. When
+a child has variants, the parent gains one configuration per child variant —
+sweeps compose down the graph without anyone joining them up.</p>
+<p><strong>Mistakes caught before anything runs.</strong> <code class="docutils literal notranslate"><span class="pre">cmn-check</span></code> reports unresolved keys with
+suggestions, and checks that components match the configurations bound to them —
+all without importing your components.</p>
+<p><strong>Nothing imported until it is needed.</strong> A component is bound by its import path as
+a string, so building a registry never imports torch. On a project whose components
+take 650 ms to import, the registry builds in 8 ms.</p>
 </section>
 <section id="install">
 <h2>Install<a class="headerlink" href="#install" title="Link to this heading"></a></h2>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>cinnamon<span class="w">              </span><span class="c1"># core</span>
+pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"cinnamon[cli]"</span><span class="w">       </span><span class="c1"># adds cmn-run and cmn-generate</span>
+</pre></div>
+</div>
+<p>From source:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/nlp-unibo/cinnamon
 pip<span class="w"> </span>install<span class="w"> </span>./cinnamon
 </pre></div>
 </div>
 </section>
-<section id="quickstart">
-<h2>Quickstart<a class="headerlink" href="#quickstart" title="Link to this heading"></a></h2>
-<p>Check <a class="reference external" href="https://nlp-unibo.github.io/cinnamon/quickstart.html">quickstart</a> for a quick introduction to how <code class="docutils literal notranslate"><span class="pre">cinnamon</span></code> works.</p>
-</section>
-<section id="demos">
-<h2>Demos<a class="headerlink" href="#demos" title="Link to this heading"></a></h2>
-<p>Check <a class="reference external" href="https://nlp-unibo.github.io/cinnamon_examples">cinnamon-examples</a> for a quick overview on how to evaluate a SVM classifier on a binary classification task with cinnamon!</p>
+<section id="where-to-start">
+<h2>Where to start<a class="headerlink" href="#where-to-start" title="Link to this heading"></a></h2>
+<p><a class="reference internal" href="quickstart.html"><span class="doc">Quickstart</span></a> walks through a first configuration, component and registration.</p>
+<p>The <strong>tutorial</strong> in the repository is seven runnable files that need nothing beyond
+cinnamon itself — configuration, registration, variants, dependencies, collections,
+conditions, and a worked project with the real directory layout:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>examples/tutorial/01_configuration.py
+</pre></div>
+</div>
+<p>Then <a class="reference internal" href="configuration.html"><span class="doc">Configuration</span></a>, <a class="reference internal" href="component.html"><span class="doc">Component</span></a>, <a class="reference internal" href="registration.html"><span class="doc">Registration</span></a> and
+<a class="reference internal" href="dependencies.html"><span class="doc">Registration Dependencies</span></a> cover each concept properly, and <a class="reference internal" href="commands.html"><span class="doc">Cinnamon entry points</span></a> covers the
+command line.</p>
 </section>
 <section id="contact">
 <h2>Contact<a class="headerlink" href="#contact" title="Link to this heading"></a></h2>

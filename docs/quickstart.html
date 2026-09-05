@@ -42,16 +42,22 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+              <p class="caption" role="heading"><span class="caption-text">Getting started:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Quickstart</a><ul class="simple">
 </ul>
 </li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Concepts:</span></p>
+<ul>
 <li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration</a></li>
 <li class="toctree-l1"><a class="reference internal" href="component.html">Component</a></li>
 <li class="toctree-l1"><a class="reference internal" href="registration.html">Registration</a></li>
 <li class="toctree-l1"><a class="reference internal" href="dependencies.html">Dependencies</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference:</span></p>
+<ul>
 <li class="toctree-l1"><a class="reference internal" href="commands.html">Commands</a></li>
 <li class="toctree-l1"><a class="reference internal" href="modules.html">Code Documentation</a></li>
 </ul>
@@ -97,8 +103,8 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">load</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">df_path</span><span class="p">)</span>
 
-<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
-    <span class="n">loader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span><span class="s1">&#39;path/to/data&#39;</span><span class="p">)</span>
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">'__main__'</span><span class="p">:</span>
+    <span class="n">loader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span><span class="s1">'path/to/data'</span><span class="p">)</span>
     <span class="n">data</span> <span class="o">=</span> <span class="n">loader</span><span class="o">.</span><span class="n">load</span><span class="p">()</span>
 </pre></div>
 </div>
@@ -121,8 +127,8 @@ to spread as a project grows.</p>
     <span class="k">def</span><span class="w"> </span><span class="nf">load</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">df_path</span><span class="p">)</span>
 
-<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
-    <span class="n">config</span> <span class="o">=</span> <span class="n">DataLoaderConfig</span><span class="p">(</span><span class="n">df_path</span><span class="o">=</span><span class="s1">&#39;path/to/data&#39;</span><span class="p">)</span>
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">'__main__'</span><span class="p">:</span>
+    <span class="n">config</span> <span class="o">=</span> <span class="n">DataLoaderConfig</span><span class="p">(</span><span class="n">df_path</span><span class="o">=</span><span class="s1">'path/to/data'</span><span class="p">)</span>
     <span class="n">loader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
     <span class="n">data</span> <span class="o">=</span> <span class="n">loader</span><span class="o">.</span><span class="n">load</span><span class="p">()</span>
 </pre></div>
@@ -144,17 +150,14 @@ as a typed class annotation, optionally wrapped with <code class="docutils liter
 
 <span class="k">class</span><span class="w"> </span><span class="nc">DataLoaderConfig</span><span class="p">(</span><span class="n">Configuration</span><span class="p">):</span>
     <span class="n">df_path</span><span class="p">:</span> <span class="n">Path</span> <span class="o">=</span> <span class="n">Param</span><span class="p">(</span>
-        <span class="s1">&#39;path/to/data&#39;</span><span class="p">,</span>
-        <span class="n">description</span><span class="o">=</span><span class="s1">&#39;Path to the CSV file to load&#39;</span>
+        <span class="s1">'path/to/data'</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="s1">'Path to the CSV file to load'</span>
     <span class="p">)</span>
 </pre></div>
 </div>
-<p>Define your component by subclassing <code class="docutils literal notranslate"><span class="pre">Component</span></code>.
-The class structure stays exactly as you would write it in plain Python — cinnamon
-imposes no additional APIs on your code logic:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">cinnamon.component</span><span class="w"> </span><span class="kn">import</span> <span class="n">Component</span>
-
-<span class="k">class</span><span class="w"> </span><span class="nc">DataLoader</span><span class="p">(</span><span class="n">Component</span><span class="p">):</span>
+<p>Define your component as an ordinary class. There is no base class to inherit and
+nothing to import — cinnamon imposes no APIs on your code logic:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">DataLoader</span><span class="p">:</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df_path</span><span class="p">:</span> <span class="n">Path</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">df_path</span> <span class="o">=</span> <span class="n">df_path</span>
@@ -164,7 +167,7 @@ imposes no additional APIs on your code logic:</p>
 </pre></div>
 </div>
 <p>To use both together without the registry:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">'__main__'</span><span class="p">:</span>
     <span class="n">config</span> <span class="o">=</span> <span class="n">DataLoaderConfig</span><span class="o">.</span><span class="n">default</span><span class="p">()</span>
     <span class="n">loader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span><span class="o">**</span><span class="n">config</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
     <span class="n">data</span> <span class="o">=</span> <span class="n">loader</span><span class="o">.</span><span class="n">load</span><span class="p">()</span>
@@ -182,7 +185,7 @@ It returns a <code class="docutils literal notranslate"><span class="pre">DataLo
 <h2>Registration<a class="headerlink" href="#registration" title="Link to this heading"></a></h2>
 <p>In practice, cinnamon encourages a <strong>register, bind, and build</strong> workflow rather
 than directly instantiating configurations and components.</p>
-<p>Once you have defined a <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> and its corresponding <code class="docutils literal notranslate"><span class="pre">Component</span></code>,
+<p>Once you have defined a <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> and its corresponding component,
 you <strong>register</strong> the configuration in the <code class="docutils literal notranslate"><span class="pre">Registry</span></code> and <strong>bind</strong> it to the component.
 This is done via a <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code>: a compound identifier made up of a <code class="docutils literal notranslate"><span class="pre">name</span></code>,
 an optional <code class="docutils literal notranslate"><span class="pre">tags</span></code> set, and a <code class="docutils literal notranslate"><span class="pre">namespace</span></code>.</p>
@@ -193,18 +196,18 @@ an optional <code class="docutils literal notranslate"><span class="pre">tags</s
 
 <span class="k">class</span><span class="w"> </span><span class="nc">DataLoaderConfig</span><span class="p">(</span><span class="n">Configuration</span><span class="p">):</span>
     <span class="n">df_path</span><span class="p">:</span> <span class="n">Path</span> <span class="o">=</span> <span class="n">Param</span><span class="p">(</span>
-        <span class="s1">&#39;path/to/data&#39;</span><span class="p">,</span>
-        <span class="n">description</span><span class="o">=</span><span class="s1">&#39;Path to the CSV file to load&#39;</span>
+        <span class="s1">'path/to/data'</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="s1">'Path to the CSV file to load'</span>
     <span class="p">)</span>
 
     <span class="nd">@classmethod</span>
     <span class="nd">@register_method</span><span class="p">(</span>
-        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;data_loader&#39;</span><span class="p">,</span>
-        <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;test&#39;</span><span class="p">},</span>
-        <span class="n">namespace</span><span class="o">=</span><span class="s1">&#39;showcasing&#39;</span><span class="p">,</span>
-        <span class="n">component</span><span class="o">=</span><span class="s1">&#39;components.DataLoader&#39;</span>   <span class="c1"># module path as a string</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">'data_loader'</span><span class="p">,</span>
+        <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">'test'</span><span class="p">},</span>
+        <span class="n">namespace</span><span class="o">=</span><span class="s1">'showcasing'</span><span class="p">,</span>
+        <span class="n">component</span><span class="o">=</span><span class="s1">'components.DataLoader'</span>   <span class="c1"># module path as a string</span>
     <span class="p">)</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">default</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;DataLoaderConfig&#39;</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">default</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">'DataLoaderConfig'</span><span class="p">:</span>
         <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">default</span><span class="p">()</span>
 </pre></div>
 </div>
@@ -216,10 +219,10 @@ inside a function decorated with <code class="docutils literal notranslate"><spa
 <span class="k">def</span><span class="w"> </span><span class="nf">register_data_loader</span><span class="p">():</span>
     <span class="n">Registry</span><span class="o">.</span><span class="n">register_configuration</span><span class="p">(</span>
         <span class="n">config</span><span class="o">=</span><span class="n">DataLoaderConfig</span><span class="o">.</span><span class="n">default</span><span class="p">(),</span>
-        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;data_loader&#39;</span><span class="p">,</span>
-        <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;test&#39;</span><span class="p">},</span>
-        <span class="n">namespace</span><span class="o">=</span><span class="s1">&#39;showcasing&#39;</span><span class="p">,</span>
-        <span class="n">component</span><span class="o">=</span><span class="s1">&#39;components.DataLoader&#39;</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">'data_loader'</span><span class="p">,</span>
+        <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">'test'</span><span class="p">},</span>
+        <span class="n">namespace</span><span class="o">=</span><span class="s1">'showcasing'</span><span class="p">,</span>
+        <span class="n">component</span><span class="o">=</span><span class="s1">'components.DataLoader'</span>
     <span class="p">)</span>
 </pre></div>
 </div>
@@ -236,22 +239,20 @@ full dependency graph:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">cinnamon.registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">Registry</span>
 
-<span class="n">Registry</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">))</span>
+<span class="n">Registry</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="s1">'.'</span><span class="p">))</span>
 </pre></div>
 </div>
 <p>After a successful build, construct a <code class="docutils literal notranslate"><span class="pre">DataLoader</span></code> instance from its registered key:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Via the Registry directly</span>
-<span class="n">loader</span> <span class="o">=</span> <span class="n">Registry</span><span class="o">.</span><span class="n">instantiate_component</span><span class="p">(</span>
-    <span class="n">name</span><span class="o">=</span><span class="s1">&#39;data_loader&#39;</span><span class="p">,</span>
-    <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;test&#39;</span><span class="p">},</span>
-    <span class="n">namespace</span><span class="o">=</span><span class="s1">&#39;showcasing&#39;</span>
-<span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># From a key</span>
+<span class="n">key</span> <span class="o">=</span> <span class="n">RegistrationKey</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">'data_loader'</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">'test'</span><span class="p">},</span> <span class="n">namespace</span><span class="o">=</span><span class="s1">'showcasing'</span><span class="p">)</span>
+<span class="n">loader</span> <span class="o">=</span> <span class="n">Registry</span><span class="o">.</span><span class="n">from_key</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
 
-<span class="c1"># Or via the Component class (syntactic sugar — also type-checks the result)</span>
-<span class="n">loader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="o">.</span><span class="n">instantiate</span><span class="p">(</span>
-    <span class="n">name</span><span class="o">=</span><span class="s1">&#39;data_loader&#39;</span><span class="p">,</span>
-    <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;test&#39;</span><span class="p">},</span>
-    <span class="n">namespace</span><span class="o">=</span><span class="s1">&#39;showcasing&#39;</span>
+<span class="c1"># Or with the key spelled out, optionally checking the type of the result</span>
+<span class="n">loader</span> <span class="o">=</span> <span class="n">Registry</span><span class="o">.</span><span class="n">instantiate</span><span class="p">(</span>
+    <span class="n">name</span><span class="o">=</span><span class="s1">'data_loader'</span><span class="p">,</span>
+    <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">'test'</span><span class="p">},</span>
+    <span class="n">namespace</span><span class="o">=</span><span class="s1">'showcasing'</span><span class="p">,</span>
+    <span class="n">expected_type</span><span class="o">=</span><span class="n">DataLoader</span><span class="p">,</span>
 <span class="p">)</span>
 
 <span class="n">data</span> <span class="o">=</span> <span class="n">loader</span><span class="o">.</span><span class="n">load</span><span class="p">()</span>
@@ -267,9 +268,9 @@ automatically.</p>
 <h2>Beyond quickstart<a class="headerlink" href="#beyond-quickstart" title="Link to this heading"></a></h2>
 <p>The <strong>register, bind, and build</strong> workflow unlocks a number of powerful features:</p>
 <ul class="simple">
-<li><p><strong>Nesting</strong> <code class="docutils literal notranslate"><span class="pre">Component</span></code> and <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> to compose more sophisticated pipelines.</p></li>
+<li><p><strong>Nesting</strong> components and configurations to compose more sophisticated pipelines.</p></li>
 <li><p>Automatically generating <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> <strong>variants</strong> for hyperparameter search.</p></li>
-<li><p>Integrating <strong>external</strong> <code class="docutils literal notranslate"><span class="pre">Component</span></code> and <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> written by other users.</p></li>
+<li><p>Integrating <strong>external</strong> components and configurations written by other users.</p></li>
 <li><p>Static and dynamic <strong>condition</strong> validation.</p></li>
 </ul>
 <p>See <a class="reference external" href="https://nlp-unibo.github.io/cinnamon/configuration.html">Configuration</a> for a

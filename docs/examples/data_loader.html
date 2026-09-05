@@ -42,31 +42,41 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+              <p class="caption" role="heading"><span class="caption-text">Getting started:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../overview.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Concepts:</span></p>
+<ul>
 <li class="toctree-l1"><a class="reference internal" href="../configuration.html">Configuration</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../component.html">Component</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../registration.html">Registration</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../dependencies.html">Dependencies</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference:</span></p>
+<ul>
 <li class="toctree-l1"><a class="reference internal" href="../commands.html">Commands</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../modules.html">Code Documentation</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Examples</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="index.html">Examples</a><ul class="current">
-<li class="toctree-l2"><a class="reference internal" href="overview.html">Overview</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Data Loader</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#imdbloader"><code class="docutils literal notranslate"><span class="pre">IMDBLoader</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#imdbloaderconfig"><code class="docutils literal notranslate"><span class="pre">IMDBLoaderConfig</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#demo-script">Demo script</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#tutorial">Tutorial</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html#a-full-pipeline">A full pipeline</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="overview.html">Overview</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Data Loader</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#imdbloader"><code class="docutils literal notranslate"><span class="pre">IMDBLoader</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#imdbloaderconfig"><code class="docutils literal notranslate"><span class="pre">IMDBLoaderConfig</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#demo-script">Demo script</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="processor.html">Processor</a></li>
-<li class="toctree-l2"><a class="reference internal" href="model.html">Model</a></li>
-<li class="toctree-l2"><a class="reference internal" href="benchmark.html">Benchmark</a></li>
-<li class="toctree-l2"><a class="reference internal" href="catalog.html">Catalog</a></li>
+<li class="toctree-l3"><a class="reference internal" href="processor.html">Processor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="model.html">Model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="benchmark.html">Benchmark</a></li>
+<li class="toctree-l3"><a class="reference internal" href="catalog.html">Catalog</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -104,7 +114,7 @@ it if not yet available).</p>
 <h2><code class="docutils literal notranslate"><span class="pre">IMDBLoader</span></code><a class="headerlink" href="#imdbloader" title="Link to this heading"></a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">IMDBLoader</span></code> inherits from <code class="docutils literal notranslate"><span class="pre">Component</span></code> and handles downloading, extracting,
 and parsing the IMDB archive into a <code class="docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code>:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">IMDBLoader</span><span class="p">(</span><span class="n">Component</span><span class="p">):</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">IMDBLoader</span><span class="p">:</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -122,14 +132,14 @@ and parsing the IMDB archive into a <code class="docutils literal notranslate"><
     <span class="k">def</span><span class="w"> </span><span class="nf">download</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span> <span class="o">...</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">load_data</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Download if needed, then return the dataset as a DataFrame.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Download if needed, then return the dataset as a DataFrame."""</span>
         <span class="o">...</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">get_splits</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">DataFrame</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">DataFrame</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return (train, val=None, test) splits.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Return (train, val=None, test) splits."""</span>
         <span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">load_data</span><span class="p">()</span>
-        <span class="n">train</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">df</span><span class="o">.</span><span class="n">split</span> <span class="o">==</span> <span class="s1">&#39;train&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">frac</span><span class="o">=</span><span class="mi">1</span><span class="p">)[:</span><span class="bp">self</span><span class="o">.</span><span class="n">samples_amount</span><span class="p">]</span>
-        <span class="n">test</span>  <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">df</span><span class="o">.</span><span class="n">split</span> <span class="o">==</span> <span class="s1">&#39;test&#39;</span> <span class="p">]</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">frac</span><span class="o">=</span><span class="mi">1</span><span class="p">)[:</span><span class="bp">self</span><span class="o">.</span><span class="n">samples_amount</span><span class="p">]</span>
+        <span class="n">train</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">df</span><span class="o">.</span><span class="n">split</span> <span class="o">==</span> <span class="s1">'train'</span><span class="p">]</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">frac</span><span class="o">=</span><span class="mi">1</span><span class="p">)[:</span><span class="bp">self</span><span class="o">.</span><span class="n">samples_amount</span><span class="p">]</span>
+        <span class="n">test</span>  <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">df</span><span class="o">.</span><span class="n">split</span> <span class="o">==</span> <span class="s1">'test'</span> <span class="p">]</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">frac</span><span class="o">=</span><span class="mi">1</span><span class="p">)[:</span><span class="bp">self</span><span class="o">.</span><span class="n">samples_amount</span><span class="p">]</span>
         <span class="k">return</span> <span class="n">train</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">test</span>
 </pre></div>
 </div>
@@ -144,35 +154,35 @@ and parsing the IMDB archive into a <code class="docutils literal notranslate"><
 <h2><code class="docutils literal notranslate"><span class="pre">IMDBLoaderConfig</span></code><a class="headerlink" href="#imdbloaderconfig" title="Link to this heading"></a></h2>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">IMDBLoaderConfig</span><span class="p">(</span><span class="n">Configuration</span><span class="p">):</span>
     <span class="n">download_directory</span><span class="p">:</span> <span class="n">Path</span> <span class="o">=</span> <span class="n">Param</span><span class="p">(</span>
-        <span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="s1">&#39;datasets&#39;</span><span class="p">),</span>
-        <span class="n">description</span><span class="o">=</span><span class="s1">&#39;Folder the archive file is downloaded into&#39;</span>
+        <span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="s1">'datasets'</span><span class="p">),</span>
+        <span class="n">description</span><span class="o">=</span><span class="s1">'Folder the archive file is downloaded into'</span>
     <span class="p">)</span>
     <span class="n">download_filename</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Param</span><span class="p">(</span>
-        <span class="s1">&#39;imdb.tar.gz&#39;</span><span class="p">,</span>
-        <span class="n">description</span><span class="o">=</span><span class="s1">&#39;Name of the archive file&#39;</span>
+        <span class="s1">'imdb.tar.gz'</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="s1">'Name of the archive file'</span>
     <span class="p">)</span>
     <span class="n">dataset_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Param</span><span class="p">(</span>
-        <span class="s1">&#39;dataset.csv&#39;</span><span class="p">,</span>
-        <span class="n">description</span><span class="o">=</span><span class="s1">&#39;Name of the cached CSV file&#39;</span>
+        <span class="s1">'dataset.csv'</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="s1">'Name of the cached CSV file'</span>
     <span class="p">)</span>
     <span class="n">download_url</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Param</span><span class="p">(</span>
-        <span class="s1">&#39;http://ai.stanford.edu/~amaas/data/sentiment/aclImdb_v1.tar.gz&#39;</span><span class="p">,</span>
-        <span class="n">description</span><span class="o">=</span><span class="s1">&#39;URL to the dataset archive&#39;</span>
+        <span class="s1">'http://ai.stanford.edu/~amaas/data/sentiment/aclImdb_v1.tar.gz'</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="s1">'URL to the dataset archive'</span>
     <span class="p">)</span>
     <span class="n">samples_amount</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">Param</span><span class="p">(</span>
         <span class="mi">500</span><span class="p">,</span>
-        <span class="n">description</span><span class="o">=</span><span class="s1">&#39;Maximum number of samples per split (-1 = all)&#39;</span>
+        <span class="n">description</span><span class="o">=</span><span class="s1">'Maximum number of samples per split (-1 = all)'</span>
     <span class="p">)</span>
 
     <span class="nd">@classmethod</span>
     <span class="nd">@register_method</span><span class="p">(</span>
-        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;data_loader&#39;</span><span class="p">,</span>
-        <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;imdb&#39;</span><span class="p">},</span>
-        <span class="n">namespace</span><span class="o">=</span><span class="s1">&#39;examples&#39;</span><span class="p">,</span>
-        <span class="n">component</span><span class="o">=</span><span class="s1">&#39;examples.components.data_loader.IMDBLoader&#39;</span><span class="p">,</span>
-        <span class="n">run_method</span><span class="o">=</span><span class="s1">&#39;load_data&#39;</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">'data_loader'</span><span class="p">,</span>
+        <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">'imdb'</span><span class="p">},</span>
+        <span class="n">namespace</span><span class="o">=</span><span class="s1">'examples'</span><span class="p">,</span>
+        <span class="n">component</span><span class="o">=</span><span class="s1">'examples.components.data_loader.IMDBLoader'</span><span class="p">,</span>
+        <span class="n">run_method</span><span class="o">=</span><span class="s1">'load_data'</span>
     <span class="p">)</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">default</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;IMDBLoaderConfig&#39;</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">default</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">'IMDBLoaderConfig'</span><span class="p">:</span>
         <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">default</span><span class="p">()</span>
 </pre></div>
 </div>
@@ -186,19 +196,19 @@ will call <code class="docutils literal notranslate"><span class="pre">loader.lo
 <span class="kn">from</span><span class="w"> </span><span class="nn">cinnamon.registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">Registry</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">examples.components.data_loader</span><span class="w"> </span><span class="kn">import</span> <span class="n">IMDBLoader</span>
 
-<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">'__main__'</span><span class="p">:</span>
     <span class="n">directory</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
     <span class="n">Registry</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="n">directory</span><span class="p">)</span>
 
-    <span class="n">loader</span> <span class="o">=</span> <span class="n">IMDBLoader</span><span class="o">.</span><span class="n">instantiate</span><span class="p">(</span>
-        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;data_loader&#39;</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;imdb&#39;</span><span class="p">},</span> <span class="n">namespace</span><span class="o">=</span><span class="s1">&#39;examples&#39;</span>
+    <span class="n">loader</span> <span class="o">=</span> <span class="n">Registry</span><span class="o">.</span><span class="n">instantiate</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">'data_loader'</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">'imdb'</span><span class="p">},</span> <span class="n">namespace</span><span class="o">=</span><span class="s1">'examples'</span>
     <span class="p">)</span>
     <span class="n">df</span> <span class="o">=</span> <span class="n">loader</span><span class="o">.</span><span class="n">load_data</span><span class="p">()</span>
     <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
 </pre></div>
 </div>
 <p><code class="docutils literal notranslate"><span class="pre">Registry.build()</span></code> scans the <code class="docutils literal notranslate"><span class="pre">configurations/</span></code> folder, registers all keys,
-and resolves dependencies. <code class="docutils literal notranslate"><span class="pre">IMDBLoader.instantiate()</span></code> then retrieves the registered
+and resolves dependencies. <code class="docutils literal notranslate"><span class="pre">Registry.instantiate()</span></code> then retrieves the registered
 <code class="docutils literal notranslate"><span class="pre">IMDBLoaderConfig</span></code>, unpacks its values, and constructs the <code class="docutils literal notranslate"><span class="pre">IMDBLoader</span></code> instance.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>

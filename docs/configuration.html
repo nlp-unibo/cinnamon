@@ -42,16 +42,22 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
-<ul class="current">
+              <p class="caption" role="heading"><span class="caption-text">Getting started:</span></p>
+<ul>
 <li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Concepts:</span></p>
+<ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Configuration</a><ul class="simple">
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="component.html">Component</a></li>
 <li class="toctree-l1"><a class="reference internal" href="registration.html">Registration</a></li>
 <li class="toctree-l1"><a class="reference internal" href="dependencies.html">Dependencies</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference:</span></p>
+<ul>
 <li class="toctree-l1"><a class="reference internal" href="commands.html">Commands</a></li>
 <li class="toctree-l1"><a class="reference internal" href="modules.html">Code Documentation</a></li>
 </ul>
@@ -87,7 +93,7 @@
   <section id="configuration">
 <span id="id1"></span><h1>Configuration<a class="headerlink" href="#configuration" title="Link to this heading"></a></h1>
 <p>A <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> is a <a class="reference external" href="https://docs.pydantic.dev/latest/">Pydantic</a> <code class="docutils literal notranslate"><span class="pre">BaseModel</span></code> subclass
-that stores all the parameters of a <code class="docutils literal notranslate"><span class="pre">Component</span></code>.
+that stores all the parameters of a component.
 Each field is defined as a typed class annotation, optionally wrapped with <code class="docutils literal notranslate"><span class="pre">Param</span></code> to attach
 cinnamon-specific metadata such as descriptions, tags, and variants.</p>
 <section id="param">
@@ -102,7 +108,7 @@ and additionally supports three cinnamon-specific keyword arguments:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">cinnamon.configuration</span><span class="w"> </span><span class="kn">import</span> <span class="n">Configuration</span><span class="p">,</span> <span class="n">Param</span>
 
 <span class="k">class</span><span class="w"> </span><span class="nc">MyConfig</span><span class="p">(</span><span class="n">Configuration</span><span class="p">):</span>
-    <span class="n">x</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">Param</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s1">&#39;An example integer parameter&#39;</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;number&#39;</span><span class="p">})</span>
+    <span class="n">x</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">Param</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s1">'An example integer parameter'</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">'number'</span><span class="p">})</span>
 </pre></div>
 </div>
 <p>The first positional argument is the default value.
@@ -124,19 +130,19 @@ In that case, cinnamon automatically injects empty <code class="docutils literal
 <p>Each <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> exposes a <code class="docutils literal notranslate"><span class="pre">meta</span></code> descriptor that provides access to field metadata
 (<code class="docutils literal notranslate"><span class="pre">tags</span></code> and <code class="docutils literal notranslate"><span class="pre">variants</span></code>) at both class level and instance level.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">MyConfig</span><span class="p">(</span><span class="n">Configuration</span><span class="p">):</span>
-    <span class="n">x</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">Param</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;number&#39;</span><span class="p">},</span> <span class="n">variants</span><span class="o">=</span><span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">20</span><span class="p">])</span>
+    <span class="n">x</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">Param</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">'number'</span><span class="p">},</span> <span class="n">variants</span><span class="o">=</span><span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">20</span><span class="p">])</span>
 
 <span class="c1"># Class-level access (reads from model_fields)</span>
-<span class="n">MyConfig</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">x</span><span class="o">.</span><span class="n">tags</span>        <span class="c1"># &gt;&gt;&gt; {&#39;number&#39;}</span>
+<span class="n">MyConfig</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">x</span><span class="o">.</span><span class="n">tags</span>        <span class="c1"># &gt;&gt;&gt; {'number'}</span>
 <span class="n">MyConfig</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">x</span><span class="o">.</span><span class="n">variants</span>    <span class="c1"># &gt;&gt;&gt; [10, 20]</span>
 
 <span class="c1"># Instance-level access (reads from a per-instance copy of metadata)</span>
 <span class="n">config</span> <span class="o">=</span> <span class="n">MyConfig</span><span class="p">()</span>
-<span class="n">config</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">x</span><span class="o">.</span><span class="n">tags</span>          <span class="c1"># &gt;&gt;&gt; {&#39;number&#39;}</span>
+<span class="n">config</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">x</span><span class="o">.</span><span class="n">tags</span>          <span class="c1"># &gt;&gt;&gt; {'number'}</span>
 <span class="n">config</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">x</span><span class="o">.</span><span class="n">variants</span>      <span class="c1"># &gt;&gt;&gt; [10, 20]</span>
 
 <span class="c1"># Bracket access is also supported</span>
-<span class="n">config</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">tags</span>       <span class="c1"># &gt;&gt;&gt; {&#39;number&#39;}</span>
+<span class="n">config</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s1">'x'</span><span class="p">]</span><span class="o">.</span><span class="n">tags</span>       <span class="c1"># &gt;&gt;&gt; {'number'}</span>
 </pre></div>
 </div>
 <p>Instance-level metadata is independent across instances — modifying one instance’s
@@ -167,10 +173,10 @@ field constraints apply directly.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Literal</span>
 
 <span class="k">class</span><span class="w"> </span><span class="nc">MyConfig</span><span class="p">(</span><span class="n">Configuration</span><span class="p">):</span>
-    <span class="n">mode</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s1">&#39;train&#39;</span><span class="p">,</span> <span class="s1">&#39;eval&#39;</span><span class="p">,</span> <span class="s1">&#39;test&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Param</span><span class="p">(</span><span class="s1">&#39;train&#39;</span><span class="p">)</span>
+    <span class="n">mode</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s1">'train'</span><span class="p">,</span> <span class="s1">'eval'</span><span class="p">,</span> <span class="s1">'test'</span><span class="p">]</span> <span class="o">=</span> <span class="n">Param</span><span class="p">(</span><span class="s1">'train'</span><span class="p">)</span>
 
-<span class="n">MyConfig</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s1">&#39;train&#39;</span><span class="p">)</span>  <span class="c1"># ✓</span>
-<span class="n">MyConfig</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s1">&#39;other&#39;</span><span class="p">)</span>  <span class="c1"># ✗ ValidationError</span>
+<span class="n">MyConfig</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s1">'train'</span><span class="p">)</span>  <span class="c1"># ✓</span>
+<span class="n">MyConfig</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s1">'other'</span><span class="p">)</span>  <span class="c1"># ✗ ValidationError</span>
 </pre></div>
 </div>
 <p>For <strong>cross-field constraints</strong>, use <code class="docutils literal notranslate"><span class="pre">&#64;model_validator</span></code>:</p>
@@ -180,11 +186,11 @@ field constraints apply directly.</p>
     <span class="n">x</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">Param</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
     <span class="n">y</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">Param</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
 
-    <span class="nd">@model_validator</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s1">&#39;after&#39;</span><span class="p">)</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">check_x_greater_than_y</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;MyConfig&#39;</span><span class="p">:</span>
+    <span class="nd">@model_validator</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s1">'after'</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">check_x_greater_than_y</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">'MyConfig'</span><span class="p">:</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">x</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s1">&#39;x must be greater than y, got x=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="si">}</span><span class="s1">, y=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="si">}</span><span class="s1">&#39;</span>
+                <span class="sa">f</span><span class="s1">'x must be greater than y, got x=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="si">}</span><span class="s1">, y=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="si">}</span><span class="s1">'</span>
             <span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span>
 
@@ -199,7 +205,7 @@ field constraints apply directly.</p>
 <p>A <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> is defined by subclassing <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> and declaring fields
 as typed class annotations:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">MyConfig</span><span class="p">(</span><span class="n">Configuration</span><span class="p">):</span>
-    <span class="n">x</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">Param</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s1">&#39;An example parameter&#39;</span><span class="p">)</span>
+    <span class="n">x</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">Param</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s1">'An example parameter'</span><span class="p">)</span>
 
 <span class="n">config</span> <span class="o">=</span> <span class="n">MyConfig</span><span class="p">()</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">x</span><span class="p">)</span>     <span class="c1"># &gt;&gt;&gt; 50</span>
@@ -216,7 +222,7 @@ a misconfigured default is caught immediately:</p>
 </div>
 <p>To create a modified copy of an existing instance, use <code class="docutils literal notranslate"><span class="pre">model_copy</span></code>:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">config</span> <span class="o">=</span> <span class="n">MyConfig</span><span class="p">()</span>
-<span class="n">updated</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">model_copy</span><span class="p">(</span><span class="n">update</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;x&#39;</span><span class="p">:</span> <span class="mi">10</span><span class="p">})</span>
+<span class="n">updated</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">model_copy</span><span class="p">(</span><span class="n">update</span><span class="o">=</span><span class="p">{</span><span class="s1">'x'</span><span class="p">:</span> <span class="mi">10</span><span class="p">})</span>
 
 <span class="nb">print</span><span class="p">(</span><span class="n">updated</span><span class="o">.</span><span class="n">x</span><span class="p">)</span>    <span class="c1"># &gt;&gt;&gt; 10</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">x</span><span class="p">)</span>     <span class="c1"># &gt;&gt;&gt; 50  (original unchanged)</span>
@@ -227,7 +233,7 @@ a misconfigured default is caught immediately:</p>
     <span class="n">x</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">Param</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="n">ge</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">le</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
 
 <span class="n">config</span> <span class="o">=</span> <span class="n">MyConfig</span><span class="p">()</span>
-<span class="n">config</span><span class="o">.</span><span class="n">model_copy</span><span class="p">(</span><span class="n">update</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;x&#39;</span><span class="p">:</span> <span class="mi">99</span><span class="p">})</span>     <span class="c1"># ✗ ValidationError</span>
+<span class="n">config</span><span class="o">.</span><span class="n">model_copy</span><span class="p">(</span><span class="n">update</span><span class="o">=</span><span class="p">{</span><span class="s1">'x'</span><span class="p">:</span> <span class="mi">99</span><span class="p">})</span>     <span class="c1"># ✗ ValidationError</span>
 </pre></div>
 </div>
 <section id="accessing-field-values-and-definitions">
@@ -238,13 +244,13 @@ a misconfigured default is caught immediately:</p>
     <span class="n">y</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="n">Param</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
 
 <span class="n">config</span> <span class="o">=</span> <span class="n">MyConfig</span><span class="p">()</span>
-<span class="n">config</span><span class="o">.</span><span class="n">values</span>   <span class="c1"># &gt;&gt;&gt; {&#39;x&#39;: 5, &#39;y&#39;: True}</span>
+<span class="n">config</span><span class="o">.</span><span class="n">values</span>   <span class="c1"># &gt;&gt;&gt; {'x': 5, 'y': True}</span>
 </pre></div>
 </div>
 <p>All <code class="docutils literal notranslate"><span class="pre">FieldInfo</span></code> definitions (type, default, constraints, metadata) are accessible
 via the <code class="docutils literal notranslate"><span class="pre">fields</span></code> property, which mirrors <code class="docutils literal notranslate"><span class="pre">model_fields</span></code>:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">config</span><span class="o">.</span><span class="n">fields</span>           <span class="c1"># &gt;&gt;&gt; {&#39;x&#39;: FieldInfo(...), &#39;y&#39;: FieldInfo(...)}</span>
-<span class="n">config</span><span class="o">.</span><span class="n">fields</span><span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">]</span>      <span class="c1"># &gt;&gt;&gt; FieldInfo(default=5, ...)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">config</span><span class="o">.</span><span class="n">fields</span>           <span class="c1"># &gt;&gt;&gt; {'x': FieldInfo(...), 'y': FieldInfo(...)}</span>
+<span class="n">config</span><span class="o">.</span><span class="n">fields</span><span class="p">[</span><span class="s1">'x'</span><span class="p">]</span>      <span class="c1"># &gt;&gt;&gt; FieldInfo(default=5, ...)</span>
 </pre></div>
 </div>
 </section>
@@ -258,9 +264,9 @@ via the <code class="docutils literal notranslate"><span class="pre">fields</spa
 
 <span class="n">config</span> <span class="o">=</span> <span class="n">MyConfig</span><span class="p">()</span>
 <span class="n">config</span><span class="o">.</span><span class="n">add_condition</span><span class="p">(</span>
-    <span class="n">name</span><span class="o">=</span><span class="s1">&#39;x_equals_y&#39;</span><span class="p">,</span>
+    <span class="n">name</span><span class="o">=</span><span class="s1">'x_equals_y'</span><span class="p">,</span>
     <span class="n">condition</span><span class="o">=</span><span class="k">lambda</span> <span class="n">c</span><span class="p">:</span> <span class="n">c</span><span class="o">.</span><span class="n">x</span> <span class="o">==</span> <span class="n">c</span><span class="o">.</span><span class="n">y</span><span class="p">,</span>
-    <span class="n">description</span><span class="o">=</span><span class="s1">&#39;x and y must be equal&#39;</span>
+    <span class="n">description</span><span class="o">=</span><span class="s1">'x and y must be equal'</span>
 <span class="p">)</span>
 </pre></div>
 </div>
@@ -268,10 +274,10 @@ via the <code class="docutils literal notranslate"><span class="pre">fields</spa
 raises a <code class="docutils literal notranslate"><span class="pre">RuntimeWarning</span></code>.</p>
 <p>Conditions accept an optional <code class="docutils literal notranslate"><span class="pre">tags</span></code> set for grouping:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">config</span><span class="o">.</span><span class="n">add_condition</span><span class="p">(</span>
-    <span class="n">name</span><span class="o">=</span><span class="s1">&#39;x_positive&#39;</span><span class="p">,</span>
+    <span class="n">name</span><span class="o">=</span><span class="s1">'x_positive'</span><span class="p">,</span>
     <span class="n">condition</span><span class="o">=</span><span class="k">lambda</span> <span class="n">c</span><span class="p">:</span> <span class="n">c</span><span class="o">.</span><span class="n">x</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span>
-    <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;sanity&#39;</span><span class="p">},</span>
-    <span class="n">description</span><span class="o">=</span><span class="s1">&#39;x must be positive&#39;</span>
+    <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">'sanity'</span><span class="p">},</span>
+    <span class="n">description</span><span class="o">=</span><span class="s1">'x must be positive'</span>
 <span class="p">)</span>
 </pre></div>
 </div>
@@ -291,13 +297,13 @@ that should be enforced at construction.</p>
     <span class="n">y</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">Param</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
 
 <span class="n">config</span> <span class="o">=</span> <span class="n">MyConfig</span><span class="p">()</span>
-<span class="n">config</span><span class="o">.</span><span class="n">add_condition</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;match&#39;</span><span class="p">,</span> <span class="n">condition</span><span class="o">=</span><span class="k">lambda</span> <span class="n">c</span><span class="p">:</span> <span class="n">c</span><span class="o">.</span><span class="n">x</span> <span class="o">==</span> <span class="n">c</span><span class="o">.</span><span class="n">y</span><span class="p">)</span>
+<span class="n">config</span><span class="o">.</span><span class="n">add_condition</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">'match'</span><span class="p">,</span> <span class="n">condition</span><span class="o">=</span><span class="k">lambda</span> <span class="n">c</span><span class="p">:</span> <span class="n">c</span><span class="o">.</span><span class="n">x</span> <span class="o">==</span> <span class="n">c</span><span class="o">.</span><span class="n">y</span><span class="p">)</span>
 
 <span class="n">config</span><span class="o">.</span><span class="n">validate_conditions</span><span class="p">()</span>                <span class="c1"># ✗ raises ValidationFailureException</span>
 <span class="n">config</span><span class="o">.</span><span class="n">validate_conditions</span><span class="p">(</span><span class="n">strict</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>    <span class="c1"># returns ValidationResult(passed=False, ...)</span>
 
-<span class="n">config</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">model_copy</span><span class="p">(</span><span class="n">update</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;x&#39;</span><span class="p">:</span> <span class="mi">5</span><span class="p">})</span>
-<span class="n">config</span><span class="o">.</span><span class="n">add_condition</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;match&#39;</span><span class="p">,</span> <span class="n">condition</span><span class="o">=</span><span class="k">lambda</span> <span class="n">c</span><span class="p">:</span> <span class="n">c</span><span class="o">.</span><span class="n">x</span> <span class="o">==</span> <span class="n">c</span><span class="o">.</span><span class="n">y</span><span class="p">)</span>
+<span class="n">config</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">model_copy</span><span class="p">(</span><span class="n">update</span><span class="o">=</span><span class="p">{</span><span class="s1">'x'</span><span class="p">:</span> <span class="mi">5</span><span class="p">})</span>
+<span class="n">config</span><span class="o">.</span><span class="n">add_condition</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">'match'</span><span class="p">,</span> <span class="n">condition</span><span class="o">=</span><span class="k">lambda</span> <span class="n">c</span><span class="p">:</span> <span class="n">c</span><span class="o">.</span><span class="n">x</span> <span class="o">==</span> <span class="n">c</span><span class="o">.</span><span class="n">y</span><span class="p">)</span>
 <span class="n">config</span><span class="o">.</span><span class="n">validate_conditions</span><span class="p">()</span>                <span class="c1"># ✓ passes silently</span>
 </pre></div>
 </div>
@@ -305,7 +311,7 @@ that should be enforced at construction.</p>
 allowing callers to inspect the result programmatically:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">result</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">validate_conditions</span><span class="p">(</span><span class="n">strict</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 <span class="n">result</span><span class="o">.</span><span class="n">passed</span>           <span class="c1"># &gt;&gt;&gt; False</span>
-<span class="n">result</span><span class="o">.</span><span class="n">error_message</span>    <span class="c1"># &gt;&gt;&gt; &#39;Condition match failed!&#39;</span>
+<span class="n">result</span><span class="o">.</span><span class="n">error_message</span>    <span class="c1"># &gt;&gt;&gt; 'Condition match failed!'</span>
 </pre></div>
 </div>
 <p>If a <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> has nested <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> dependencies, <code class="docutils literal notranslate"><span class="pre">validate_conditions</span></code>
@@ -315,22 +321,22 @@ recursively validates them as well.</p>
 <h3>Searching fields by tag<a class="headerlink" href="#searching-fields-by-tag" title="Link to this heading"></a></h3>
 <p>Tags allow quickly retrieving fields that share a keyword:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">MyConfig</span><span class="p">(</span><span class="n">Configuration</span><span class="p">):</span>
-    <span class="n">x</span><span class="p">:</span> <span class="nb">int</span>  <span class="o">=</span> <span class="n">Param</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span>   <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;number&#39;</span><span class="p">})</span>
-    <span class="n">y</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="n">Param</span><span class="p">(</span><span class="kc">True</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;boolean&#39;</span><span class="p">})</span>
-    <span class="n">z</span><span class="p">:</span> <span class="nb">int</span>  <span class="o">=</span> <span class="n">Param</span><span class="p">(</span><span class="mi">30</span><span class="p">,</span>   <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;number&#39;</span><span class="p">})</span>
+    <span class="n">x</span><span class="p">:</span> <span class="nb">int</span>  <span class="o">=</span> <span class="n">Param</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span>   <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">'number'</span><span class="p">})</span>
+    <span class="n">y</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="n">Param</span><span class="p">(</span><span class="kc">True</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">'boolean'</span><span class="p">})</span>
+    <span class="n">z</span><span class="p">:</span> <span class="nb">int</span>  <span class="o">=</span> <span class="n">Param</span><span class="p">(</span><span class="mi">30</span><span class="p">,</span>   <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">'number'</span><span class="p">})</span>
 
 <span class="n">config</span> <span class="o">=</span> <span class="n">MyConfig</span><span class="p">()</span>
 
 <span class="n">number_fields</span> <span class="o">=</span> <span class="p">{</span>
     <span class="n">name</span><span class="p">:</span> <span class="n">config</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
     <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">config</span><span class="o">.</span><span class="n">fields</span>
-    <span class="k">if</span> <span class="s1">&#39;number&#39;</span> <span class="ow">in</span> <span class="n">config</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">tags</span>
+    <span class="k">if</span> <span class="s1">'number'</span> <span class="ow">in</span> <span class="n">config</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">tags</span>
 <span class="p">}</span>
-<span class="c1"># &gt;&gt;&gt; {&#39;x&#39;: ParamMeta(...), &#39;z&#39;: ParamMeta(...)}</span>
+<span class="c1"># &gt;&gt;&gt; {'x': ParamMeta(...), 'z': ParamMeta(...)}</span>
 </pre></div>
 </div>
 <p>To filter by multiple tags, extend the condition:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">target_tags</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;number&#39;</span><span class="p">,</span> <span class="s1">&#39;hyperparameter&#39;</span><span class="p">}</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">target_tags</span> <span class="o">=</span> <span class="p">{</span><span class="s1">'number'</span><span class="p">,</span> <span class="s1">'hyperparameter'</span><span class="p">}</span>
 <span class="n">matching</span> <span class="o">=</span> <span class="p">{</span>
     <span class="n">name</span><span class="p">:</span> <span class="n">config</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
     <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">config</span><span class="o">.</span><span class="n">fields</span>
@@ -359,10 +365,10 @@ arguments:</p>
     <span class="n">x</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">Param</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">default</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;MyConfig&#39;</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">default</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">'MyConfig'</span><span class="p">:</span>
         <span class="n">config</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">default</span><span class="p">()</span>
         <span class="n">config</span><span class="o">.</span><span class="n">add_condition</span><span class="p">(</span>
-            <span class="n">name</span><span class="o">=</span><span class="s1">&#39;x_positive&#39;</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="s1">'x_positive'</span><span class="p">,</span>
             <span class="n">condition</span><span class="o">=</span><span class="k">lambda</span> <span class="n">c</span><span class="p">:</span> <span class="n">c</span><span class="o">.</span><span class="n">x</span> <span class="o">&gt;</span> <span class="mi">0</span>
         <span class="p">)</span>
         <span class="k">return</span> <span class="n">config</span>
@@ -404,15 +410,15 @@ the all-default combination (which is the configuration itself):</p>
 <li><p><code class="docutils literal notranslate"><span class="pre">values</span></code>: the field values for this combination.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">indexes</span></code>: the index of each value within its field’s variant list (<code class="docutils literal notranslate"><span class="pre">0</span></code> = default).</p></li>
 </ul>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># combos[0] = {&#39;values&#39;: {&#39;x&#39;: 5,  &#39;y&#39;: True},  &#39;indexes&#39;: {&#39;x&#39;: 0, &#39;y&#39;: 1}}</span>
-<span class="c1"># combos[1] = {&#39;values&#39;: {&#39;x&#39;: 20, &#39;y&#39;: False}, &#39;indexes&#39;: {&#39;x&#39;: 1, &#39;y&#39;: 0}}</span>
-<span class="c1"># combos[2] = {&#39;values&#39;: {&#39;x&#39;: 20, &#39;y&#39;: True},  &#39;indexes&#39;: {&#39;x&#39;: 1, &#39;y&#39;: 1}}</span>
-<span class="c1"># combos[3] = {&#39;values&#39;: {&#39;x&#39;: 42, &#39;y&#39;: False}, &#39;indexes&#39;: {&#39;x&#39;: 2, &#39;y&#39;: 0}}</span>
-<span class="c1"># combos[4] = {&#39;values&#39;: {&#39;x&#39;: 42, &#39;y&#39;: True},  &#39;indexes&#39;: {&#39;x&#39;: 2, &#39;y&#39;: 1}}</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># combos[0] = {'values': {'x': 5,  'y': True},  'indexes': {'x': 0, 'y': 1}}</span>
+<span class="c1"># combos[1] = {'values': {'x': 20, 'y': False}, 'indexes': {'x': 1, 'y': 0}}</span>
+<span class="c1"># combos[2] = {'values': {'x': 20, 'y': True},  'indexes': {'x': 1, 'y': 1}}</span>
+<span class="c1"># combos[3] = {'values': {'x': 42, 'y': False}, 'indexes': {'x': 2, 'y': 0}}</span>
+<span class="c1"># combos[4] = {'values': {'x': 42, 'y': True},  'indexes': {'x': 2, 'y': 1}}</span>
 </pre></div>
 </div>
 <p>Use <code class="docutils literal notranslate"><span class="pre">model_copy</span></code> to instantiate a specific variant:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">variant</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">model_copy</span><span class="p">(</span><span class="n">update</span><span class="o">=</span><span class="n">combos</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;values&#39;</span><span class="p">])</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">variant</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">model_copy</span><span class="p">(</span><span class="n">update</span><span class="o">=</span><span class="n">combos</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">'values'</span><span class="p">])</span>
 <span class="n">variant</span><span class="o">.</span><span class="n">x</span>   <span class="c1"># &gt;&gt;&gt; 5</span>
 <span class="n">variant</span><span class="o">.</span><span class="n">y</span>   <span class="c1"># &gt;&gt;&gt; True</span>
 </pre></div>
@@ -432,7 +438,7 @@ build time by the <code class="docutils literal notranslate"><span class="pre">R
     <span class="n">param_1</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="n">Param</span><span class="p">(</span><span class="kc">True</span><span class="p">,</span>  <span class="n">variants</span><span class="o">=</span><span class="p">[</span><span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">])</span>
     <span class="n">param_2</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="n">Param</span><span class="p">(</span><span class="kc">False</span><span class="p">,</span> <span class="n">variants</span><span class="o">=</span><span class="p">[</span><span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">])</span>
     <span class="n">child</span><span class="p">:</span> <span class="n">RegistrationKey</span> <span class="o">=</span> <span class="n">Param</span><span class="p">(</span>
-        <span class="n">RegistrationKey</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;child&#39;</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;default&#39;</span><span class="p">},</span> <span class="n">namespace</span><span class="o">=</span><span class="s1">&#39;testing&#39;</span><span class="p">)</span>
+        <span class="n">RegistrationKey</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">'child'</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">'default'</span><span class="p">},</span> <span class="n">namespace</span><span class="o">=</span><span class="s1">'testing'</span><span class="p">)</span>
     <span class="p">)</span>
 </pre></div>
 </div>
@@ -440,7 +446,7 @@ build time by the <code class="docutils literal notranslate"><span class="pre">R
 or a nested <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> instance:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">config</span> <span class="o">=</span> <span class="n">ParentConfig</span><span class="o">.</span><span class="n">default</span><span class="p">()</span>
 <span class="n">config</span><span class="o">.</span><span class="n">dependencies</span>
-<span class="c1"># &gt;&gt;&gt; {&#39;child&#39;: RegistrationKey(name=&#39;child&#39;, tags={&#39;default&#39;}, namespace=&#39;testing&#39;)}</span>
+<span class="c1"># &gt;&gt;&gt; {'child': RegistrationKey(name='child', tags={'default'}, namespace='testing')}</span>
 </pre></div>
 </div>
 <div class="admonition note">

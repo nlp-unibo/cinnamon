@@ -244,11 +244,11 @@ class Configuration(BaseModel, metaclass=ConfigurationMeta):
     ) -> C:
         """
         Syntactic sugar for retrieving a `Configuration` from a
-         ``RegistrationKey`` in implicit format.
+        ``RegistrationKey`` in implicit format.
 
         Args:
             registration_key: the ``RegistrationKey`` used to register the
-             ``Configuration`` class.
+                ``Configuration`` class.
             name: the ``name`` field of ``RegistrationKey``
             tags: the ``tags`` field of ``RegistrationKey``
             namespace: the ``namespace`` field of ``RegistrationKey``
@@ -258,9 +258,9 @@ class Configuration(BaseModel, metaclass=ConfigurationMeta):
 
         Raises:
             ``InvalidConfigurationTypeException``: if there's a mismatch
-             between the ``Configuration`` class used
+                between the ``Configuration`` class used
             during registration and the type of the built ``Configuration``
-             instance using the registered
+            instance using the registered
             ``constructor`` method (see ``ConfigurationInfo`` arguments).
         """
         config: Configuration = cinnamon.registry.Registry.retrieve_configuration(
@@ -413,14 +413,14 @@ class Configuration(BaseModel, metaclass=ConfigurationMeta):
 
         Args:
             condition: a function that receives as input the current
-             ``Configuration`` instance and returns a boolean.
+                ``Configuration`` instance and returns a boolean.
             name: unique identifier.
             description: a string description for readability purposes.
             tags: a set of string tags to mark the condition with metadata.
 
         Raises:
             ``AlreadyExistingParameterException``: if the provided `name`
-             already exists in the Configuration instance.
+                already exists in the Configuration instance.
         """
         if name in self._conditions:
             warnings.warn(
@@ -438,15 +438,15 @@ class Configuration(BaseModel, metaclass=ConfigurationMeta):
 
          Args:
              strict: if True, a failed validation process will raise
-              ``InvalidConfigurationException``
+                 ``InvalidConfigurationException``
 
          Returns:
              A ``ValidationResult`` that stores the boolean result of the validation
-              process along with an error message if the result is ``False``.
+             process along with an error message if the result is ``False``.
 
          Raises:
              ``ValidationFailureException``: if ``strict = True`` and the validation
-              process failed
+                 process failed
         """
 
         for dependency_name, dependency in self.dependencies.items():
@@ -501,7 +501,7 @@ class Configuration(BaseModel, metaclass=ConfigurationMeta):
     ) -> list[dict[str, dict[str, Any]]]:
         """
         Computes all unique combinations of a configuration's fields along
-         with their indices.
+        with their indices.
         The baseline/default value always gets index 0.
         Subsequent unique variants get an increasing index (1, 2, ...).
         """

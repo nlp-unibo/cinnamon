@@ -42,16 +42,22 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
-<ul class="current">
+              <p class="caption" role="heading"><span class="caption-text">Getting started:</span></p>
+<ul>
 <li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Concepts:</span></p>
+<ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Component</a><ul class="simple">
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="registration.html">Registration</a></li>
 <li class="toctree-l1"><a class="reference internal" href="dependencies.html">Dependencies</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference:</span></p>
+<ul>
 <li class="toctree-l1"><a class="reference internal" href="commands.html">Commands</a></li>
 <li class="toctree-l1"><a class="reference internal" href="modules.html">Code Documentation</a></li>
 </ul>
@@ -86,125 +92,161 @@
              
   <section id="component">
 <span id="id1"></span><h1>Component<a class="headerlink" href="#component" title="Link to this heading"></a></h1>
-<p>A <code class="docutils literal notranslate"><span class="pre">Component</span></code> is any class that implements some program logic — data loading,
-model training, preprocessing, evaluation, and so on.</p>
-<p>Cinnamon does not impose any particular API on your existing code, except that the
-class must inherit from <code class="docutils literal notranslate"><span class="pre">Component</span></code>:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">cinnamon.component</span><span class="w"> </span><span class="kn">import</span> <span class="n">Component</span>
+<p>A component is any class that implements some program logic — data loading, model
+training, preprocessing, evaluation, and so on. It is where the weight of your
+program lives.</p>
+<p><strong>cinnamon imposes nothing on it.</strong> No base class, no decorator, no import:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">DataLoader</span><span class="p">:</span>
 
-<span class="k">class</span><span class="w"> </span><span class="nc">DataLoader</span><span class="p">(</span><span class="n">Component</span><span class="p">):</span>
-
-    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">df_path</span> <span class="o">=</span> <span class="n">df_path</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span> <span class="o">=</span> <span class="n">batch_size</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">load</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="o">...</span>
 </pre></div>
 </div>
-<p>The same applies to more complex classes — the inheritance is the only required change.</p>
+<p>That is a complete, registrable component. Earlier versions of cinnamon required
+inheriting from a <code class="docutils literal notranslate"><span class="pre">Component</span></code> base class; that class was removed, and nothing
+replaced it.</p>
 <section id="receiving-configuration-parameters">
 <h2>Receiving configuration parameters<a class="headerlink" href="#receiving-configuration-parameters" title="Link to this heading"></a></h2>
-<p>When the <code class="docutils literal notranslate"><span class="pre">Registry</span></code> builds a <code class="docutils literal notranslate"><span class="pre">Component</span></code>, it unpacks the bound <code class="docutils literal notranslate"><span class="pre">Configuration</span></code>’s
-<code class="docutils literal notranslate"><span class="pre">values</span></code> dictionary directly into the component’s constructor:</p>
+<p>When the <code class="docutils literal notranslate"><span class="pre">Registry</span></code> builds a component, it unpacks the bound <code class="docutils literal notranslate"><span class="pre">Configuration</span></code>’s
+<code class="docutils literal notranslate"><span class="pre">values</span></code> into the constructor:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">component</span> <span class="o">=</span> <span class="n">ComponentClass</span><span class="p">(</span><span class="o">**</span><span class="n">config</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="o">**</span><span class="n">build_args</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>This means that your component’s <code class="docutils literal notranslate"><span class="pre">__init__</span></code> parameters must match the field names
-of its bound <code class="docutils literal notranslate"><span class="pre">Configuration</span></code>:</p>
+<p>So the component’s <code class="docutils literal notranslate"><span class="pre">__init__</span></code> parameters must match the field names of its bound
+<code class="docutils literal notranslate"><span class="pre">Configuration</span></code>:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">cinnamon.configuration</span><span class="w"> </span><span class="kn">import</span> <span class="n">Configuration</span><span class="p">,</span> <span class="n">Param</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">cinnamon.component</span><span class="w"> </span><span class="kn">import</span> <span class="n">Component</span>
 
 <span class="k">class</span><span class="w"> </span><span class="nc">DataLoaderConfig</span><span class="p">(</span><span class="n">Configuration</span><span class="p">):</span>
-    <span class="n">df_path</span><span class="p">:</span> <span class="n">Path</span> <span class="o">=</span> <span class="n">Param</span><span class="p">(</span><span class="s1">&#39;path/to/data&#39;</span><span class="p">)</span>
+    <span class="n">df_path</span><span class="p">:</span> <span class="n">Path</span> <span class="o">=</span> <span class="n">Param</span><span class="p">(</span><span class="s1">'path/to/data'</span><span class="p">)</span>
     <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">Param</span><span class="p">(</span><span class="mi">32</span><span class="p">)</span>
 
-<span class="k">class</span><span class="w"> </span><span class="nc">DataLoader</span><span class="p">(</span><span class="n">Component</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">DataLoader</span><span class="p">:</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df_path</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">df_path</span> <span class="o">=</span> <span class="n">df_path</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span> <span class="o">=</span> <span class="n">batch_size</span>
 </pre></div>
 </div>
-<p>You can also call a component directly from a configuration instance, without going
-through the <code class="docutils literal notranslate"><span class="pre">Registry</span></code>:</p>
+<p><code class="docutils literal notranslate"><span class="pre">cmn-check</span> <span class="pre">--deep</span></code> verifies that correspondence for every registration, so a
+renamed field is caught before you run anything.</p>
+<p>You can also build a component straight from a configuration, without the registry:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">config</span> <span class="o">=</span> <span class="n">DataLoaderConfig</span><span class="o">.</span><span class="n">default</span><span class="p">()</span>
 <span class="n">loader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span><span class="o">**</span><span class="n">config</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
 </pre></div>
 </div>
 </section>
-<section id="nested-configurations">
-<h2>Nested configurations<a class="headerlink" href="#nested-configurations" title="Link to this heading"></a></h2>
-<p>When a <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> has a dependency field (a <code class="docutils literal notranslate"><span class="pre">RegistrationKey</span></code> pointing to
-another <code class="docutils literal notranslate"><span class="pre">Configuration</span></code>), the <code class="docutils literal notranslate"><span class="pre">Registry</span></code> resolves it to a <code class="docutils literal notranslate"><span class="pre">Configuration</span></code>
-instance before building the component.</p>
-<p>The component therefore receives a <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> object for that parameter,
-not a primitive value:</p>
+<section id="receiving-dependencies">
+<h2>Receiving dependencies<a class="headerlink" href="#receiving-dependencies" title="Link to this heading"></a></h2>
+<p>A dependency field holds a <a class="reference internal" href="cinnamon.html#cinnamon.registry.RegistrationKey" title="cinnamon.registry.RegistrationKey"><code class="xref py py-class docutils literal notranslate"><span class="pre">RegistrationKey</span></code></a>, and <strong>that
+key is what the component receives</strong> — not a resolved configuration, and not a
+built object:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">cinnamon.configuration</span><span class="w"> </span><span class="kn">import</span> <span class="n">Configuration</span><span class="p">,</span> <span class="n">Param</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">cinnamon.registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">RegistrationKey</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">cinnamon.component</span><span class="w"> </span><span class="kn">import</span> <span class="n">Component</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">cinnamon.registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">RegistrationKey</span><span class="p">,</span> <span class="n">Registry</span>
 
-<span class="k">class</span><span class="w"> </span><span class="nc">ProcessorConfig</span><span class="p">(</span><span class="n">Configuration</span><span class="p">):</span>
-    <span class="n">vocab_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">Param</span><span class="p">(</span><span class="mi">30000</span><span class="p">)</span>
-
-<span class="k">class</span><span class="w"> </span><span class="nc">DataLoaderConfig</span><span class="p">(</span><span class="n">Configuration</span><span class="p">):</span>
-    <span class="n">df_path</span><span class="p">:</span> <span class="n">Path</span> <span class="o">=</span> <span class="n">Param</span><span class="p">(</span><span class="s1">&#39;path/to/data&#39;</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">PipelineConfig</span><span class="p">(</span><span class="n">Configuration</span><span class="p">):</span>
     <span class="n">processor</span><span class="p">:</span> <span class="n">RegistrationKey</span> <span class="o">=</span> <span class="n">Param</span><span class="p">(</span>
-        <span class="n">RegistrationKey</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;processor&#39;</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;default&#39;</span><span class="p">},</span> <span class="n">namespace</span><span class="o">=</span><span class="s1">&#39;nlp&#39;</span><span class="p">)</span>
+        <span class="n">RegistrationKey</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">'processor'</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">'tf-idf'</span><span class="p">},</span> <span class="n">namespace</span><span class="o">=</span><span class="s1">'nlp'</span><span class="p">)</span>
     <span class="p">)</span>
 
-<span class="k">class</span><span class="w"> </span><span class="nc">DataLoader</span><span class="p">(</span><span class="n">Component</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Pipeline</span><span class="p">:</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df_path</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">processor</span><span class="p">:</span> <span class="n">ProcessorConfig</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">df_path</span> <span class="o">=</span> <span class="n">df_path</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">processor</span> <span class="o">=</span> <span class="n">processor</span>   <span class="c1"># receives a ProcessorConfig instance</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">processor</span><span class="p">:</span> <span class="n">RegistrationKey</span><span class="p">):</span>
+        <span class="c1"># The component builds its own child, when it wants to.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">processor</span> <span class="o">=</span> <span class="n">Registry</span><span class="o">.</span><span class="n">from_key</span><span class="p">(</span><span class="n">processor</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This is deliberate. Because the component holds a key rather than an instance, it
+decides <em>when</em> — and <em>whether</em> — each child is built. A child that is only needed
+on one code path costs nothing on the others, and a component can build the same
+child twice if that is what it means to do.</p>
+<p>For containers, <a class="reference internal" href="cinnamon.html#cinnamon.registry.Registry.from_keys" title="cinnamon.registry.Registry.from_keys"><code class="xref py py-meth docutils literal notranslate"><span class="pre">from_keys()</span></code></a> does the same job
+while keeping the shape:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">ModelConfig</span><span class="p">(</span><span class="n">Configuration</span><span class="p">):</span>
+    <span class="n">losses</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">RegistrationKey</span><span class="p">]</span> <span class="o">=</span> <span class="n">Param</span><span class="p">([</span><span class="o">...</span><span class="p">])</span>
+    <span class="n">metrics</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">RegistrationKey</span><span class="p">]</span> <span class="o">=</span> <span class="n">Param</span><span class="p">({</span><span class="o">...</span><span class="p">})</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">Model</span><span class="p">:</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">losses</span><span class="p">,</span> <span class="n">metrics</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">losses</span> <span class="o">=</span> <span class="n">Registry</span><span class="o">.</span><span class="n">from_keys</span><span class="p">(</span><span class="n">losses</span><span class="p">)</span>     <span class="c1"># list  -&gt; list, in order</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span> <span class="o">=</span> <span class="n">Registry</span><span class="o">.</span><span class="n">from_keys</span><span class="p">(</span><span class="n">metrics</span><span class="p">)</span>   <span class="c1"># dict  -&gt; dict, same labels</span>
 </pre></div>
 </div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>See <a class="reference external" href="https://nlp-unibo.github.io/cinnamon/dependencies.html">dependencies</a> for
-a full explanation of how nested configurations are declared and resolved.</p>
+<p>See <a class="reference internal" href="dependencies.html"><span class="doc">Registration Dependencies</span></a> for how dependencies are declared, resolved and varied.</p>
 </div>
+</section>
+<section id="binding-a-component-to-a-configuration">
+<h2>Binding a component to a configuration<a class="headerlink" href="#binding-a-component-to-a-configuration" title="Link to this heading"></a></h2>
+<p>The binding is the component’s <strong>import path, as a string</strong>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">Registry</span><span class="o">.</span><span class="n">register_configuration</span><span class="p">(</span>
+    <span class="n">config</span><span class="o">=</span><span class="n">DataLoaderConfig</span><span class="p">(),</span>
+    <span class="n">name</span><span class="o">=</span><span class="s1">'data_loader'</span><span class="p">,</span>
+    <span class="n">namespace</span><span class="o">=</span><span class="s1">'nlp'</span><span class="p">,</span>
+    <span class="n">component</span><span class="o">=</span><span class="s1">'mypackage.components.DataLoader'</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>A string rather than the class itself, because the class is imported only when an
+instance is actually requested. A registry can therefore be built — and inspected,
+and checked for mistakes — without importing any of the components it names, which
+matters when those components pull in torch or scikit-learn. Importing one such
+library typically costs more than building an entire registry.</p>
+<p><code class="docutils literal notranslate"><span class="pre">cmn-check</span></code> resolves these paths on the filesystem without importing anything;
+<code class="docutils literal notranslate"><span class="pre">cmn-check</span> <span class="pre">--deep</span></code> imports them to check signatures too.</p>
 </section>
 <section id="building-a-component">
 <h2>Building a component<a class="headerlink" href="#building-a-component" title="Link to this heading"></a></h2>
-<p>Once <code class="docutils literal notranslate"><span class="pre">Registry.build()</span></code> has been called, a component instance can be constructed
-in two equivalent ways.</p>
-<p>Via the <code class="docutils literal notranslate"><span class="pre">Registry</span></code> directly:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">cinnamon.registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">Registry</span>
+<p>Once <a class="reference internal" href="cinnamon.html#cinnamon.registry.Registry.build" title="cinnamon.registry.Registry.build"><code class="xref py py-meth docutils literal notranslate"><span class="pre">build()</span></code></a> has run:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">cinnamon.registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">RegistrationKey</span><span class="p">,</span> <span class="n">Registry</span>
 
-<span class="n">loader</span> <span class="o">=</span> <span class="n">Registry</span><span class="o">.</span><span class="n">instantiate_component</span><span class="p">(</span>
-    <span class="n">name</span><span class="o">=</span><span class="s1">&#39;data_loader&#39;</span><span class="p">,</span>
-    <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;default&#39;</span><span class="p">},</span>
-    <span class="n">namespace</span><span class="o">=</span><span class="s1">&#39;showcasing&#39;</span>
+<span class="n">key</span> <span class="o">=</span> <span class="n">RegistrationKey</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">'data_loader'</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">'default'</span><span class="p">},</span> <span class="n">namespace</span><span class="o">=</span><span class="s1">'nlp'</span><span class="p">)</span>
+<span class="n">loader</span> <span class="o">=</span> <span class="n">Registry</span><span class="o">.</span><span class="n">from_key</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><a class="reference internal" href="cinnamon.html#cinnamon.registry.Registry.instantiate" title="cinnamon.registry.Registry.instantiate"><code class="xref py py-meth docutils literal notranslate"><span class="pre">instantiate()</span></code></a> is the same thing with the key
+spelled out, and an optional type check:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">loader</span> <span class="o">=</span> <span class="n">Registry</span><span class="o">.</span><span class="n">instantiate</span><span class="p">(</span>
+    <span class="n">name</span><span class="o">=</span><span class="s1">'data_loader'</span><span class="p">,</span>
+    <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">'default'</span><span class="p">},</span>
+    <span class="n">namespace</span><span class="o">=</span><span class="s1">'nlp'</span><span class="p">,</span>
+    <span class="n">expected_type</span><span class="o">=</span><span class="n">DataLoader</span><span class="p">,</span>     <span class="c1"># raises TypeError if it is not one</span>
 <span class="p">)</span>
 </pre></div>
 </div>
-<p>Via the <code class="docutils literal notranslate"><span class="pre">Component</span></code> class itself (syntactic sugar that also type-checks the result):</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">loader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="o">.</span><span class="n">instantiate</span><span class="p">(</span>
-    <span class="n">name</span><span class="o">=</span><span class="s1">&#39;data_loader&#39;</span><span class="p">,</span>
-    <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;default&#39;</span><span class="p">},</span>
-    <span class="n">namespace</span><span class="o">=</span><span class="s1">&#39;showcasing&#39;</span>
-<span class="p">)</span>
-</pre></div>
-</div>
-<p><code class="docutils literal notranslate"><span class="pre">DataLoader.instantiate()</span></code> raises a <code class="docutils literal notranslate"><span class="pre">RuntimeError</span></code> if the built instance is not
-actually a <code class="docutils literal notranslate"><span class="pre">DataLoader</span></code>. <code class="docutils literal notranslate"><span class="pre">Registry.instantiate_component()</span></code> skips that check but
-is otherwise identical.</p>
-<p>Both methods accept additional keyword arguments via <code class="docutils literal notranslate"><span class="pre">**build_args</span></code>, which are merged
-into <code class="docutils literal notranslate"><span class="pre">config.values</span></code> at build time and can be used to override specific parameters:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">loader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="o">.</span><span class="n">instantiate</span><span class="p">(</span>
-    <span class="n">name</span><span class="o">=</span><span class="s1">&#39;data_loader&#39;</span><span class="p">,</span>
-    <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;default&#39;</span><span class="p">},</span>
-    <span class="n">namespace</span><span class="o">=</span><span class="s1">&#39;showcasing&#39;</span><span class="p">,</span>
-    <span class="n">batch_size</span><span class="o">=</span><span class="mi">64</span>       <span class="c1"># overrides the registered default of 32</span>
+<p>Both accept extra keyword arguments, merged into <code class="docutils literal notranslate"><span class="pre">config.values</span></code> at build time:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">loader</span> <span class="o">=</span> <span class="n">Registry</span><span class="o">.</span><span class="n">instantiate</span><span class="p">(</span>
+    <span class="n">name</span><span class="o">=</span><span class="s1">'data_loader'</span><span class="p">,</span>
+    <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s1">'default'</span><span class="p">},</span>
+    <span class="n">namespace</span><span class="o">=</span><span class="s1">'nlp'</span><span class="p">,</span>
+    <span class="n">batch_size</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span>       <span class="c1"># overrides the registered default of 32</span>
 <span class="p">)</span>
 </pre></div>
 </div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p><code class="docutils literal notranslate"><span class="pre">build_args</span></code> only override values at instantiation time — the registered
-<code class="docutils literal notranslate"><span class="pre">Configuration</span></code> stored in the <code class="docutils literal notranslate"><span class="pre">Registry</span></code> is not modified.</p>
+<p><code class="docutils literal notranslate"><span class="pre">build_args</span></code> override values for this build only — the <code class="docutils literal notranslate"><span class="pre">Configuration</span></code>
+stored in the <code class="docutils literal notranslate"><span class="pre">Registry</span></code> is unchanged.</p>
+</div>
+</section>
+<section id="runnable-components">
+<h2>Runnable components<a class="headerlink" href="#runnable-components" title="Link to this heading"></a></h2>
+<p>Passing <code class="docutils literal notranslate"><span class="pre">run_method</span></code> marks a registration as runnable, which is what <code class="docutils literal notranslate"><span class="pre">cmn-run</span></code>
+offers you and what <code class="docutils literal notranslate"><span class="pre">cmn-generate</span></code> writes scripts for:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">Registry</span><span class="o">.</span><span class="n">register_configuration</span><span class="p">(</span>
+    <span class="n">config</span><span class="o">=</span><span class="n">BenchmarkConfig</span><span class="p">(),</span>
+    <span class="n">name</span><span class="o">=</span><span class="s1">'benchmark'</span><span class="p">,</span>
+    <span class="n">namespace</span><span class="o">=</span><span class="s1">'nlp'</span><span class="p">,</span>
+    <span class="n">component</span><span class="o">=</span><span class="s1">'mypackage.components.Benchmark'</span><span class="p">,</span>
+    <span class="n">run_method</span><span class="o">=</span><span class="s1">'run'</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
 </div>
 <div class="toctree-wrapper compound">
 </div>

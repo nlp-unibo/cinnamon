@@ -247,18 +247,12 @@ Build the bound ``Component`` instance:
 
 .. code-block:: python
 
-    # Via the Registry
-    component = Registry.instantiate_component(
-        name='test', tags={'default'}, namespace='testing'
-    )
-
-    # Via the Component class (type-checks the result)
-    component = CustomComponent.instantiate(
+    component = Registry.instantiate(
         name='test', tags={'default'}, namespace='testing'
     )
     component.x     # >>> 5
 
-See `component <https://nlp-unibo.github.io/cinnamon/component.html>`_ for the full
+See :doc:`component` for the full
 details of how component construction works, including nested configurations and
 ``build_args`` overrides.
 

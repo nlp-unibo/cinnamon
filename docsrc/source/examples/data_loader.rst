@@ -15,7 +15,7 @@ and parsing the IMDB archive into a ``pandas.DataFrame``:
 
 .. code-block:: python
 
-    class IMDBLoader(Component):
+    class IMDBLoader:
 
         def __init__(
             self,
@@ -106,14 +106,14 @@ Demo script
         directory = Path(__file__).parent.parent.resolve()
         Registry.build(directory=directory)
 
-        loader = IMDBLoader.instantiate(
+        loader = Registry.instantiate(
             name='data_loader', tags={'imdb'}, namespace='examples'
         )
         df = loader.load_data()
         logging.info(df)
 
 ``Registry.build()`` scans the ``configurations/`` folder, registers all keys,
-and resolves dependencies. ``IMDBLoader.instantiate()`` then retrieves the registered
+and resolves dependencies. ``Registry.instantiate()`` then retrieves the registered
 ``IMDBLoaderConfig``, unpacks its values, and constructs the ``IMDBLoader`` instance.
 
 .. note::

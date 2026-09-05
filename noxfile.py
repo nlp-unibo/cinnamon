@@ -10,6 +10,7 @@ one command, not four commands across five virtual environments.
     nox -s tests            full suite behind the 100% coverage gate
     nox -s core             the suite without the CLI extra installed
     nox -s examples         the shipped examples, with pandas and scikit-learn
+    nox -s docs             build the documentation, warnings treated as errors
     nox -s tests -p 3.10    a specific interpreter
 
 CI runs ``tests`` and ``core`` across 3.10-3.14. Missing interpreters are
@@ -76,3 +77,24 @@ def examples(session: nox.Session) -> None:
     """
     session.install("-e", ".[cli,dev,examples]")
     session.run("pytest", "tests/test_examples.py", "--no-cov", "-v")
+
+
+@nox.session(python=LINT_VERSION)
+def docs(session: nox.Session) -> None:
+    """Build the documentation with warnings treated as errors.
+
+    The package itself is installed because autodoc imports it: the API pages
+    are generated from the real docstrings, so a module that has been deleted
+    fails here rather than shipping as a broken page.
+    """
+    session.install("-e", ".[cli]")
+    session.install("sphinx", "sphinx_autodoc_typehints", "sphinx_rtd_theme")
+    session.run(
+        "sphinx-build",
+        "-b",
+        "html",
+        "-W",
+        "--keep-going",
+        "docsrc/source",
+        session.create_tmp() + "/html",
+    )
