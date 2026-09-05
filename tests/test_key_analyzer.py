@@ -2,7 +2,7 @@
 
 import pytest
 
-from cinnamon.configuration import Configuration
+from cinnamon.configuration import Configuration, Param
 from cinnamon.registry import RegistrationKey, Registry
 from cinnamon.utility.exceptions import (
     NamespaceNotFoundException,
@@ -11,7 +11,9 @@ from cinnamon.utility.exceptions import (
 from cinnamon.utility.key_analyzer import (
     Severity,
     analyze_keys,
+    explain_variant_tags,
     format_findings,
+    format_variant_explanations,
 )
 
 NAMESPACE = "nlp"
@@ -253,3 +255,160 @@ def test_namespace_exception_without_the_missing_namespace():
 
     assert "Did you mean namespace" not in message
     assert "Missing namespace: None" in message
+
+
+# -- indexed variant tags ---------------------------------------------------
+
+
+class VariedContainerConfig(Configuration):
+    losses: list = Param([1], variants=[[1, 2], []])
+    label: str = Param("a", variants=["b"])
+
+
+def test_indexed_variant_tags_are_explained(reset_registry):
+    """`losses=variant-1` says nothing about the losses; this says what they are."""
+    Registry.register_configuration(
+        config=VariedContainerConfig(), name="model", namespace=NAMESPACE
+    )
+    Registry.dag_resolution()
+
+    explanations = explain_variant_tags(Registry)
+
+    assert explanations == [
+        ("model", NAMESPACE, "losses=variant-1", "[1, 2]"),
+        ("model", NAMESPACE, "losses=variant-2", "[]"),
+    ]
+
+
+def test_value_derived_tags_need_no_explanation(reset_registry):
+    """`label=b` already says what it is, so it is left out."""
+    Registry.register_configuration(
+        config=VariedContainerConfig(), name="model", namespace=NAMESPACE
+    )
+    Registry.dag_resolution()
+
+    assert not any("label" in tag for _, _, tag, _ in explain_variant_tags(Registry))
+
+
+def test_each_tag_is_explained_once(reset_registry):
+    """A tag means the same thing on every key that carries it.
+
+    Two varying fields put `losses=variant-1` on several keys; repeating the
+    explanation per key would bury it.
+    """
+    Registry.register_configuration(
+        config=VariedContainerConfig(), name="model", namespace=NAMESPACE
+    )
+    valid_keys, _ = Registry.dag_resolution()
+
+    carriers = [key for key in valid_keys if "losses=variant-1" in key.tags]
+    explanations = explain_variant_tags(Registry)
+
+    assert len(carriers) > 1
+    assert sum(1 for *_, tag, _ in explanations if tag == "losses=variant-1") == 1
+
+
+def test_a_registry_without_indexed_variants_explains_nothing(reset_registry):
+    _register("plain")
+    Registry.dag_resolution()
+
+    assert explain_variant_tags(Registry) == []
+    assert format_variant_explanations([]) == ""
+
+
+def test_dependency_containers_render_by_key_name(reset_registry):
+    """Keys render compactly: name, plus tags when it has them."""
+
+    class ModelConfig(Configuration):
+        children: list = Param(
+            [RegistrationKey(name="a", namespace=NAMESPACE)],
+            variants=[
+                [
+                    RegistrationKey(name="a", namespace=NAMESPACE),
+                    RegistrationKey(name="b", tags={"t"}, namespace=NAMESPACE),
+                ]
+            ],
+        )
+
+    _register("a")
+    _register("b", tags={"t"})
+    Registry.register_configuration(
+        config=ModelConfig(), name="model", namespace=NAMESPACE
+    )
+    Registry.dag_resolution()
+
+    assert explain_variant_tags(Registry) == [
+        ("model", NAMESPACE, "children=variant-1", "[a, b[t]]")
+    ]
+
+
+def test_a_long_value_is_truncated(reset_registry):
+    # A str variant is taggable and renders into the tag itself, so it never
+    # produces an indexed tag. It takes a container to get one.
+    class ModelConfig(Configuration):
+        blob: list = Param([0], variants=[list(range(100))])
+
+    Registry.register_configuration(
+        config=ModelConfig(), name="model", namespace=NAMESPACE
+    )
+    Registry.dag_resolution()
+
+    rendering = explain_variant_tags(Registry)[0][3]
+    assert rendering.endswith("...")
+    assert len(rendering) == 60
+
+
+def test_format_variant_explanations_groups_by_configuration():
+    rendered = format_variant_explanations(
+        [
+            ("model", "nlp", "losses=variant-1", "[ce]"),
+            ("model", "nlp", "metrics=variant-1", "{acc: acc}"),
+            ("other", "nlp", "x=variant-1", "[1]"),
+        ]
+    )
+
+    assert rendered.count("model (ns=nlp)") == 1
+    assert "other (ns=nlp)" in rendered
+    # tags are padded to a common width, so match on content not spacing
+    assert "losses=variant-1" in rendered and "= [ce]" in rendered
+
+
+def test_a_dict_variant_renders_its_labels(reset_registry):
+    class ModelConfig(Configuration):
+        metrics: dict = Param({"acc": 1}, variants=[{"acc": 1, "f1": 2}])
+
+    Registry.register_configuration(
+        config=ModelConfig(), name="model", namespace=NAMESPACE
+    )
+    Registry.dag_resolution()
+
+    assert explain_variant_tags(Registry) == [
+        ("model", NAMESPACE, "metrics=variant-1", "{acc: 1, f1: 2}")
+    ]
+
+
+def test_explanations_skip_keys_without_a_configuration(reset_registry):
+    """A registry entry may carry no configuration; it explains nothing."""
+    Registry.register_configuration(
+        config=VariedContainerConfig(), name="model", namespace=NAMESPACE
+    )
+    Registry.dag_resolution()
+    for key in list(Registry._REGISTRY):
+        Registry._REGISTRY[key].config = None
+
+    assert explain_variant_tags(Registry) == []
+
+
+def test_a_tag_naming_no_field_is_ignored(reset_registry):
+    """Hand-written tags can look like variant tags without being one."""
+    Registry.register_configuration(
+        config=VariedContainerConfig(),
+        name="model",
+        tags={"handwritten=variant-9"},
+        namespace=NAMESPACE,
+    )
+    Registry.dag_resolution()
+
+    assert not any(
+        tag == "handwritten=variant-9" for *_, tag, _ in explain_variant_tags(Registry)
+    )

@@ -77,6 +77,21 @@ would otherwise take three runs to fix. It also warns about tags that differ onl
 slightly from each other — ``tf-idf`` against ``tfidf``, ``IMDB`` against ``imdb`` —
 which resolve perfectly well today and are pure latent confusion.
 
+**Indexed variants.** A variant of a list or a dict is tagged by position --
+``losses=variant-1`` -- because a container has no short stable rendering. The
+index is deterministic, so keys stay comparable across runs, but it does not say
+what is in the variant. ``cmn-check`` spells each one out, once per
+configuration rather than once per key:
+
+.. code-block:: text
+
+    === Indexed Variants ===
+
+      model (ns=nlp)
+          losses=variant-1   = [ce, sparsity]
+          losses=variant-2   = []
+          metrics=variant-1  = {acc: acc, f1: f1}
+
 **Bindings.** Component paths are resolved on the filesystem *without importing
 them*, so the command stays fast whatever your components weigh. ``--deep`` imports
 each one and checks its ``__init__`` against the configuration's fields, at the cost

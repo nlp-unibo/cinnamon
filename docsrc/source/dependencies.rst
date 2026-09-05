@@ -233,8 +233,8 @@ changes nothing.
     contents of a list or dict do not reduce to a short, stable label the way a
     scalar value does. The index follows declaration order, so keys stay the same
     across runs and machines, but the tag does not tell you what is in the
-    variant. ``cmn-build`` writes the full configuration of every key, which is
-    where to look.
+    variant. ``cmn-check`` prints an **Indexed Variants** section saying what each
+    one holds.
 
 =============================================
 External dependencies

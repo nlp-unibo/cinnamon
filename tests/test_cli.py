@@ -798,3 +798,43 @@ def test_cli_check_deep_flag_checks_signatures(
 
     assert raised.value.code == 1
     assert "does not accept in __init__" in capsys.readouterr().out
+
+
+VARIANT_PROJECT = """
+from cinnamon.configuration import Configuration, Param
+from cinnamon.registry import Registry, register
+
+class Model(Configuration):
+    losses: list = Param([1], variants=[[1, 2]])
+
+@register
+def registrations():
+    Registry.register_configuration(Model(), name="model", namespace="nlp")
+"""
+
+
+def test_cli_check_explains_indexed_variants(
+    tmp_path, monkeypatch, capsys, reset_registry
+):
+    """`losses=variant-1` in a key means nothing on its own; check spells it out."""
+    project = _write_project(tmp_path, VARIANT_PROJECT)
+    monkeypatch.setattr("sys.argv", ["cmn-check", "-dir", str(project)])
+
+    cli.check()
+
+    output = capsys.readouterr().out
+    assert "=== Indexed Variants ===" in output
+    assert "losses=variant-1" in output
+    assert "[1, 2]" in output
+
+
+def test_cli_check_says_nothing_when_no_variant_is_indexed(
+    tmp_path, monkeypatch, capsys, reset_registry
+):
+    """A registry whose variants all render into their tags needs no section."""
+    project = _write_project(tmp_path, CLEAN_PROJECT)
+    monkeypatch.setattr("sys.argv", ["cmn-check", "-dir", str(project)])
+
+    cli.check()
+
+    assert "Indexed Variants" not in capsys.readouterr().out

@@ -10,7 +10,12 @@ from typing import List, Optional, Tuple
 from cinnamon.registry import RegistrationKey, Registry
 from cinnamon.utility import key_analyzer
 from cinnamon.utility.inquirer import filter_keys
-from cinnamon.utility.key_analyzer import analyze_keys, format_findings
+from cinnamon.utility.key_analyzer import (
+    analyze_keys,
+    explain_variant_tags,
+    format_findings,
+    format_variant_explanations,
+)
 from cinnamon.utility.sanity import check_directory, check_external_json_path
 from cinnamon.utility.static_analyzer import analyze_registry, print_analysis_summary
 
@@ -344,6 +349,14 @@ def check() -> None:
         raise SystemExit(1)
 
     Registry.dag_resolution()
+
+    # Only meaningful once resolution has run: the variant configurations do not
+    # exist before it.
+    explanations = format_variant_explanations(explain_variant_tags(Registry))
+    if explanations:
+        print()
+        print(explanations)
+
     deep = getattr(args, "deep", False)
     bindings = analyze_registry(Registry, deep=deep)
     print()
