@@ -119,8 +119,11 @@ def _check_component_path(component_path: str) -> Tuple[List[str], List[str]]:
 
     resolved = 0
     for split in range(1, len(segments)):
-        origin, _ = locate_module(".".join(segments[:split]))
-        if origin is None:
+        # Presence is reported by `missing`, not by `origin`: a namespace
+        # package (a directory with no __init__.py) resolves perfectly well and
+        # still has no file of its own to point at.
+        _, missing = locate_module(".".join(segments[:split]))
+        if missing is not None:
             break
         resolved = split
 

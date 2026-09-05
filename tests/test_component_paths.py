@@ -267,3 +267,21 @@ def test_other_schema_errors_are_left_to_pydantic(monkeypatch):
             x: int = 1
 
     assert raised.value is unrelated
+
+
+def test_namespace_packages_resolve(tmp_path, monkeypatch):
+    """A directory with no __init__.py is a package, and must not read as missing.
+
+    Regression: `locate_module` returns ``(None, None)`` for a namespace package
+    -- found, but with no file of its own -- and the path check treated the
+    absent origin as an absent module. Every component under `examples/`, which
+    has no `__init__.py`, was reported as unresolvable.
+    """
+    (tmp_path / "nspkg" / "inner").mkdir(parents=True)
+    (tmp_path / "nspkg" / "inner" / "mod.py").write_text("class Thing:\n    pass\n")
+    monkeypatch.syspath_prepend(str(tmp_path))
+
+    origin, missing = locate_module("nspkg")
+    assert (origin, missing) == (None, None)  # found, no file
+
+    assert _check_component_path("nspkg.inner.mod.Thing") == ([], [])

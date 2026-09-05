@@ -146,8 +146,13 @@ def locate_module(module_path: str) -> Tuple[Optional[str], Optional[str]]:
     """
     Find a module's source file **without importing anything**.
 
-    Returns ``(origin, missing_segment)``: the file backing *module_path*, or
+    Returns ``(origin, missing_segment)``: the file backing *module_path*, and
     the first dotted segment that could not be found.
+
+    **Presence is signalled by** ``missing_segment is None``, not by ``origin``.
+    A namespace package -- a directory with no ``__init__.py`` -- resolves
+    successfully and yet has no file of its own, so it comes back as
+    ``(None, None)``.
 
     ``importlib.util.find_spec`` cannot be used for this. Resolving a dotted
     path there imports the parent packages to read their ``__path__`` -- for
