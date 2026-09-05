@@ -83,18 +83,16 @@ def examples(session: nox.Session) -> None:
 def docs(session: nox.Session) -> None:
     """Build the documentation with warnings treated as errors.
 
-    The package itself is installed because autodoc imports it: the API pages
-    are generated from the real docstrings, so a module that has been deleted
-    fails here rather than shipping as a broken page.
+    The package is installed with the ``cli`` extra because autodoc imports each
+    module to document it, and ``cinnamon.cli`` imports InquirerPy at module
+    level. A deleted module, a broken reference or a missing optional dependency
+    all fail here rather than shipping as a broken page.
+
+    Runs ``build_docs.sh`` -- the same script CI and the publish workflow use --
+    so all three exercise one code path and cannot quietly disagree about flags
+    or output location.
     """
     session.install("-e", ".[cli]")
     session.install("sphinx", "sphinx_autodoc_typehints", "sphinx_rtd_theme")
-    session.run(
-        "sphinx-build",
-        "-b",
-        "html",
-        "-W",
-        "--keep-going",
-        "docsrc/source",
-        session.create_tmp() + "/html",
-    )
+    session.chdir("docsrc")
+    session.run("bash", "build_docs.sh", external=True)

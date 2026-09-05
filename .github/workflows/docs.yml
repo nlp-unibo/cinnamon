@@ -26,16 +26,17 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.10"
+          python-version: "3.12"
 
+      # Must match the `docs` job in ci.yml. They diverged once: this workflow
+      # installed the package without the `cli` extra, so autodoc could not
+      # import cinnamon.cli, and the build -- which treats warnings as errors --
+      # failed only here, after the pull request had already gone green.
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install sphinx sphinx_autodoc_typehints sphinx_rtd_theme 
-          
-          # If your docs use autodoc to pull docstrings from your code, 
-          # you also need to install your package:
-          pip install -e .
+          pip install -e .[cli]
+          pip install sphinx sphinx_autodoc_typehints sphinx_rtd_theme
 
       - name: Build HTML
         run: |

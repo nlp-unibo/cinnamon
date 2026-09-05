@@ -41,6 +41,18 @@ extensions = [
     "sphinx_autodoc_typehints",
 ]
 
+# ``InquirerPy`` is an optional dependency: it ships with the ``cli`` extra, and
+# cinnamon.cli / cinnamon.utility.inquirer import it at module level. Autodoc has
+# to import a module to document it, so without the extra those two imports fail
+# -- and since the build treats warnings as errors, the whole thing stops.
+#
+# Mock it only when it is really missing, so an environment that has it still
+# documents the real signatures.
+try:
+    import InquirerPy  # noqa: F401
+except ImportError:  # pragma: no cover - depends on the install extras
+    autodoc_mock_imports = ["InquirerPy"]
+
 # Napoleon settings
 napoleon_google_docstring = True
 napoleon_numpy_docstring = True
