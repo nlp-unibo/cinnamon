@@ -6,11 +6,10 @@ they are bound to. This framework does *not* require a ``Component`` class:
 components are plain Python classes referenced by a fully-qualified string path
 (see ``Registry.instantiate``). The analyzer therefore checks:
 
-  * that the component path imports to a class;
-  * that the configuration's fields are compatible with the component's ``__init__``;
-  * that a configuration bound to no component is reported as a warning,
-    not an error.
-"""
+* that the component path imports to a class;
+* that the configuration's fields are compatible with the component's ``__init__``;
+* that a configuration bound to no component is reported as a warning,
+    not an error."""
 
 from __future__ import annotations
 
@@ -97,11 +96,11 @@ def _check_component_path(component_path: str) -> Tuple[List[str], List[str]]:
     class name. What that means depends on how much is left over:
 
     * nothing resolved at all -> the top-level package is missing, which is
-      unambiguous and an error;
+    unambiguous and an error;
     * everything but the last segment resolved -> as verified as it gets;
     * something in between -> either a wrong module path or a nested class, and
-      no amount of filesystem inspection can tell those apart, so it is a
-      warning rather than an error.
+    no amount of filesystem inspection can tell those apart, so it is a
+    warning rather than an error.
 
     Whether the *class* exists inside the module is not checkable either:
     re-export is the norm, and ``sklearn/svm/__init__.py`` -- to pick the case
@@ -204,7 +203,7 @@ def analyze_registry(
     Returns a mapping ``(name, namespace, tags) -> (ok, errors, warnings)``.
     * ``ok`` is ``True`` when there are no errors.
     * An unbound config (``component is None``) is a warning, not an error,
-      since unbound configs are valid when used purely as dependencies.
+    since unbound configs are valid when used purely as dependencies.
 
     Args:
         deep: when ``True`` (the default) each component is imported so its

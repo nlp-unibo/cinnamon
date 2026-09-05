@@ -21,8 +21,7 @@ key inside a container.
 This module is the single place that knows about these shapes. ``registry.py``
 walks dependencies through :func:`iter_dependency_keys` and rebuilds them
 through :func:`map_dependency_keys`, so registration, expansion and resolution
-stay shape-agnostic.
-"""
+stay shape-agnostic."""
 
 from __future__ import annotations
 

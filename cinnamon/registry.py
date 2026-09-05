@@ -59,7 +59,6 @@ from cinnamon.utility.suggestions import suggest_keys
 logger = getLogger(__name__)
 
 Constructor = Callable[[], "cinnamon.configuration.Configuration"]
-Registration = Union["RegistrationKey", str]
 T = TypeVar("T")
 
 __all__ = ["RegistrationKey", "register", "register_method", "Registry", "Registration"]
@@ -77,6 +76,13 @@ class RegistrationKey(Generic[T]):
     name: str
     namespace: str
     tags: frozenset[str]
+
+    #: Free-form documentation for the key.
+    description: str | None
+    #: Why a key was rejected, filled in by resolution for invalid keys.
+    metadata: str | None
+    #: Internal markers such as ``__runnable``; not part of the key's identity.
+    special_tags: set[str]
 
     _IMMUTABLE = frozenset({"name", "namespace", "tags"})
 
@@ -112,7 +118,7 @@ class RegistrationKey(Generic[T]):
             to distinguish among them.
             description: natural language description of a ``RegistrationKey``.
             metadata: optionally contains information about the invalidity of the
-             ``RegistrationKey``
+                ``RegistrationKey``
             special_tags: set of special tags for internal use.
         """
 
@@ -275,14 +281,14 @@ class RegistrationKey(Generic[T]):
     def from_tags_simplification(self, tags: Tags) -> RegistrationKey[T]:
         """
         Builds a new ``RegistrationKey`` from current instance
-         by removing provided tags.
+        by removing provided tags.
 
         Args:
             tags: a Tag set containing tags to remove
 
         Returns:
             A ``RegistrationKey`` instance that is the same as the current instance
-             but with ``tags`` removed.
+            but with ``tags`` removed.
 
         """
         tags = tags or set()
@@ -338,11 +344,11 @@ class RegistrationKey(Generic[T]):
         """
         Parses a given ``RegistrationKey`` instance.
         If the given ``registration_key`` is in its string format, it is converted
-         to ``RegistrationKey`` instance
+        to ``RegistrationKey`` instance
 
         Args:
             registration_key: a ``RegistrationKey`` instance in its class instance
-             or string format
+                or string format
             name: the ``name`` field of ``RegistrationKey``
             namespace: the ``namespace`` field of ``RegistrationKey``
             tags: the ``tags`` field of ``RegistrationKey``
@@ -409,6 +415,12 @@ class BufferedRegistration:
         self.run_method = run_method
 
 
+#: A registration key, or its canonical string form. Defined after the class so
+#: the alias holds the real type: a forward reference here cannot be resolved
+#: from other modules' namespaces, which broke the generated API docs.
+Registration = Union[RegistrationKey, str]
+
+
 def register_method(
     name: str,
     namespace: str,
@@ -466,13 +478,13 @@ class ConfigurationInfo:
     """
     Utility dataclass used for registration.
     The ``Configuration`` class is stored in the Registry via its corresponding
-     ``ConfigurationInfo`` wrapper.
+    ``ConfigurationInfo`` wrapper.
 
     This wrapper contains:
         - config: ``Configuration`` instance
         - component: the ``Component`` class type as string
         - run_method: if any, the ``Component`` method to execute when instantiating the
-         ``Component`` as runnable
+        ``Component`` as runnable
     """
 
     config: cinnamon.configuration.Configuration
@@ -485,17 +497,17 @@ class Registry:
     The registration registry.
     The registry has three main functionalities:
     - Storing/Retrieving registered ``Configuration``: via the ``ConfigurationInfo``
-     internal wrapper.
+    internal wrapper.
     - Storing/Retrieving ``Configuration`` to ``Component`` bindings: the binding
-     operation allows to build a ``Component`` instance from its
-      registered ``Configuration``.
+    operation allows to build a ``Component`` instance from its
+    registered ``Configuration``.
     - Storing/Retrieving registered built ``Component`` instances: a ``Component``
-     instance can be registered as well to mimic Singleton behaviors.
-     This functionality is useful is a single ``Component`` instance
-       is used multiple times in a program.
+    instance can be registered as well to mimic Singleton behaviors.
+    This functionality is useful is a single ``Component`` instance
+    is used multiple times in a program.
 
     All the above functionalities require to specify a ``RegistrationKey``
-     (either directly or indirectly).
+    (either directly or indirectly).
     """
 
     _CONFIGURATION_FOLDER = "configurations"
@@ -587,9 +599,9 @@ class Registry:
         """
         Main entrypoint of cinnamon.
         The registry checks provided directories for configurations to populate its
-         internal registry and build the dependency DAG.
+        internal registry and build the dependency DAG.
         Eventually, the dependency DAG is expanded to account for variants
-         and invalid configurations.
+        and invalid configurations.
 
         Args:
             directory: the main directory of the project containing configurations.
@@ -600,19 +612,14 @@ class Registry:
             invalid_keys: a ``ResolutionInfo` containing invalid ``RegistrationKey``
 
         Raises:
-           ``RuntimeWarning``: if duplicate namespaces are found.
-
-           ``InvalidDirectoryException``: if one of the provided directories does
-            not exist or is not a directory.
-
-           ``AlreadyExpandedException``: if the dependency DAG has been expanded.
-
-           ``NotADAGException``: if the dependency DAG is not a DAG.
-
-           ``DisconnectedGraphException``: if, for some reason, the dependency DAG
-            contains disconnected nodes.
-           This should never happen via cinnamon APIs, unless some manual intervention
-            on the dependency DAG is carried out.
+            RuntimeWarning: if duplicate namespaces are found.
+            InvalidDirectoryException: if one of the provided directories does
+                not exist or is not a directory.
+            AlreadyExpandedException: if the dependency DAG has been expanded.
+            NotADAGException: if the dependency DAG is not a DAG.
+            DisconnectedGraphException: if the dependency DAG contains
+                disconnected nodes. This should never happen through the
+                cinnamon APIs, only through manual edits to the graph.
         """
 
         cls.load(directory=directory, external_directories=external_directories)
@@ -632,7 +639,7 @@ class Registry:
 
         Raises:
             ``RuntimeWarning``: if a namespace is already mapped to a directory.
-             Two directories claiming one namespace makes resolution ambiguous,
+                Two directories claiming one namespace makes resolution ambiguous,
              so the merge is refused rather than silently resolved.
         """
         for key in module_mapping:
@@ -653,7 +660,7 @@ class Registry:
     ) -> Tuple[List[str], Dict[str, Path]]:
         """
         Runs a static code analyzer to inspect code scripts containing
-         cinnamon registrations with the goal of determining unique namespaces.
+        cinnamon registrations with the goal of determining unique namespaces.
 
         Args:
             directories: list of directories containing cinnamon registrations.
@@ -695,7 +702,7 @@ class Registry:
 
         Raises:
             ``InvalidDirectoryException``: if any of the provided directories is
-             not a directory or does not exist.
+                not a directory or does not exist.
         """
 
         resolved_directories = []
@@ -717,14 +724,14 @@ class Registry:
         Imports a Python's module for registration.
         The Registry looks for ``register()`` and ``register_method()`` decorators.
         These functions are the entry points for registrations: that is, where the
-         ``Registry`` APIs are invoked to issue registrations.
+        ``Registry`` APIs are invoked to issue registrations.
 
         Args:
             directory: path of the module
 
         Raises:
             ``InvalidDirectoryException``: if the provided directory is not a directory
-             or does not exist.
+                or does not exist.
         """
         directory = Path(directory)
 
@@ -824,14 +831,11 @@ class Registry:
         Checks if the dependency DAG is valid.
 
         Raises:
-           ``AlreadyExpandedException``: if the dependency DAG has been expanded.
-
-           ``NotADAGException``: if the dependency DAG is not a DAG.
-
-           ``DisconnectedGraphException``: if, for some reason, the dependency DAG
-            contains disconnected nodes.
-           This should never happen via cinnamon APIs, unless some manual intervention
-            on the dependency DAG is carried out.
+            AlreadyExpandedException: if the dependency DAG has been expanded.
+            NotADAGException: if the dependency DAG is not a DAG.
+            DisconnectedGraphException: if the dependency DAG contains
+                disconnected nodes. This should never happen through the
+                cinnamon APIs, only through manual edits to the graph.
         """
 
         if cls.expanded:
@@ -1064,11 +1068,11 @@ class Registry:
     ) -> Any:
         """
         Builds a ``Component`` instance from its bounded ``Configuration``
-         via the implicit ``RegistrationKey``.
+        via the implicit ``RegistrationKey``.
 
         Args:
             registration_key: the ``RegistrationKey`` used to register the
-             ``Configuration`` class.
+                ``Configuration`` class.
             name: the ``name`` attribute of ``RegistrationKey``
             tags: the ``tags`` attribute of ``RegistrationKey``
             namespace: the ``namespace`` attribute of ``RegistrationKey``
@@ -1080,12 +1084,12 @@ class Registry:
 
         Raises:
             ``InvalidConfigurationTypeException``: if there's a mismatch between
-             the ``Configuration`` class used during registration and the type of the
+                the ``Configuration`` class used during registration and the type of the
               built ``Configuration`` instance using the registered
             ``constructor`` method (see ``ConfigurationInfo`` arguments).
 
             ``NotBoundException``: if the ``Configuration`` is not bound to
-             any component.
+                any component.
         """
         if not cls.expanded:
             raise NotExpandedException()
@@ -1142,11 +1146,11 @@ class Registry:
             tags: the ``tags`` field of ``RegistrationKey``,
             component: ``Component`` module path as string
             run_method: ``Component`` method to run when instantiating
-             the ``Component`` as runnable
+                the ``Component`` as runnable
 
         Returns:
             The built ``RegistrationKey`` instance that can be used to retrieve
-             the registered ``ConfigurationInfo``.
+            the registered ``ConfigurationInfo``.
 
         Raises:
             ``NotExpandedException``: if the dependency DAG has not been expanded yet.
@@ -1154,7 +1158,7 @@ class Registry:
             ``AlreadyRegisteredException``: if the ``RegistrationKey`` is already used
 
             ``NamespaceNotFoundException``: if one of the dependencies of
-             ``RegistrationKey`` belongs to a namespace not covered.
+                ``RegistrationKey`` belongs to a namespace not covered.
         """
         if cls.expanded:
             raise AlreadyExpandedException()
@@ -1261,7 +1265,7 @@ class Registry:
     ) -> ConfigurationInfo:
         """
             Retrieves a ``ConfigurationInfo`` instance from the registry via
-             its ``RegistrationKey``.
+            its ``RegistrationKey``.
 
         Args:
             registration_key: key used to register the configuration
@@ -1295,7 +1299,7 @@ class Registry:
     ) -> cinnamon.configuration.Configuration:
         """
             Retrieves a ``Configuration`` instance from the registry
-             via its ``RegistrationKey``.
+            via its ``RegistrationKey``.
 
         Args:
             registration_key: key used to register the configuration
@@ -1320,7 +1324,7 @@ class Registry:
     ) -> ConfigurationInfo:
         """
             Retrieves a ``Configuration`` instance from the registry
-             via its ``RegistrationKey``.
+            via its ``RegistrationKey``.
 
         Args:
             registration_key: key used to register the configuration

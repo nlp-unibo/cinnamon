@@ -301,10 +301,10 @@ def check() -> None:
     Two passes, in the order the problems occur:
 
     1. **Keys** -- run after ``Registry.load`` so that *every* broken reference
-       is visible. ``dag_resolution`` stops at the first one, which is why a
-       project with three typos otherwise takes three runs to fix.
+    is visible. ``dag_resolution`` stops at the first one, which is why a
+    project with three typos otherwise takes three runs to fix.
     2. **Bindings** -- only once the keys resolve, since the component analyzer
-       needs an expanded registry.
+    needs an expanded registry.
 
     The binding pass resolves component paths on the filesystem without
     importing them, so the command stays fast whatever the components weigh.

@@ -3,7 +3,7 @@
 Cinnamon entry points
 *********************************************
 
-Cinnamon ships three console scripts for working with ``Configuration`` and ``Component``
+Cinnamon ships four console scripts for working with configurations and components
 without writing boilerplate code.
 
 =============================================
@@ -17,13 +17,14 @@ To use ``cmn-run`` and ``cmn-generate``, install the ``cli`` extra:
 
     pip install cinnamon[cli]
 
-``cmn-build`` has no extra dependencies and works with the base install.
+``cmn-build`` and ``cmn-check`` have no extra dependencies and work with the
+base install.
 
 =============================================
 Common arguments
 =============================================
 
-All three commands accept the same two optional arguments:
+All four commands accept the same two optional arguments:
 
 ``-dir`` / ``--directory``
     Path to the main project directory containing the ``configurations`` folder.
@@ -40,8 +41,53 @@ All three commands accept the same two optional arguments:
             "/path/to/external/project_b"
         ]
 
-    See `dependencies <https://nlp-unibo.github.io/cinnamon/dependencies.html>`_ for
-    details on external directories.
+    See :doc:`dependencies` for details on external directories.
+
+=============================================
+cmn-check
+=============================================
+
+``cmn-check`` reports registration problems without running anything. It is the
+cheapest thing to run after editing configurations, and it is designed to be usable
+as a pre-commit or CI gate: it exits non-zero when it finds errors.
+
+.. code-block:: bash
+
+    cmn-check -dir .
+    cmn-check -dir . --strict     # warnings fail too
+    cmn-check -dir . --deep       # also import components to check signatures
+
+It makes two passes.
+
+**Keys.** Every dependency that resolves to nothing is reported *at once*, with the
+registrations that reference it and a ranked suggestion of what you probably meant:
+
+.. code-block:: text
+
+    [error] unresolved-key
+      No configuration is registered under name=loader--tags=['imbd']--namespace=nlp.
+      referenced by:
+        - name=pipeline--namespace=nlp
+      did you mean:
+        - name=loader--tags=['imdb']--namespace=nlp
+            (tag 'imbd' -> 'imdb')
+
+``Registry.build`` stops at the first missing key, so a project with three typos
+would otherwise take three runs to fix. It also warns about tags that differ only
+slightly from each other — ``tf-idf`` against ``tfidf``, ``IMDB`` against ``imdb`` —
+which resolve perfectly well today and are pure latent confusion.
+
+**Bindings.** Component paths are resolved on the filesystem *without importing
+them*, so the command stays fast whatever your components weigh. ``--deep`` imports
+each one and checks its ``__init__`` against the configuration's fields, at the cost
+of that import.
+
+.. note::
+    The shallow pass is deliberately modest. A missing top-level package is an
+    error; a middle segment that is not a module is only a warning, because a wrong
+    module path and a nested class are indistinguishable on disk. Whether the class
+    exists inside the module is not checked at all — re-export is the norm, and many
+    packages define no classes in the ``__init__.py`` you would be looking at.
 
 =============================================
 cmn-build
@@ -103,11 +149,10 @@ The method must take no arguments beyond ``self``:
 
 .. code-block:: python
 
-    from cinnamon.component import Component
     from cinnamon.configuration import Configuration, Param
     from cinnamon.registry import register_method
 
-    class TrainerComponent(Component):
+    class TrainerComponent:
 
         def __init__(self, epochs: int, lr: float):
             self.epochs = epochs

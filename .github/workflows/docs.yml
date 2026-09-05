@@ -39,18 +39,15 @@ jobs:
 
       - name: Build HTML
         run: |
-          # Navigate to your docs folder and build
           cd docsrc
-          sh build_docs.sh
-          # Note: If you don't use 'make', the command is:
-          # sphinx-build -b html . _build/html
+          bash build_docs.sh
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # Tell GitHub exactly which folder to host
-          # This is usually docs/_build/html or docs/build/html
-          path: docs/
+          # The build output itself. Nothing is committed: the generated site
+          # lives only in the artifact this step uploads.
+          path: docsrc/build/html
 
   deploy:
     environment:

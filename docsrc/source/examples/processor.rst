@@ -15,7 +15,7 @@ into a sparse tf-idf matrix:
 
 .. code-block:: python
 
-    class TfIdfProcessor(Component):
+    class TfIdfProcessor:
 
         def __init__(self, **kwargs):
             self.vectorizer = TfidfVectorizer(**kwargs)
@@ -64,7 +64,7 @@ Configuration fields are forwarded directly since ``config.values`` unpacks into
 
 .. code-block:: python
 
-    class LabelProcessor(Component):
+    class LabelProcessor:
 
         def __init__(self):
             self.label_encoder = LabelEncoder()
