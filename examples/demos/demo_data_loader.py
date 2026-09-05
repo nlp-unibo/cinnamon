@@ -3,7 +3,6 @@ from logging import getLogger
 from pathlib import Path
 
 from cinnamon.registry import Registry
-from examples.components.data_loader import IMDBLoader
 
 if __name__ == "__main__":
     """
@@ -17,7 +16,7 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     logger = getLogger(__name__)
 
-    loader = IMDBLoader.instantiate(
+    loader = Registry.instantiate(
         name="data_loader", tags={"imdb"}, namespace="examples"
     )
     df = loader.load_data()

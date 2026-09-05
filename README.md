@@ -135,14 +135,35 @@ for the complete walkthrough.
 
 ---
 
-## Examples
+## Learning cinnamon
 
-The `examples/` folder contains a complete ML pipeline: data loading, preprocessing,
-SVM classification, and evaluation on the IMDB sentiment dataset.
+**[`examples/tutorial/`](examples/tutorial/)** — seven runnable steps, no dependencies
+beyond cinnamon itself. Each one is a single file you can read in a screen and change.
 
 ```bash
-pip install "cinnamon[examples]"
-cd examples && python demos/demo_benchmark.py
+pip install -e .
+python examples/tutorial/01_configuration.py
+```
+
+| | Introduces |
+|---|---|
+| [1. Configuration](examples/tutorial/01_configuration.py) | `Configuration`, `Param`, validation |
+| [2. Registration](examples/tutorial/02_registration.py) | components as plain classes, `RegistrationKey` |
+| [3. Variants](examples/tutorial/03_variants.py) | one component, many configurations |
+| [4. Dependencies](examples/tutorial/04_dependencies.py) | referencing another registration |
+| [5. Collections](examples/tutorial/05_collections.py) | `list` and `dict` of keys |
+| [6. Conditions](examples/tutorial/06_conditions.py) | rejecting combinations that make no sense |
+| [7. Project layout](examples/tutorial/07_project_layout/) | the real directory structure and the CLI |
+
+## A full example
+
+The rest of `examples/` is a complete ML pipeline: data loading, preprocessing, SVM
+classification, and evaluation on the IMDB sentiment dataset. It downloads the dataset
+on first run.
+
+```bash
+pip install -e ".[examples]"
+python -m examples.demos.demo_benchmark
 ```
 
 See the [examples documentation](https://nlp-unibo.github.io/cinnamon/examples/index.html)
