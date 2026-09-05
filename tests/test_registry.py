@@ -4,6 +4,8 @@ from cinnamon.configuration import Configuration
 from cinnamon.registry import (
     RegistrationKey,
     Registry,
+    register,
+    register_method,
 )
 from cinnamon.utility.exceptions import (
     AlreadyRegisteredException,
@@ -24,8 +26,6 @@ from tests.fixtures import (
     ParentWithVariantsAndChild,
     VariantConfigWithChild,
     VariantConfigWithVariantChild,
-    expand_registry,
-    reset_registry,
 )
 
 # Basic Registrations
@@ -787,3 +787,64 @@ def test_retrieve_runnable_keys(reset_registry):
 
     assert len(keys) == 1
     assert keys[0].name == "runnable"
+
+
+# -- branch coverage: guards that only trigger outside a registration context --
+
+
+def test_register_method_decorator_is_inert_outside_registration(reset_registry):
+    """@register_method only buffers while the Registry is collecting."""
+    assert Registry.REGISTRATION_CONTEXT.is_registering is False
+
+    @register_method(name="inert", namespace="testing")
+    def _factory():  # pragma: no cover - never invoked
+        return Configuration.default()
+
+    assert Registry.REGISTRATION_METHODS == {}
+
+
+def test_register_decorator_is_inert_outside_registration(reset_registry):
+    """@register only buffers while the Registry is collecting."""
+    assert Registry.REGISTRATION_CONTEXT.is_registering is False
+
+    @register
+    def _registrations():  # pragma: no cover - never invoked
+        return None
+
+    assert Registry.REGISTRATION_METHODS == {}
+
+
+def test_register_method_does_not_rebuffer_the_same_key(reset_registry):
+    """A key already buffered is left alone rather than overwritten."""
+    with Registry.REGISTRATION_CONTEXT:
+
+        @register_method(name="dup", namespace="testing")
+        def _first():  # pragma: no cover - never invoked
+            return Configuration.default()
+
+        buffered = dict(Registry.REGISTRATION_METHODS)
+
+        @register_method(name="dup", namespace="testing")
+        def _second():  # pragma: no cover - never invoked
+            return Configuration.default()
+
+    assert len(Registry.REGISTRATION_METHODS) == 1
+    key = next(iter(Registry.REGISTRATION_METHODS))
+    assert Registry.REGISTRATION_METHODS[key] is buffered[key]
+
+
+def test_resolve_configuration_is_idempotent(reset_registry):
+    """Re-resolving a config whose dependency is already a Configuration is a no-op."""
+    Registry.register_configuration(
+        config=BaseConfig.default(), name="test", tags={"t2"}, namespace="testing"
+    )
+    Registry.register_configuration(
+        config=ConfigWithChild(), name="parent", namespace="testing"
+    )
+
+    config = Registry.retrieve_configuration(name="parent", namespace="testing")
+    resolved = Registry.resolve_configuration(config=config.model_copy(deep=True))
+    assert isinstance(resolved.c1, Configuration)
+
+    reresolved = Registry.resolve_configuration(config=resolved)
+    assert reresolved.c1 is resolved.c1

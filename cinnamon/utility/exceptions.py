@@ -1,7 +1,12 @@
+from __future__ import annotations
+
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import AnyStr, List, Optional, Union
+from typing import TYPE_CHECKING, List, Optional, Union
+
+if TYPE_CHECKING:
+    from cinnamon.registry import RegistrationKey
 
 __all__ = [
     "AlreadyRegisteredException",
@@ -19,7 +24,7 @@ __all__ = [
 
 
 class AlreadyRegisteredException(Exception):
-    def __init__(self, registration_key: "cinnamon.registry.RegistrationKey"):  # noqa: F821
+    def __init__(self, registration_key: "RegistrationKey"):
         super(AlreadyRegisteredException, self).__init__(
             f"A configuration has already been registered with the same key!"
             f"Got: {registration_key}"
@@ -29,7 +34,7 @@ class AlreadyRegisteredException(Exception):
 class NamespaceNotFoundException(Exception):
     def __init__(
         self,
-        registration_key: "cinnamon.registry.RegistrationKey",  # noqa: F821
+        registration_key: "RegistrationKey",
         namespaces: List[str],
     ):
         super(NamespaceNotFoundException, self).__init__(
@@ -42,14 +47,14 @@ class NamespaceNotFoundException(Exception):
 
 
 class NotRegisteredException(Exception):
-    def __init__(self, registration_key: "cinnamon.registry.RegistrationKey"):  # noqa: F821
+    def __init__(self, registration_key: "RegistrationKey"):
         super(NotRegisteredException, self).__init__(
             f"Could not find key {registration_key}. Did you register it?"
         )
 
 
 class NotBoundException(Exception):
-    def __init__(self, registration_key: "cinnamon.registry.RegistrationKey"):  # noqa: F821
+    def __init__(self, registration_key: "RegistrationKey"):
         super(NotBoundException, self).__init__(
             f"Registered configuration {registration_key} is not bound to a component."
             f" Did you bind it?"
@@ -94,7 +99,7 @@ class NotExpandedException(Exception):
 
 
 class InvalidDirectoryException(Exception):
-    def __init__(self, directory: Union[AnyStr, Path]):
+    def __init__(self, directory: Union[str, Path]):
         super().__init__(
             f"The directory path does not exist or is not a directory. {os.linesep}"
             f"Path: {directory}"

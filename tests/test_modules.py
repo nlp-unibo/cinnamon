@@ -11,7 +11,7 @@ from cinnamon.utility.exceptions import (
     NamespaceNotFoundException,
 )
 from cinnamon.utility.registration import NamespaceExtractor
-from tests.fixtures import EmptyComponent, reset_registry
+from tests.fixtures import EmptyComponent
 
 
 def test_parse_configuration_files_with_register():
@@ -87,7 +87,6 @@ def test_load_registrations_nested_exception(reset_registry):
 
 
 def test_chained_register_decorator(reset_registry):
-    """Test test chained register decorator."""
     directory = Path(".", "tests", "ext_repo_nested_dec")
     Registry.load_registrations(directory=directory)
     key1 = RegistrationKey(name="config", tags={"nest1"}, namespace="testing")
@@ -105,7 +104,6 @@ def test_chained_register_decorator(reset_registry):
 
 
 def test_deeply_nested_config(reset_registry):
-    """Test test deeply nested config."""
     directory = Path(".", "tests", "deeply_nested_repo")
     Registry.load_registrations(directory=directory)
     key = RegistrationKey(name="config", namespace="testing")

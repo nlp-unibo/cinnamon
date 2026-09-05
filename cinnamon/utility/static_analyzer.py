@@ -53,7 +53,9 @@ def _get_component_signature(component_path: str) -> _ComponentSignature:
         ) from exc
 
     try:
-        init_sig = inspect.signature(component_cls.__init__)
+        # component_cls is a class object; mypy reads the attribute access as
+        # an instance lookup and warns about subclass variance.
+        init_sig = inspect.signature(component_cls.__init__)  # type: ignore[misc]
     except (TypeError, ValueError) as exc:
         raise RuntimeError(
             f"Cannot inspect __init__ of '{component_path}': {exc}"
@@ -114,8 +116,19 @@ def _check_signature(component_path: str, config: Configuration) -> List[str]:
     return problems
 
 
+def reset_signature_cache() -> None:
+    """
+    Drop the memoized component signatures.
+
+    ``_get_component_signature`` caches by import path for the lifetime of the
+    process. Call this after reloading or redefining component classes so the
+    analyzer re-inspects them.
+    """
+    _get_component_signature.cache_clear()
+
+
 def analyze_registry(
-    registry: Registry = Registry,
+    registry: type[Registry] = Registry,
     *,
     raise_on_error: bool = False,
 ) -> Analysis:
@@ -134,7 +147,7 @@ def analyze_registry(
 
     results: Analysis = {}
 
-    for key, info in registry._REGISTRY.items():
+    for key, info in registry.registered_items():
         if info.config is None:
             continue
         errors: List[str] = []
@@ -164,7 +177,7 @@ def print_analysis_summary(results: Analysis) -> None:
     warned = sum(1 for _, _, warns in results.values() if warns)
     problems = total - ok
 
-    print(f"=== Static Analyzer Summary ===")
+    print("=== Static Analyzer Summary ===")
     print(f"Total registered configurations: {total}")
     print(f"Valid bindings: {ok}")
     print(f"Binding problems: {problems}")

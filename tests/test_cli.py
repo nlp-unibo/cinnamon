@@ -15,14 +15,11 @@ import pytest
 import cinnamon.cli as cli
 from cinnamon.configuration import Configuration
 from cinnamon.registry import ConfigurationInfo, RegistrationKey
-from tests.fixtures import reset_registry
-
 
 # -- _require_inquirer --
 
 
 def test_require_inquirer_raises_import_error(monkeypatch):
-    """Test test require inquirer raises import error."""
     monkeypatch.setitem(sys.modules, "InquirerPy", None)
     with pytest.raises(ImportError, match="cinnamon\\[cli\\]"):
         cli._require_inquirer()
@@ -87,7 +84,6 @@ def test_cli_build_with_invalid_keys(tmp_path, monkeypatch, reset_registry):
 
 
 def test_cli_build_nonexistent_directory_raises(monkeypatch, reset_registry):
-    """Test test cli build nonexistent directory raises."""
     monkeypatch.setattr(
         "sys.argv", ["cmn-build", "-dir", str(Path("/nonexistent/cinnamon-dir"))]
     )
@@ -127,8 +123,10 @@ class _FakeComponent:
     def __init__(self, folder_name=None, batch_size=None):
         self.folder_name = folder_name
         self.batch_size = batch_size
+        self.run_calls = 0
 
     def run(self):
+        self.run_calls += 1
         return "ran"
 
 
@@ -143,7 +141,12 @@ def test_cli_run_no_runnable_keys_aborts(tmp_path, monkeypatch, reset_registry):
     )
     monkeypatch.setattr(cli.Registry, "retrieve_runnable_keys", lambda: [])
 
-    cli.run()  # should not raise, should not prompt
+    prompted = []
+    monkeypatch.setattr(cli, "filter_keys", lambda keys: prompted.append(keys) or [])
+
+    cli.run()
+
+    assert prompted == []  # aborted before reaching the prompt
 
 
 def test_cli_run_with_external_path(tmp_path, monkeypatch, reset_registry):
@@ -154,12 +157,18 @@ def test_cli_run_with_external_path(tmp_path, monkeypatch, reset_registry):
     monkeypatch.setattr(
         "sys.argv", ["cmn-run", "-dir", str(tmp_path), "-ext", str(ext)]
     )
-    monkeypatch.setattr(
-        cli.Registry, "build", lambda directory, external_directories=None: None
-    )
+
+    called = {}
+
+    def fake_build(directory, external_directories=None):
+        called["external_directories"] = external_directories
+
+    monkeypatch.setattr(cli.Registry, "build", fake_build)
     monkeypatch.setattr(cli.Registry, "retrieve_runnable_keys", lambda: [])
 
     cli.run()
+
+    assert called["external_directories"] == [str(tmp_path)]
 
 
 def test_cli_run_executes_components(tmp_path, monkeypatch, reset_registry):
@@ -167,7 +176,9 @@ def test_cli_run_executes_components(tmp_path, monkeypatch, reset_registry):
     key = RegistrationKey(name="exp", namespace="testing")
 
     monkeypatch.setattr("sys.argv", ["cmn-run", "-dir", str(tmp_path)])
-    monkeypatch.setattr(cli.Registry, "build", lambda directory, external_directories=None: None)
+    monkeypatch.setattr(
+        cli.Registry, "build", lambda directory, external_directories=None: None
+    )
     monkeypatch.setattr(cli.Registry, "retrieve_runnable_keys", lambda: [key])
     monkeypatch.setattr(cli, "filter_keys", lambda keys: [key])
     monkeypatch.setattr(cli, "_require_inquirer", lambda: _FakeInquirerCLI())
@@ -178,11 +189,14 @@ def test_cli_run_executes_components(tmp_path, monkeypatch, reset_registry):
             config=Configuration.default(), run_method="run"
         ),
     )
+    component = _FakeComponent()
     monkeypatch.setattr(
-        cli.Registry, "from_key", lambda registration_key, **kwargs: _FakeComponent()
+        cli.Registry, "from_key", lambda registration_key, **kwargs: component
     )
 
     cli.run()
+
+    assert component.run_calls == 1
 
 
 def test_cli_run_missing_run_method_raises(tmp_path, monkeypatch, reset_registry):
@@ -190,7 +204,9 @@ def test_cli_run_missing_run_method_raises(tmp_path, monkeypatch, reset_registry
     key = RegistrationKey(name="exp", namespace="testing")
 
     monkeypatch.setattr("sys.argv", ["cmn-run", "-dir", str(tmp_path)])
-    monkeypatch.setattr(cli.Registry, "build", lambda directory, external_directories=None: None)
+    monkeypatch.setattr(
+        cli.Registry, "build", lambda directory, external_directories=None: None
+    )
     monkeypatch.setattr(cli.Registry, "retrieve_runnable_keys", lambda: [key])
     monkeypatch.setattr(cli, "filter_keys", lambda keys: [key])
     monkeypatch.setattr(cli, "_require_inquirer", lambda: _FakeInquirerCLI())
@@ -205,7 +221,7 @@ def test_cli_run_missing_run_method_raises(tmp_path, monkeypatch, reset_registry
         cli.Registry, "from_key", lambda registration_key, **kwargs: object()
     )
 
-    with pytest.raises(RuntimeError, match="has not method"):
+    with pytest.raises(RuntimeError, match="has no method"):
         cli.run()
 
 
@@ -229,7 +245,21 @@ def test_cli_run_confirm_false_aborts(tmp_path, monkeypatch, reset_registry):
     monkeypatch.setattr(cli, "filter_keys", lambda keys: [key])
     monkeypatch.setattr(cli, "_require_inquirer", lambda: _FakeInquirerCLIFalse())
 
+    component = _FakeComponent()
+    monkeypatch.setattr(
+        cli.Registry,
+        "retrieve_configuration_info",
+        lambda registration_key: ConfigurationInfo(
+            config=Configuration.default(), run_method="run"
+        ),
+    )
+    monkeypatch.setattr(
+        cli.Registry, "from_key", lambda registration_key, **kwargs: component
+    )
+
     cli.run()
+
+    assert component.run_calls == 0
 
 
 # -- generate --
@@ -306,6 +336,7 @@ def test_cli_generate_template_is_valid_python(tmp_path, monkeypatch, reset_regi
     # compile() raises SyntaxError if the generated body is malformed
     code = (run_dir / "myexp.py").read_text()
     compile(code, "<generated>", "exec")
+    assert str(key) in code
 
 
 def test_cli_generate_no_valid_keys_aborts(tmp_path, monkeypatch, reset_registry):
@@ -326,7 +357,11 @@ def test_cli_generate_no_valid_keys_aborts(tmp_path, monkeypatch, reset_registry
         ],
     )
     monkeypatch.setattr(cli, "_require_inquirer", lambda: _FakeInquirerCLI())
-    monkeypatch.setattr(cli.Registry, "build", lambda directory, external_directories=None: (set(), set()))
+    monkeypatch.setattr(
+        cli.Registry,
+        "build",
+        lambda directory, external_directories=None: (set(), set()),
+    )
 
     cli.generate()
 
@@ -486,3 +521,106 @@ def test_cli_generate_overwrite_abort(tmp_path, monkeypatch, reset_registry):
     cli.generate()
 
     assert script.read_text() == "old"
+
+
+# -- selection prompt loop --
+
+
+def test_prompt_for_keys_retries_when_filters_match_nothing(monkeypatch):
+    """An empty match re-opens the prompt; a later non-empty result is returned."""
+    key = RegistrationKey(name="exp", namespace="testing")
+    results = [[], [key]]
+    monkeypatch.setattr(cli, "filter_keys", lambda keys: results.pop(0))
+
+    assert cli._prompt_for_keys([key]) == [key]
+    assert results == []  # both prompts consumed
+
+
+def test_prompt_for_keys_stops_on_cancel(monkeypatch):
+    """Cancelling returns no keys instead of re-prompting forever."""
+    key = RegistrationKey(name="exp", namespace="testing")
+    calls = []
+
+    def fake_filter(keys):
+        calls.append(keys)
+        return None
+
+    monkeypatch.setattr(cli, "filter_keys", fake_filter)
+
+    assert cli._prompt_for_keys([key]) == []
+    assert len(calls) == 1  # cancelled, not retried
+
+
+def test_cli_run_aborts_when_selection_cancelled(tmp_path, monkeypatch, reset_registry):
+    """run() executes nothing when the user cancels at the key prompt."""
+    key = RegistrationKey(name="exp", namespace="testing")
+    component = _FakeComponent()
+
+    monkeypatch.setattr("sys.argv", ["cmn-run", "-dir", str(tmp_path)])
+    monkeypatch.setattr(
+        cli.Registry, "build", lambda directory, external_directories=None: None
+    )
+    monkeypatch.setattr(cli.Registry, "retrieve_runnable_keys", lambda: [key])
+    monkeypatch.setattr(cli, "filter_keys", lambda keys: None)
+    monkeypatch.setattr(cli, "_require_inquirer", lambda: _FakeInquirerCLI())
+    monkeypatch.setattr(
+        cli.Registry, "from_key", lambda registration_key, **kwargs: component
+    )
+
+    cli.run()
+
+    assert component.run_calls == 0
+
+
+def test_cli_generate_aborts_when_selection_cancelled(
+    tmp_path, monkeypatch, reset_registry
+):
+    """generate() writes no script when the user cancels at the key prompt."""
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    key = RegistrationKey(name="exp", namespace="cli")
+
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "cmn-generate",
+            "-dir",
+            str(tmp_path),
+            "-run-dir",
+            str(run_dir),
+            "-name",
+            "myexp",
+        ],
+    )
+    monkeypatch.setattr(cli, "_require_inquirer", lambda: _FakeInquirerCLI())
+    monkeypatch.setattr(cli, "filter_keys", lambda keys: None)
+    monkeypatch.setattr(
+        cli.Registry,
+        "build",
+        lambda directory, external_directories=None: ({key}, set()),
+    )
+
+    cli.generate()
+
+    assert not (run_dir / "myexp.py").exists()
+
+
+def test_cli_build_reuses_existing_registrations_directory(
+    tmp_path, monkeypatch, reset_registry
+):
+    """Re-running build() over an existing registrations/ folder overwrites it."""
+    registrations = tmp_path / "registrations"
+    registrations.mkdir()
+    (registrations / "valid_keys.json").write_text('["stale"]')
+    key = RegistrationKey(name="fresh", namespace="testing")
+
+    monkeypatch.setattr("sys.argv", ["cmn-build", "-dir", str(tmp_path)])
+    monkeypatch.setattr(
+        cli.Registry,
+        "build",
+        lambda directory, external_directories=None: ({key}, set()),
+    )
+
+    cli.build()
+
+    assert json.loads((registrations / "valid_keys.json").read_text()) == [str(key)]

@@ -2,15 +2,13 @@ from __future__ import annotations
 
 import ast
 import importlib.util
-import json
-import math
 import sys
+from collections.abc import ItemsView
 from dataclasses import dataclass
 from logging import getLogger
 from pathlib import Path
 from typing import (
     Any,
-    AnyStr,
     Callable,
     Dict,
     Generic,
@@ -19,6 +17,7 @@ from typing import (
     Tuple,
     TypeVar,
     Union,
+    cast,
 )
 
 import networkx as nx
@@ -63,6 +62,14 @@ class RegistrationKey(Generic[T]):
     """
     Compound key used for registration.
     """
+
+    # Declared for type checkers and IDEs. These are assigned through
+    # ``object.__setattr__`` in ``__init__`` to bypass the immutability guard in
+    # ``__setattr__``; without the annotations they are invisible to static
+    # analysis even though every caller reads them.
+    name: str
+    namespace: str
+    tags: frozenset[str]
 
     _IMMUTABLE = frozenset({"name", "namespace", "tags"})
 
@@ -112,7 +119,10 @@ class RegistrationKey(Generic[T]):
 
         self.description = description
         self.metadata = metadata
-        self.special_tags = special_tags if special_tags is not None else set()
+        # Copied, not aliased: ``from_variant`` passes the parent's set straight
+        # through, so sharing the object would make every key derived from a
+        # common ancestor mutate together.
+        self.special_tags = set(special_tags) if special_tags is not None else set()
 
         self._hash = hash(str(self))
 
@@ -140,12 +150,11 @@ class RegistrationKey(Generic[T]):
     def __str__(self) -> str:
         to_return = [f"name{self.KEY_VALUE_SEPARATOR}{self.name}"]
 
-        if self.tags is not None:
-            tags = sorted(list(self.tags)) if self.tags else None
-            if tags is not None:
-                to_return.append(
-                    f"{self.ATTRIBUTE_SEPARATOR}tags{self.KEY_VALUE_SEPARATOR}{tags}"
-                )
+        if self.tags:
+            tags = sorted(self.tags)
+            to_return.append(
+                f"{self.ATTRIBUTE_SEPARATOR}tags{self.KEY_VALUE_SEPARATOR}{tags}"
+            )
 
         to_return.append(
             f"{self.ATTRIBUTE_SEPARATOR}namespace{self.KEY_VALUE_SEPARATOR}{self.namespace}"
@@ -158,24 +167,17 @@ class RegistrationKey(Generic[T]):
             f" tags={self.tags}, description={self.description})"
         )
 
-    def check_name(self, name: str):
+    def check_name(self, name: str) -> bool:
         return self.name == name
 
-    def check_tags(self, tags: Tags):
-        if (self.tags is not None and tags is not None and self.tags == tags) or (
-            self.tags is None and tags is None
-        ):
-            return True
-        return False
+    def check_tags(self, tags: Tags) -> bool:
+        # ``self.tags`` is normalised to a frozenset in __init__ and is never
+        # None, so only the incoming value needs guarding.
+        return tags is not None and self.tags == tags
 
-    def check_namespace(self, namespace: str):
-        if (
-            self.namespace is not None
-            and namespace is not None
-            and self.namespace == namespace
-        ) or (self.namespace is None and namespace is None):
-            return True
-        return False
+    def check_namespace(self, namespace: str) -> bool:
+        # ``self.namespace`` defaults to "default" in __init__ and is never None.
+        return namespace is not None and self.namespace == namespace
 
     def __eq__(self, other) -> bool:
         if other is None or not isinstance(other, RegistrationKey):
@@ -280,14 +282,15 @@ class RegistrationKey(Generic[T]):
         """
 
         registration_attributes = string_format.split(cls.ATTRIBUTE_SEPARATOR)
-        registration_dict = {}
+        registration_dict: Dict[str, Any] = {}
         for registration_attribute in registration_attributes:
             try:
-                key, value = registration_attribute.split(cls.KEY_VALUE_SEPARATOR, 1)
-                if key == "tags":
-                    value = set(ast.literal_eval(value))
-
-                registration_dict[key] = value
+                key, raw_value = registration_attribute.split(
+                    cls.KEY_VALUE_SEPARATOR, 1
+                )
+                registration_dict[key] = (
+                    set(ast.literal_eval(raw_value)) if key == "tags" else raw_value
+                )
             except ValueError as e:
                 logger.exception(
                     f"Failed parsing registration key from string.. "
@@ -345,27 +348,20 @@ class RegistrationKey(Generic[T]):
     def match(self, key: RegistrationKey, tags: Tags) -> bool:
         return self.tags.intersection(key.tags) == tags
 
-    def toJSON(self):
+    def to_pretty_string(self) -> str:
+        # batched() takes a chunk *size*, so pass the per-line budget directly;
+        # handing it the chunk count produced MAX_TAGS_PER_LINE lines of
+        # len(tags) / MAX_TAGS_PER_LINE tags each -- the transpose of the intent.
+        splits = batched(sorted(self.tags), RegistrationKey.MAX_TAGS_PER_LINE)
+        tags = "\n                      ".join(", ".join(item) for item in splits)
+
         return (
-            json.dumps(self.__str__(), sort_keys=True, indent=4)
-            .replace('"', "")
-            .replace("\\", "")
+            f"[\n"
+            f"                name: {self.name}\n"
+            f"                tags: {tags}\n"
+            f"                namespace: {self.namespace}\n"
+            f"            ]\n        "
         )
-
-    def to_pretty_string(self):
-        tags = list(sorted(list(self.tags)))
-        num_intervals = math.ceil(len(tags) / RegistrationKey.MAX_TAGS_PER_LINE)
-        # guard against empty tags: batched() requires chunk_size >= 1
-        num_intervals = max(1, num_intervals)
-        splits = list(batched(tags, num_intervals))
-        tags = "\n".join([", ".join(item) for item in splits])
-
-        return f"""[
-                name: {self.name}
-                tags: {tags}
-                namespace: {self.namespace}
-            ]
-        """
 
 
 class BufferedRegistration:
@@ -394,13 +390,13 @@ def register_method(
     run_method: str | None = None,
 ) -> Callable:
     def register_wrapper(func):
-        key = RegistrationKey[Any](name=name, tags=tags, namespace=namespace)
+        key = str(RegistrationKey[Any](name=name, tags=tags, namespace=namespace))
         if (
             hasattr(Registry, "REGISTRATION_CONTEXT")
             and Registry.REGISTRATION_CONTEXT.is_registering
             and key not in Registry.REGISTRATION_METHODS
         ):
-            Registry.REGISTRATION_METHODS[str(key)] = BufferedRegistration(
+            Registry.REGISTRATION_METHODS[key] = BufferedRegistration(
                 func=func,
                 name=name,
                 tags=tags,
@@ -486,7 +482,7 @@ class Registry:
 
     _MODULES: List[Union[str, Path]]
     _EXP_MODULES: Set[Path]
-    _MODULE_MAPPING: Dict[str, str]
+    _MODULE_MAPPING: Dict[str, Path]
     _EXP_NAMESPACES: List[str]
 
     REGISTRATION_METHODS: Dict[str, Callable | BufferedRegistration]
@@ -512,8 +508,8 @@ class Registry:
     @time_it
     def build(
         cls,
-        directory: Union[Path, AnyStr],
-        external_directories: List[Union[AnyStr, Path]] | None = None,
+        directory: Union[Path, str],
+        external_directories: List[Union[str, Path]] | None = None,
     ) -> Tuple[Set[RegistrationKey[Any]], Set[RegistrationKey[Any]]]:
         """
         Main entrypoint of cinnamon.
@@ -580,14 +576,21 @@ class Registry:
 
     @classmethod
     @time_it
-    def update_namespaces(
-        cls, namespaces: List[str], module_mapping: Dict[str, List[str]]
-    ):
-        """Merge namespaces into registry mappings."""
+    def update_namespaces(cls, namespaces: List[str], module_mapping: Dict[str, Path]):
+        """
+        Merge namespaces into registry mappings.
+
+        Raises:
+            ``RuntimeWarning``: if a namespace is already mapped to a directory.
+             Two directories claiming one namespace makes resolution ambiguous,
+             so the merge is refused rather than silently resolved.
+        """
         for key in module_mapping:
             if key in cls._MODULE_MAPPING:
                 raise RuntimeWarning(
-                    f"Found duplicate namespace: {key}. Overriding existing mapping..."
+                    f"Found duplicate namespace: {key}. It is already mapped to "
+                    f"{cls._MODULE_MAPPING[key]}, so {module_mapping[key]} cannot "
+                    f"also claim it. Rename one of the two namespaces."
                 )
 
         cls._EXP_NAMESPACES.extend(namespaces)
@@ -597,7 +600,7 @@ class Registry:
     @time_it
     def parse_configuration_files(
         cls, directories: List[Path]
-    ) -> Tuple[List[str], Dict[str, List[str]]]:
+    ) -> Tuple[List[str], Dict[str, Path]]:
         """
         Runs a static code analyzer to inspect code scripts containing
          cinnamon registrations with the goal of determining unique namespaces.
@@ -611,8 +614,8 @@ class Registry:
         """
 
         extractor = NamespaceExtractor()
-        namespaces = []
-        mapping = {}
+        namespaces: List[str] = []
+        mapping: Dict[str, Path] = {}
         for directory in directories:
             for config_folder in directory.rglob(Registry._CONFIGURATION_FOLDER):
                 for python_script in config_folder.glob("*.py"):
@@ -629,7 +632,7 @@ class Registry:
     @time_it
     def resolve_external_directories(
         cls,
-        external_directories: List[Union[AnyStr, Path]],
+        external_directories: List[Union[str, Path]],
     ) -> List[Path]:
         """
         Checks if provided directories are valid directories and exist.
@@ -658,7 +661,7 @@ class Registry:
     @time_it
     def load_registrations(
         cls,
-        directory: Union[AnyStr, Path],
+        directory: Union[str, Path],
     ):
         """
         Imports a Python's module for registration.
@@ -697,7 +700,7 @@ class Registry:
 
                 # unreachable via rglob("*.py"); defensive guard kept for
                 # non-standard loaders and excluded from coverage.
-                if spec is None:  # pragma: no cover
+                if spec is None or spec.loader is None:  # pragma: no cover
                     logger.error(f"Could not load {python_script}.")
                     raise RuntimeError(f"Could not load {python_script}.")
 
@@ -734,7 +737,7 @@ class Registry:
                             run_method=key_method.run_method,
                         )
                     else:
-                        cls.REGISTRATION_METHODS[key]()
+                        key_method()
 
     @classmethod
     def in_registry(
@@ -853,19 +856,19 @@ class Registry:
 
         # dependencies
         for dependency_name, dependency in config.dependencies.items():
-            dependency_variants = set()
+            dependency_variants: Set[Any] = set()
 
-            # if dependency returns multiple keys, we keep the first as the main one
-            # and the rest is moved to variants
-            if dependency is not None and isinstance(dependency, RegistrationKey):
-                dependency_keys = Registry.expand_configuration(
-                    key=dependency,
-                    valid_key_buffer=valid_key_buffer,
-                    invalid_key_buffer=invalid_key_buffer,
-                )
-                dependency_variants = dependency_variants.union(
-                    dependency_keys
-                ).difference({dependency})
+            # ``register_configuration`` rejects any dependency that is not a
+            # RegistrationKey, so everything reachable here is one.
+            # If a dependency expands to several keys we keep the first as the
+            # main one and move the rest to variants.
+            dependency_keys = Registry.expand_configuration(
+                key=cast("RegistrationKey[Any]", dependency),
+                valid_key_buffer=valid_key_buffer,
+                invalid_key_buffer=invalid_key_buffer,
+            )
+            dependency_variants |= dependency_keys
+            dependency_variants.discard(dependency)
 
             for key_variant in config.meta[dependency_name].variants:
                 if key_variant is not None and isinstance(key_variant, RegistrationKey):
@@ -894,8 +897,8 @@ class Registry:
                 variant_config = config.model_copy(
                     update=variant_info["values"], deep=True
                 )
-            except pydantic.ValidationError as validation_result:
-                variant_key.metadata = repr(validation_result)
+            except pydantic.ValidationError as validation_error:
+                variant_key.metadata = repr(validation_error)
                 invalid_key_buffer.add(variant_key)
                 continue
 
@@ -1094,7 +1097,8 @@ class Registry:
                 else dependency_variants
             )
             for dep in dependencies:
-                # TODO: this is probably never executed
+                # ``dependency_variants`` comes from Param(variants=[...]) and may
+                # hold plain values or None alongside keys; only keys are nodes.
                 if not isinstance(dep, RegistrationKey):
                     continue
 
@@ -1156,15 +1160,14 @@ class Registry:
             config: the built configuration instance
         """
 
-        registration_key: RegistrationKey = RegistrationKey.parse(
+        parsed_key: RegistrationKey = RegistrationKey.parse(
             registration_key=registration_key, name=name, tags=tags, namespace=namespace
         )
 
-        if not cls.in_registry(registration_key=registration_key):
-            raise NotRegisteredException(registration_key=registration_key)
+        if not cls.in_registry(registration_key=parsed_key):
+            raise NotRegisteredException(registration_key=parsed_key)
 
-        config_info: ConfigurationInfo = cls._REGISTRY[registration_key]
-        return config_info
+        return cls._REGISTRY[parsed_key]
 
     @classmethod
     def retrieve_configuration(
@@ -1173,7 +1176,7 @@ class Registry:
         name: str | None = None,
         namespace: str | None = None,
         tags: Tags = None,
-    ) -> cinnamon.configuration.C:
+    ) -> cinnamon.configuration.Configuration:
         """
             Retrieves a ``Configuration`` instance from the registry
              via its ``RegistrationKey``.
@@ -1217,6 +1220,19 @@ class Registry:
         )
 
     @classmethod
+    def registered_items(
+        cls,
+    ) -> "ItemsView[RegistrationKey[Any], ConfigurationInfo]":
+        """
+        Return a read-only view over ``(key, ConfigurationInfo)`` pairs.
+
+        Public counterpart to ``_REGISTRY`` for consumers that need to walk the
+        whole registry (the static analyzer, reporting tools) without depending
+        on the internal container.
+        """
+        return cls._REGISTRY.items()
+
+    @classmethod
     def retrieve_keys(
         cls,
         names: Union[List[str], str] | None = None,
@@ -1240,11 +1256,11 @@ class Registry:
             Matching RegistrationKey instances.
         """
 
-        keys = keys if keys is not None else cls._REGISTRY.keys()
+        candidates = keys if keys is not None else list(cls._REGISTRY.keys())
 
         return [
             key
-            for key in keys
+            for key in candidates
             if match_name(name=key.name, names=names)
             and match_namespace(namespace=key.namespace, namespaces=namespaces)
             and match_tags(a_tags=key.tags, b_tags=tags)

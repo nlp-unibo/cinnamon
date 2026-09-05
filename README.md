@@ -38,7 +38,7 @@ single `RegistrationKey`.
 - **Variants** — declare alternative parameter values alongside their defaults and enumerate every valid combination.
 - **Conditions** — attach runtime invariants to configurations via `add_condition`, validated before any component is built.
 - **Dependency nesting** — compose configurations by pointing fields at `RegistrationKey` instances; the `Registry` resolves the dependency graph bottom-up.
-- **Community-ready** — import `Component` and `Configuration` from external projects via `external_directories` and build on top of them.
+- **Community-ready** — pull components and `Configuration` classes from external projects via `external_directories` and build on top of them.
 - **CLI included** — `cmn-build`, `cmn-run`, and `cmn-generate` for running and generating experiment scripts without boilerplate.
 
 ---
@@ -61,12 +61,10 @@ Optional extras:
 
 ## Quickstart
 
-**1. Define a component** — plain Python, inherits from `Component`:
+**1. Define a component** — a plain Python class, no base class required:
 
 ```python
-from cinnamon.component import Component
-
-class DataLoader(Component):
+class DataLoader:
 
     def __init__(self, folder_name: str, batch_size: int):
         self.folder_name = folder_name
@@ -130,7 +128,7 @@ for the complete walkthrough.
 |---|---|---|
 | `Configuration` | A Pydantic `BaseModel` holding typed, validated parameters | [→](https://nlp-unibo.github.io/cinnamon/configuration.html) |
 | `Param` | A `Field` wrapper that adds `tags`, `variants`, and cinnamon metadata | [→](https://nlp-unibo.github.io/cinnamon/configuration.html) |
-| `Component` | Any class that inherits from `Component` | [→](https://nlp-unibo.github.io/cinnamon/component.html) |
+| Component | Any plain Python class, referenced by its import path (e.g. `components.DataLoader`) | [→](https://nlp-unibo.github.io/cinnamon/component.html) |
 | `RegistrationKey` | A `(name, tags, namespace)` identifier that binds a config to a component | [→](https://nlp-unibo.github.io/cinnamon/registration.html) |
 | `Registry` | Stores registrations, resolves the dependency DAG, and builds components | [→](https://nlp-unibo.github.io/cinnamon/registration.html) |
 | Dependencies | Nested configurations declared as `RegistrationKey` fields | [→](https://nlp-unibo.github.io/cinnamon/dependencies.html) |

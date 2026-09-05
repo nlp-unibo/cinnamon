@@ -5,15 +5,15 @@ import time
 from functools import wraps
 from logging import getLogger
 from pathlib import Path
-from typing import List, Union
+from typing import List, Optional, Union
 
 logger = getLogger(__name__)
 
 __all__ = ["check_directory", "check_external_json_path", "time_it"]
 
 
-def check_directory(directory_path: Union[Path, str] = None) -> Path:
-    directory_path = Path(directory_path) if directory_path else Path('.')
+def check_directory(directory_path: Optional[Union[Path, str]] = None) -> Path:
+    directory_path = Path(directory_path) if directory_path else Path(".")
     directory_path = directory_path.resolve()
     if not directory_path.exists():
         raise FileNotFoundError(f"Directory {directory_path} does not exist!")
@@ -25,6 +25,7 @@ def check_directory(directory_path: Union[Path, str] = None) -> Path:
 
 
 def check_external_json_path(jsonpath: Union[Path, str]) -> List[Path]:
+    """Read a JSON file listing external configuration directories."""
     jsonpath = Path(jsonpath).resolve()
 
     if not jsonpath.exists():

@@ -1,10 +1,10 @@
 from pathlib import Path
-from collections import deque
 
 import pytest
 
 from cinnamon.configuration import Configuration
 from cinnamon.registry import Registry
+from cinnamon.utility import static_analyzer
 from cinnamon.utility.static_analyzer import (
     _check_signature,
     _get_component_signature,
@@ -12,7 +12,7 @@ from cinnamon.utility.static_analyzer import (
     print_analysis_summary,
     quick_validate,
 )
-from tests.fixtures import BaseConfig, reset_registry
+from tests.fixtures import BaseConfig
 
 
 class NoArgsComponent:
@@ -38,17 +38,10 @@ class VarKwargsConfig(Configuration):
     another: int = 2
 
 
-class UninspectableComponent:
-    """__init__ is a builtin; inspect.signature raises ValueError."""
-
-    __init__ = deque.append
-
-
 # `_get_component_signature`
 
 
 def test_signature_required_and_params():
-    """Test test signature required and params."""
     sig = _get_component_signature("tests.fixtures.BaseComponent")
     assert sig.params == frozenset({"x", "y"})
     assert sig.required == frozenset({"x", "y"})
@@ -56,7 +49,6 @@ def test_signature_required_and_params():
 
 
 def test_signature_no_args_component():
-    """Test test signature no args component."""
     sig = _get_component_signature(__name__ + ".NoArgsComponent")
     assert sig.params == frozenset()
     assert sig.required == frozenset()
@@ -64,7 +56,6 @@ def test_signature_no_args_component():
 
 
 def test_signature_var_kwargs():
-    """Test test signature var kwargs."""
     sig = _get_component_signature(__name__ + ".VarKwargsComponent")
     assert sig.accepts_var_kwargs
     assert not sig.accepts_var_args
@@ -72,7 +63,6 @@ def test_signature_var_kwargs():
 
 
 def test_signature_var_args():
-    """Test test signature var args."""
     sig = _get_component_signature(__name__ + ".VarArgsComponent")
     assert sig.accepts_var_args
     assert not sig.accepts_var_kwargs
@@ -80,61 +70,61 @@ def test_signature_var_args():
 
 
 def test_signature_is_cached():
-    """Test test signature is cached."""
     sig = _get_component_signature("tests.fixtures.BaseComponent")
     assert _get_component_signature("tests.fixtures.BaseComponent") is sig
 
 
 def test_signature_unknown_component_raises():
-    """Test test signature unknown component raises."""
     with pytest.raises(RuntimeError):
         _get_component_signature("tests.fixtures.NoSuchComponent")
 
 
-def test_signature_uninspectable_component_raises():
-    """inspect.signature failure on a builtin __init__ is reported as RuntimeError."""
-    with pytest.raises(RuntimeError, match="Cannot inspect __init__"):
-        _get_component_signature(__name__ + ".UninspectableComponent")
+def test_signature_uninspectable_component_raises(monkeypatch):
+    """An inspect.signature failure is surfaced as RuntimeError.
+
+    The failure is injected rather than sourced from a natively-uninspectable
+    object: which builtins expose a signature is a CPython implementation
+    detail that has changed across versions.
+    """
+
+    def _boom(*args, **kwargs):
+        raise ValueError("no signature")
+
+    monkeypatch.setattr(static_analyzer.inspect, "signature", _boom)
+    _get_component_signature.cache_clear()
+    try:
+        with pytest.raises(RuntimeError, match="Cannot inspect __init__"):
+            _get_component_signature("tests.fixtures.BaseComponent")
+    finally:
+        _get_component_signature.cache_clear()
 
 
 # `_check_signature`
 
 
 def test_check_signature_matching_config():
-    """Test test check signature matching config."""
     assert _check_signature("tests.fixtures.BaseComponent", BaseConfig.default()) == []
 
 
 def test_check_signature_missing_required():
-    """Test test check signature missing required."""
-    problems = _check_signature(
-        "tests.fixtures.BaseComponent", Configuration.default()
-    )
+    problems = _check_signature("tests.fixtures.BaseComponent", Configuration.default())
     assert len(problems) == 1
     assert "requires parameters" in problems[0]
     assert "x" in problems[0] and "y" in problems[0]
 
 
 def test_check_signature_extra_fields():
-    """Test test check signature extra fields."""
-    problems = _check_signature(
-        __name__ + ".NoArgsComponent", BaseConfig.default()
-    )
+    problems = _check_signature(__name__ + ".NoArgsComponent", BaseConfig.default())
     assert len(problems) == 1
     assert "does not accept" in problems[0]
     assert "x" in problems[0] and "y" in problems[0]
 
 
 def test_check_signature_var_kwargs_allows_extra():
-    """Test test check signature var kwargs allows extra."""
-    assert (
-        _check_signature(__name__ + ".VarKwargsComponent", VarKwargsConfig())
-        == []
-    )
+    assert _check_signature(__name__ + ".VarKwargsComponent", VarKwargsConfig()) == []
 
 
 def test_check_signature_import_error_reported_as_problem():
-    """Test test check signature import error reported as problem."""
     problems = _check_signature(
         "tests.fixtures.NoSuchComponent", Configuration.default()
     )
@@ -167,7 +157,6 @@ def _build_default_registry():
 
 
 def test_analyze_registry_states(reset_registry):
-    """Test test analyze registry states."""
     _build_default_registry()
     results = analyze_registry()
 
@@ -189,7 +178,6 @@ def test_analyze_registry_states(reset_registry):
 
 
 def test_analyze_registry_rejects_unexpanded(reset_registry):
-    """Test test analyze registry rejects unexpanded."""
     Registry.register_configuration(
         config=Configuration.default(),
         name="valid",
@@ -201,7 +189,6 @@ def test_analyze_registry_rejects_unexpanded(reset_registry):
 
 
 def test_analyze_registry_raise_on_error(reset_registry):
-    """Test test analyze registry raise on error."""
     _build_default_registry()
     with pytest.raises(RuntimeError, match="Binding error"):
         analyze_registry(raise_on_error=True)
@@ -216,7 +203,8 @@ def test_analyze_registry_skips_none_configs(reset_registry):
         config=Configuration.default(), name="real", namespace="analyzer"
     )
     # simulate a stored entry with no config object
-    from cinnamon.registry import ConfigurationInfo, RegistrationKey as RK
+    from cinnamon.registry import ConfigurationInfo
+    from cinnamon.registry import RegistrationKey as RK
 
     stub_key = RK(name="ghost", namespace="analyzer")
     Registry._REGISTRY[stub_key] = ConfigurationInfo(config=None)
@@ -245,7 +233,6 @@ def test_analysis_summary_all_clean(reset_registry, capsys):
 
 
 def test_print_analysis_summary_smoke(reset_registry, capsys):
-    """Test test print analysis summary smoke."""
     _build_default_registry()
     print_analysis_summary(analyze_registry())
     out = capsys.readouterr().out
@@ -280,8 +267,33 @@ def test_quick_validate_external_test_repo():
 
 
 def test_quick_validate_nonexistent_directory():
-    """Test test quick validate nonexistent directory."""
     from cinnamon.utility.exceptions import InvalidDirectoryException
 
     with pytest.raises(InvalidDirectoryException):
         quick_validate(Path(".", "tests", "no_such_dir"))
+
+
+def test_signature_separates_required_from_optional_params():
+    """A defaulted __init__ parameter is a param but not a required one."""
+
+    class MixedComponent:
+        def __init__(self, needed: int, optional: int = 3):
+            self.needed = needed
+            self.optional = optional
+
+    _get_component_signature.cache_clear()
+    globals()["MixedComponent"] = MixedComponent
+    sig = _get_component_signature(__name__ + ".MixedComponent")
+
+    assert sig.params == frozenset({"needed", "optional"})
+    assert sig.required == frozenset({"needed"})
+
+
+def test_reset_signature_cache_forces_reinspection():
+    """reset_signature_cache() drops memoized signatures."""
+    first = _get_component_signature("tests.fixtures.BaseComponent")
+    assert _get_component_signature("tests.fixtures.BaseComponent") is first
+
+    static_analyzer.reset_signature_cache()
+
+    assert _get_component_signature("tests.fixtures.BaseComponent") is not first

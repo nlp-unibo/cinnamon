@@ -6,7 +6,7 @@ import types
 from copy import deepcopy
 from enum import Enum
 from pathlib import Path
-from typing import List, Optional, Set, Union
+from typing import AbstractSet, List, Optional, Union
 
 __all__ = [
     "NamespaceExtractor",
@@ -18,9 +18,10 @@ __all__ = [
     "import_class_from_string",
 ]
 
-import cinnamon
 
-Tags = Optional[Set[str]]
+# An AbstractSet so that both set and frozenset satisfy it: RegistrationKey
+# normalises its tags to a frozenset, which is not a Set[str].
+Tags = Optional[AbstractSet[str]]
 
 TAGGABLE_TYPES = [str, int, float, bool, types.NoneType, Enum]
 
@@ -98,7 +99,7 @@ def match_namespace(namespace: str, namespaces: Optional[Union[List[str], str]] 
     return namespace in namespaces
 
 
-def match_tags(a_tags: "cinnamon.registry.Tags", b_tags: "cinnamon.registry.Tags"):
+def match_tags(a_tags: AbstractSet[str], b_tags: Tags) -> bool:
     if b_tags is None:
         return True
 
@@ -108,7 +109,7 @@ def match_tags(a_tags: "cinnamon.registry.Tags", b_tags: "cinnamon.registry.Tags
     if len(a_tags) and None in b_tags:
         b_tags = b_tags - {None}
 
-    if not len(b_tags.difference(a_tags)):
+    if not len(b_tags - a_tags):
         return True
 
     return False

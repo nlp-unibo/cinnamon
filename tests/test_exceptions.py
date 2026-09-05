@@ -20,7 +20,6 @@ from cinnamon.utility.exceptions import (
     NotExpandedException,
     NotRegisteredException,
 )
-from tests.fixtures import reset_registry
 
 # NotExpandedException
 

@@ -11,7 +11,6 @@ from tests.fixtures import (
     ConfigWithChild,
     ConfigWithExternalDependency,
     EmptyComponent,
-    reset_registry,
 )
 
 
@@ -142,7 +141,6 @@ def test_build_external_component(reset_registry):
 
 
 def test_build_component_with_external_dependency(reset_registry):
-    """Test test build component with external dependency."""
     external_path = Path().parent.resolve().joinpath("tests", "external_test_repo")
 
     namespaces, mapping = Registry.parse_configuration_files(
@@ -163,7 +161,6 @@ def test_build_component_with_external_dependency(reset_registry):
 
 
 def test_build_after_setup(reset_registry):
-    """Test test build after setup."""
     main_path = Path().parent.resolve().joinpath("tests", "fake_main")
     external_directories = [
         Path().parent.resolve().joinpath("tests", "external_test_repo")

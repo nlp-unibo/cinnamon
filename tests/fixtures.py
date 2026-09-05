@@ -1,19 +1,12 @@
+"""Configuration and component classes shared across the test modules.
+
+Pytest fixtures live in ``conftest.py``.
+"""
+
 from typing import Literal, Type
 
-import pytest
-
 from cinnamon.configuration import C, Configuration, Param
-from cinnamon.registry import RegistrationKey, Registry
-
-
-@pytest.fixture
-def reset_registry():
-    Registry.initialize()
-
-
-@pytest.fixture
-def expand_registry():
-    Registry.expanded = True
+from cinnamon.registry import RegistrationKey
 
 
 class EmptyComponent:

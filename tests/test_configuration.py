@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Callable, Optional
 
 import pydantic
 import pytest
@@ -11,27 +11,24 @@ from tests.fixtures import (
     ConfigWithMultipleVariants,
     ConfigWithVariants,
     InvalidConfig,
+    InvalidVariantConfig,
     NestedConfig,
-    reset_registry,
 )
 
 
 def test_empty_configuration():
-    """Test test empty configuration."""
     config = Configuration.default()
     assert len(config._conditions) == 0
     assert len(config.dependencies) == 0
 
 
 def test_one_field_configuration():
-    """Test test one field configuration."""
     config = BaseConfig.default()
     assert config.x == 5
     assert config.y == 10
 
 
 def test_invalid_configuration():
-    """Test test invalid configuration."""
     with pytest.raises(pydantic.ValidationError):
         InvalidConfig.default()
 
@@ -51,7 +48,6 @@ def test_add_condition():
 
 
 def test_add_existing_condition():
-    """Test test add existing condition."""
     config = BaseConfig.default()
     config.add_condition(name="x_y_pairing", condition=lambda c: c.x == c.y / 2)
 
@@ -60,9 +56,16 @@ def test_add_existing_condition():
 
 
 def test_add_condition_conflicting_name():
-    """Test test add condition conflicting name."""
+    """Re-using a condition name warns and replaces the previous condition."""
     config = BaseConfig.default()
     config.add_condition(name="x", condition=lambda c: c.x > 1)
+
+    with pytest.warns(RuntimeWarning):
+        config.add_condition(name="x", condition=lambda c: c.x > 100)
+
+    # the second condition won, so validation against x=5 now fails
+    assert len(config._conditions) == 1
+    assert config.validate_conditions(strict=False).passed is False
 
 
 def test_validate_empty():
@@ -75,7 +78,6 @@ def test_validate_empty():
 
 
 def test_variants():
-    """Test test variants."""
     config = ConfigWithMultipleVariants.default()
 
     v_combinations = config.variants
@@ -87,7 +89,6 @@ def test_variants():
 
 
 def test_copy_with_custom_condition():
-    """Test test copy with custom condition."""
     config = Configuration.default()
     config.add_condition(name="test-condition", condition=lambda c: True)
     assert "test-condition" in config._conditions
@@ -132,21 +133,18 @@ def test_get_delta_copy_built_nested():
 
 
 def test_to_value_dict():
-    """Test test to value dict."""
     config = BaseConfig.default()
     value_dict = config.model_dump()
     assert value_dict == {"x": 5, "y": 10}
 
 
 def test_nested_to_value_dict():
-    """Test test nested to value dict."""
     config = NestedConfig.default()
     value_dict = config.model_dump()
     assert value_dict == {"x": 10, "child": {"x": 5, "y": 10}}
 
 
 def test_validate_nested_config():
-    """Test test validate nested config."""
     parent = NestedConfig.default()
     parent.add_condition(name="check_x", condition=lambda c: c.x > 0)
     parent.child.add_condition(name="check_x", condition=lambda c: c.x > 3)
@@ -162,7 +160,6 @@ def test_validate_nested_config():
 
 
 def test_configuration_variant_keys():
-    """Test test configuration variant keys."""
     config = ConfigWithVariants.default()
     key = RegistrationKey(name="config", namespace="testing")
 
@@ -179,7 +176,6 @@ def test_configuration_variant_keys():
 
 
 def test_configuration_with_multiple_variant_keys():
-    """Test test configuration with multiple variant keys."""
     config = ConfigWithMultipleVariants.default()
     key = RegistrationKey(name="config", namespace="testing")
 
@@ -204,13 +200,11 @@ def test_configuration_with_multiple_variant_keys():
 
 
 def test_has_at_least_two_variants_two_fields():
-    """Test test has at least two variants two fields."""
     config = ConfigWithMultipleVariants.default()
     assert config.has_at_least_two_variants is True
 
 
 def test_has_at_least_two_variants_single_field():
-    """Test test has at least two variants single field."""
     config = ConfigWithVariants.default()
     assert config.has_at_least_two_variants is False
 
@@ -219,14 +213,12 @@ def test_has_at_least_two_variants_single_field():
 
 
 def test_meta_bracket_missing_field_raises():
-    """Test test meta bracket missing field raises."""
     config = BaseConfig.default()
     with pytest.raises(KeyError):
         config.meta["nope"]
 
 
 def test_meta_attribute_missing_field_raises():
-    """Test test meta attribute missing field raises."""
     config = BaseConfig.default()
     with pytest.raises(AttributeError):
         config.meta.nope
@@ -236,13 +228,11 @@ def test_meta_attribute_missing_field_raises():
 
 
 def test_meta_class_context_variants():
-    """Test test meta class context variants."""
     # Class context (instance is None): owner.model_fields is used.
     assert ConfigWithVariants.meta.x.variants == [2, 3]
 
 
 def test_meta_class_context_missing_field_raises():
-    """Test test meta class context missing field raises."""
     with pytest.raises(AttributeError):
         ConfigWithVariants.meta.nope
 
@@ -300,9 +290,7 @@ def test_validate_nested_failure_returns_child_result(reset_registry):
     evaluated).
     """
     parent = NestedConfig.default()
-    parent.child.add_condition(
-        name="child_fail", condition=lambda c: c.x > 100
-    )
+    parent.child.add_condition(name="child_fail", condition=lambda c: c.x > 100)
     parent.add_condition(name="parent_fail", condition=lambda c: c.y > 100)
 
     result = parent.validate_conditions(strict=False)
@@ -314,8 +302,13 @@ def test_validate_nested_failure_returns_child_result(reset_registry):
 
 
 def test_param_meta_call_no_op():
-    """ParamMeta.__call__(schema) is a no-op and must not raise."""
-    ParamMeta(tags=set(), variants=[]).__call__({})
+    """ParamMeta.__call__ is the pydantic json_schema_extra hook: it mutates
+    nothing and returns nothing."""
+    schema = {"untouched": True}
+    meta = ParamMeta(tags=set(), variants=[])
+
+    assert meta(schema) is None
+    assert schema == {"untouched": True}
 
 
 def test_meta_class_context_none_schema_extra():
@@ -327,3 +320,76 @@ def test_meta_class_context_none_schema_extra():
     meta = BaseConfig.meta.x
     assert meta.variants == []
     assert BaseConfig.model_fields["x"].json_schema_extra is not None
+
+
+# -- dependency detection --
+
+
+def test_container_of_keys_is_rejected():
+    """Containers of registration keys fail fast instead of half-registering."""
+
+    class ListDependency(Configuration):
+        children: list[RegistrationKey] = []
+
+    class DictDependency(Configuration):
+        children: dict[str, RegistrationKey] = {}
+
+    for config_class in (ListDependency, DictDependency):
+        with pytest.raises(TypeError, match="Containers of registration keys"):
+            config_class().dependencies
+
+
+def test_optional_key_is_still_a_dependency():
+    """Optional[RegistrationKey] is a scalar dependency, not a container."""
+
+    class OptionalDependency(Configuration):
+        child: Optional[RegistrationKey] = None
+
+    class UnionDependency(Configuration):
+        child: RegistrationKey | None = None
+
+    assert list(OptionalDependency().dependencies) == ["child"]
+    assert list(UnionDependency().dependencies) == ["child"]
+
+
+def test_plain_container_is_not_a_dependency():
+    """Containers of ordinary values are left alone."""
+
+    class PlainConfig(Configuration):
+        numbers: list[int] = [1, 2]
+
+    assert PlainConfig().dependencies == {}
+
+
+def test_model_copy_without_update_preserves_instance_metadata():
+    """A copy keeps per-instance metadata and stays isolated from its source.
+
+    ``model_validate`` rebuilds metadata from the class, so the no-update path
+    must not go through it.
+    """
+    config = ConfigWithVariants()
+    config.meta["x"].variants = ["instance-only"]
+
+    copied = config.model_copy(deep=True)
+    assert copied.meta["x"].variants == ["instance-only"]
+
+    copied.meta["x"].variants.append("copy-only")
+    assert config.meta["x"].variants == ["instance-only"]
+
+
+def test_model_copy_with_update_still_validates():
+    """An update is validated: model_copy does not bypass field constraints."""
+    with pytest.raises(pydantic.ValidationError):
+        InvalidVariantConfig().model_copy(update={"x": 99})
+
+
+def test_has_at_least_two_variants_skips_plain_fields():
+    """Fields without variants are counted over, not counted."""
+
+    class OneVariantAmongPlainFields(Configuration):
+        plain: int = 1
+        varied: int = Param(2, variants=[3])
+        also_plain: int = 4
+
+    assert OneVariantAmongPlainFields().has_at_least_two_variants is False
+    assert ConfigWithMultipleVariants().has_at_least_two_variants is True

@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 import itertools
 import logging
+import types
 import typing
 import warnings
 from collections.abc import Mapping
@@ -113,7 +114,7 @@ class MetaDescriptor:
     A descriptor that automatically distinguishes class-level vs instance-level access.
     """
 
-    def __get__(self, instance: Any, owner: type) -> FieldMetaProxy:
+    def __get__(self, instance: Any, owner: type[Any]) -> FieldMetaProxy:
         if instance is None:
             # Triggered by: MyConfig.meta.x.variants (Class context)
             return FieldMetaProxy(owner.model_fields, is_instance=False)
@@ -177,7 +178,7 @@ class Configuration(BaseModel):
              instance using the registered
             ``constructor`` method (see ``ConfigurationInfo`` arguments).
         """
-        config = cinnamon.registry.Registry.retrieve_configuration(
+        config: Configuration = cinnamon.registry.Registry.retrieve_configuration(
             registration_key=registration_key, name=name, tags=tags, namespace=namespace
         )
         if not isinstance(config, cls):
@@ -197,7 +198,7 @@ class Configuration(BaseModel):
                 field_info.json_schema_extra = ParamMeta(tags=set(), variants=[])
 
     @model_validator(mode="after")
-    def validate_variants(self) -> C:
+    def validate_variants(self) -> Self:
         if not self.has_variants:
             return self
 
@@ -223,8 +224,30 @@ class Configuration(BaseModel):
     def model_copy(
         self, *, update: Mapping[str, Any] | None = None, deep: bool = False
     ) -> Self:
+        """
+        Copy this configuration, validating any values supplied via *update*.
+
+        ``BaseModel.model_copy`` does not run validators, so an ``update`` has to
+        be pushed back through ``model_validate`` -- that round-trip is what lets
+        ``Registry.expand_configuration`` reject invalid variants. With no update
+        there are no unvalidated values, and the round-trip costs roughly 4x a
+        plain deep copy on the hottest call in ``Registry.build``, so it is
+        skipped.
+
+        The two paths differ in one visible way: ``model_validate`` rebuilds
+        ``_instance_meta`` from the *class* defaults, discarding per-instance
+        metadata, whereas the no-update path keeps pydantic's copy of it
+        (isolated when ``deep``, shared otherwise). Preserving is the expected
+        behaviour for a copy; the update path keeps the reset because the
+        registry's DAG construction depends on variant metadata coming from the
+        class.
+        """
         model_copy = super().model_copy(update=update, deep=deep)
-        validated = self.model_validate(model_copy.model_dump(mode="python"))
+
+        if update is None:
+            validated = model_copy
+        else:
+            validated = self.model_validate(model_copy.model_dump(mode="python"))
 
         # propagate private attributes that model_validate doesn't touch
         conditions = copy.deepcopy(self._conditions) if deep else dict(self._conditions)
@@ -234,16 +257,43 @@ class Configuration(BaseModel):
         return validated
 
     def is_dependency(self, field_name: str, field: FieldInfo) -> bool:
+        """
+        Report whether *field* declares a dependency on another registration.
+
+        Only scalar ``RegistrationKey``/``Configuration`` fields qualify.
+        Containers of keys (``list[RegistrationKey]``,
+        ``dict[str, RegistrationKey]``) are rejected here rather than
+        half-accepted: the rest of the pipeline -- edge building in
+        ``Registry.register_configuration``, resolution in
+        ``Registry.resolve_configuration`` -- only understands scalars, so
+        letting a container through produces a confusing failure further on.
+        """
+        dependency_types = (cinnamon.registry.RegistrationKey, Configuration)
+
         field_value = getattr(self, field_name)
+        if isinstance(field_value, dependency_types):
+            return True
+
         annotation = field.annotation
         args = typing.get_args(annotation)
-        actual_type = args[0] if args else annotation
-        return (
-            isinstance(field_value, cinnamon.registry.RegistrationKey)
-            or isinstance(field_value, Configuration)
-            or actual_type is cinnamon.registry.RegistrationKey
-            or actual_type is Configuration
-        )
+        if not args:
+            return annotation in dependency_types
+
+        # A parameterised generic. get_args() cannot tell Optional[Key] from
+        # list[Key] -- both yield (Key,) -- so the origin decides: a union is
+        # still a scalar dependency, anything else is a container.
+        origin = typing.get_origin(annotation)
+        if origin in (typing.Union, types.UnionType):
+            non_none = [arg for arg in args if arg is not type(None)]
+            return len(non_none) == 1 and non_none[0] in dependency_types
+
+        if any(arg in dependency_types for arg in args):
+            raise TypeError(
+                f"Field '{field_name}' is annotated {annotation!r}. Containers "
+                f"of registration keys are not supported: declare a single "
+                f"RegistrationKey per field."
+            )
+        return False
 
     @property
     def expanded(self) -> bool:
@@ -357,19 +407,16 @@ class Configuration(BaseModel):
 
     @property
     def has_variants(self) -> bool:
-        for field_name, field_info in self.fields.items():
-            if len(self.meta[field_name].variants):
-                return True
-        return False
+        return any(self.meta[field_name].variants for field_name in self.fields)
 
     @property
     def has_at_least_two_variants(self) -> bool:
         field_with_variants = 0
-        for field_name, field_info in self.fields.items():
-            if len(self.meta[field_name].variants):
+        for field_name in self.fields:
+            if self.meta[field_name].variants:
                 field_with_variants += 1
-            if field_with_variants >= 2:
-                return True
+                if field_with_variants >= 2:
+                    return True
         return False
 
     @property
@@ -394,9 +441,11 @@ class Configuration(BaseModel):
             field_choices[field_name] = [
                 (item, idx + 1) for idx, item in enumerate(variants)
             ]
-
-            if len(self.fields) > 1:
-                field_choices[field_name].insert(0, (current_value, 0))
+            # Index 0 is the field's current value. For a single-field config it
+            # is the all-zero combination that gets filtered out below, so the
+            # result is the same either way -- inserting unconditionally keeps
+            # the two cases from diverging.
+            field_choices[field_name].insert(0, (current_value, 0))
 
         # Unpack keys and their list of (value, index) tuples
         keys = list(field_choices.keys())
