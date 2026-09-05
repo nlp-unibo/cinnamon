@@ -122,11 +122,14 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e .[cli]
           pip install sphinx sphinx_autodoc_typehints sphinx_rtd_theme
-      # docs.yml publishes from main. This builds on every pull request, with
-      # warnings as errors, so documentation for a removed API fails review
-      # rather than being noticed after it is live.
+      # Runs the same script docs.yml publishes with, rather than its own
+      # sphinx-build invocation. Calling sphinx directly here meant the script
+      # itself was never exercised until deploy time, which is where a
+      # difference between the two first showed up.
       - name: Build documentation
-        run: sphinx-build -b html -W --keep-going docsrc/source /tmp/docs
+        run: |
+          cd docsrc
+          bash build_docs.sh
 
   all-green:
     # One check to require in branch protection. Requiring the eleven
