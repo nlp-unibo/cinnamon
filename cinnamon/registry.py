@@ -858,10 +858,20 @@ class Registry:
         cls,
     ) -> Tuple[Set[RegistrationKey[Any]], Set[RegistrationKey[Any]]]:
         """
-        Expands and resolves dependencies in registration DAG.
-        The dependency traversal is done bottom-up by recursively expanding top nodes
-        (i.e., ``RegistrationKey`` instances).
-        Expanded keys are retrieved, and built for full validation.
+        Expands and resolves every dependency in the registration DAG.
+
+        Keys are expanded **children first**, in reverse topological order.
+        ``expand_configuration`` recurses into a key's dependencies, so reaching
+        a parent before its children makes the recursion as deep as the longest
+        chain in the project -- and Python's stack limit then caps that chain at
+        roughly 490 links.
+
+        That cap used to depend on the order modules happened to register in: the
+        same graph resolved when children were registered first (each expansion
+        finding its children already done, so nesting stayed shallow) and hit
+        ``RecursionError`` when parents came first. Taking the order from the
+        graph rather than from registration removes both the depth limit and the
+        dependence on something no user controls.
 
         Returns:
             valid_keys: the set of valid registration keys
@@ -874,7 +884,13 @@ class Registry:
         valid_key_buffer: Set[RegistrationKey[Any]] = set()
         invalid_key_buffer: Set[RegistrationKey[Any]] = set()
         logger.info(f"Resolving {len(cls._REGISTRY)} configurations...")
-        for key in cls._DEPENDENCY_DAG.successors(cls._ROOT_KEY):
+
+        # Materialised before expanding: expansion adds variant nodes to the
+        # graph, and topological_sort is a generator over a live view.
+        order = list(nx.topological_sort(cls._DEPENDENCY_DAG))
+        for key in reversed(order):
+            if key == cls._ROOT_KEY:
+                continue
             Registry.expand_configuration(
                 key=key,
                 valid_key_buffer=valid_key_buffer,
@@ -901,10 +917,23 @@ class Registry:
         config_info = cls.retrieve_configuration_info(registration_key=key)
         config = config_info.config
 
-        # We retrieve all keys related to input key through dependency DAG
+        # Already expanded: rebuild what the fresh path below would have
+        # returned, which is this key plus the variant keys derived from it.
+        #
+        # Only "variant" edges count. Taking every out-edge also swept in the
+        # "child" edges to the key's dependencies, so a caller received another
+        # configuration's key as though it were an alternative to this one, and
+        # generated a spurious parent variant from it. The two paths disagreed
+        # silently for as long as parents happened to be expanded before their
+        # children.
         if config.expanded:
-            keys = {edge[1] for edge in cls._DEPENDENCY_DAG.out_edges(key)}.union({key})
-            return keys
+            return {
+                child
+                for _, child, edge_type in cls._DEPENDENCY_DAG.out_edges(
+                    key, data="type"
+                )
+                if edge_type == "variant"
+            } | {key}
 
         keys = set()
 
