@@ -3,8 +3,6 @@ from __future__ import annotations
 import copy
 import itertools
 import logging
-import types
-import typing
 import warnings
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -27,6 +25,7 @@ from pydantic_core import PydanticUndefined
 from typing_extensions import Self
 
 import cinnamon.registry
+from cinnamon.utility.dependencies import DependencyShape, dependency_shape
 from cinnamon.utility.exceptions import (
     ValidationFailureException,
     ValidationResult,
@@ -256,44 +255,29 @@ class Configuration(BaseModel):
 
         return validated
 
+    def dependency_shape(
+        self, field_name: str, field: FieldInfo
+    ) -> DependencyShape | None:
+        """
+        Classify *field* as a scalar, list or dict dependency, or ``None``.
+
+        See ``cinnamon.utility.dependencies`` for the supported shapes.
+        """
+        return dependency_shape(
+            field_name=field_name,
+            annotation=field.annotation,
+            value=getattr(self, field_name),
+        )
+
     def is_dependency(self, field_name: str, field: FieldInfo) -> bool:
         """
         Report whether *field* declares a dependency on another registration.
 
-        Only scalar ``RegistrationKey``/``Configuration`` fields qualify.
-        Containers of keys (``list[RegistrationKey]``,
-        ``dict[str, RegistrationKey]``) are rejected here rather than
-        half-accepted: the rest of the pipeline -- edge building in
-        ``Registry.register_configuration``, resolution in
-        ``Registry.resolve_configuration`` -- only understands scalars, so
-        letting a container through produces a confusing failure further on.
+        A dependency is a ``RegistrationKey`` (or ``Configuration``) field, a
+        ``list`` of them, or a ``dict`` of them keyed by string -- optionally
+        wrapped in ``Optional[...]``. Nested containers raise ``TypeError``.
         """
-        dependency_types = (cinnamon.registry.RegistrationKey, Configuration)
-
-        field_value = getattr(self, field_name)
-        if isinstance(field_value, dependency_types):
-            return True
-
-        annotation = field.annotation
-        args = typing.get_args(annotation)
-        if not args:
-            return annotation in dependency_types
-
-        # A parameterised generic. get_args() cannot tell Optional[Key] from
-        # list[Key] -- both yield (Key,) -- so the origin decides: a union is
-        # still a scalar dependency, anything else is a container.
-        origin = typing.get_origin(annotation)
-        if origin in (typing.Union, types.UnionType):
-            non_none = [arg for arg in args if arg is not type(None)]
-            return len(non_none) == 1 and non_none[0] in dependency_types
-
-        if any(arg in dependency_types for arg in args):
-            raise TypeError(
-                f"Field '{field_name}' is annotated {annotation!r}. Containers "
-                f"of registration keys are not supported: declare a single "
-                f"RegistrationKey per field."
-            )
-        return False
+        return self.dependency_shape(field_name=field_name, field=field) is not None
 
     @property
     def expanded(self) -> bool:
@@ -316,9 +300,15 @@ class Configuration(BaseModel):
         }
 
     @property
-    def dependencies(
-        self,
-    ) -> dict[str, cinnamon.registry.RegistrationKey | Configuration]:
+    def dependencies(self) -> dict[str, Any]:
+        """
+        Map every dependency field to its value, container shape intact.
+
+        Values are whatever the field holds: a single ``RegistrationKey``, a
+        ``list`` of them, a ``dict`` of them, or ``None`` for an unset optional
+        dependency. Use ``cinnamon.utility.dependencies.iter_dependency_keys``
+        to walk the keys without caring which.
+        """
         return {
             field_name: getattr(self, field_name)
             for field_name, field in self.fields.items()

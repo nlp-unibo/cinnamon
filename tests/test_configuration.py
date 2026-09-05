@@ -5,6 +5,7 @@ import pytest
 
 from cinnamon.configuration import Configuration, Param, ParamMeta
 from cinnamon.registry import RegistrationKey, Registry
+from cinnamon.utility.dependencies import DependencyShape
 from cinnamon.utility.exceptions import ValidationFailureException
 from tests.fixtures import (
     BaseConfig,
@@ -325,8 +326,8 @@ def test_meta_class_context_none_schema_extra():
 # -- dependency detection --
 
 
-def test_container_of_keys_is_rejected():
-    """Containers of registration keys fail fast instead of half-registering."""
+def test_list_and_dict_of_keys_are_dependencies():
+    """Flat containers of registration keys are dependency fields."""
 
     class ListDependency(Configuration):
         children: list[RegistrationKey] = []
@@ -335,7 +336,70 @@ def test_container_of_keys_is_rejected():
         children: dict[str, RegistrationKey] = {}
 
     for config_class in (ListDependency, DictDependency):
-        with pytest.raises(TypeError, match="Containers of registration keys"):
+        assert list(config_class().dependencies) == ["children"]
+
+
+def test_container_shape_is_reported():
+    """dependency_shape() distinguishes the three supported layouts."""
+    key = RegistrationKey(name="n", namespace="ns")
+
+    class Shapes(Configuration):
+        scalar: RegistrationKey = key
+        listed: list[RegistrationKey] = [key]
+        mapped: dict[str, RegistrationKey] = {"a": key}
+        plain: int = 1
+
+    config = Shapes()
+    shapes = {
+        name: config.dependency_shape(field_name=name, field=field)
+        for name, field in config.fields.items()
+    }
+    assert shapes == {
+        "scalar": DependencyShape.SCALAR,
+        "listed": DependencyShape.LIST,
+        "mapped": DependencyShape.DICT,
+        "plain": None,
+    }
+
+
+def test_parameterised_key_annotation_is_detected():
+    """RegistrationKey[T] is a dependency even when the value is unset.
+
+    The generic parameter is documentation for readers and type checkers; it
+    must not hide the field from dependency detection.
+    """
+
+    class Marker:
+        pass
+
+    class Parameterised(Configuration):
+        scalar: Optional[RegistrationKey[Marker]] = None
+        listed: Optional[list[RegistrationKey[Marker]]] = None
+        mapped: Optional[dict[str, RegistrationKey[Marker]]] = None
+
+    config = Parameterised()
+    shapes = {
+        name: config.dependency_shape(field_name=name, field=field)
+        for name, field in config.fields.items()
+    }
+    assert shapes == {
+        "scalar": DependencyShape.SCALAR,
+        "listed": DependencyShape.LIST,
+        "mapped": DependencyShape.DICT,
+    }
+
+
+def test_nested_containers_are_rejected():
+    """Only one level of nesting is supported, and the error says so."""
+
+    class NestedList(Configuration):
+        children: list[list[RegistrationKey]] = []
+
+    class NestedDict(Configuration):
+        children: dict[str, list[RegistrationKey]] = {}
+
+    for config_class in (NestedList, NestedDict):
+        with pytest.raises(TypeError, match="Nested containers"):
             config_class().dependencies
 
 

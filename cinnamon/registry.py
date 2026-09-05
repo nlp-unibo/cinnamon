@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import ast
 import importlib.util
+import itertools
 import sys
 from collections.abc import ItemsView
 from dataclasses import dataclass
@@ -17,7 +18,6 @@ from typing import (
     Tuple,
     TypeVar,
     Union,
-    cast,
 )
 
 import networkx as nx
@@ -27,6 +27,12 @@ from pydantic_core import core_schema
 
 import cinnamon.configuration
 from cinnamon.utility.configuration import batched
+from cinnamon.utility.dependencies import (
+    DependencyShape,
+    dependency_members,
+    iter_dependency_keys,
+    map_dependency_keys,
+)
 from cinnamon.utility.exceptions import (
     AlreadyExpandedException,
     AlreadyRegisteredException,
@@ -134,11 +140,31 @@ class RegistrationKey(Generic[T]):
         super().__setattr__(attr, value)
 
     @classmethod
+    def _validate(cls, value: Any) -> "RegistrationKey[Any]":
+        """Accept a key as-is, or parse one from its canonical string form.
+
+        Anything else raises ``ValueError`` rather than being coerced through
+        ``str()``. That matters inside a union such as
+        ``RegistrationKey | list[RegistrationKey]``: pydantic only falls through
+        to the next member when this one reports a validation failure, so a
+        blanket ``str()`` coercion would swallow the list and then die parsing
+        its repr.
+        """
+        if isinstance(value, cls):
+            return value
+        if isinstance(value, str):
+            return cls.from_string(value)
+        raise ValueError(
+            f"Cannot build a {cls.__name__} from {type(value).__name__}; "
+            f"expected a {cls.__name__} or its string form."
+        )
+
+    @classmethod
     def __get_pydantic_core_schema__(
         cls, source_type: Any, handler: GetCoreSchemaHandler
     ):
         return core_schema.no_info_plain_validator_function(
-            function=lambda v: v if isinstance(v, cls) else cls.from_string(str(v)),
+            function=cls._validate,
             serialization=core_schema.plain_serializer_function_ser_schema(
                 function=str, return_schema=core_schema.str_schema(), when_used="json"
             ),
@@ -855,30 +881,43 @@ class Registry:
         keys = set()
 
         # dependencies
-        for dependency_name, dependency in config.dependencies.items():
+        for dependency_name, field in config.fields.items():
+            if dependency_name not in config.dependencies:
+                continue
+
+            dependency = config.dependencies[dependency_name]
+            shape = config.dependency_shape(field_name=dependency_name, field=field)
+            declared_variants = config.meta[dependency_name].variants
+
+            def expand(dependency_key: RegistrationKey[Any]) -> Set[Any]:
+                return Registry.expand_configuration(
+                    key=dependency_key,
+                    valid_key_buffer=valid_key_buffer,
+                    invalid_key_buffer=invalid_key_buffer,
+                )
+
+            if shape is not DependencyShape.SCALAR:
+                # Container dependency. Every member is expanded so its own
+                # variants are registered and validated, but the field's variant
+                # list is left alone: a container field varies as a whole
+                # container, so injecting bare member keys here would make
+                # ``config.variants`` offer a single key where a list belongs.
+                for candidate in [dependency, *declared_variants]:
+                    for member in iter_dependency_keys(candidate):
+                        expand(member)
+                continue
+
+            # Scalar dependency. When the child expands to more than itself, the
+            # extra keys become variants of this field, so the parent gains one
+            # variant per child variant.
             dependency_variants: Set[Any] = set()
+            if dependency is not None:
+                dependency_variants |= expand(dependency)
+                dependency_variants.discard(dependency)
 
-            # ``register_configuration`` rejects any dependency that is not a
-            # RegistrationKey, so everything reachable here is one.
-            # If a dependency expands to several keys we keep the first as the
-            # main one and move the rest to variants.
-            dependency_keys = Registry.expand_configuration(
-                key=cast("RegistrationKey[Any]", dependency),
-                valid_key_buffer=valid_key_buffer,
-                invalid_key_buffer=invalid_key_buffer,
-            )
-            dependency_variants |= dependency_keys
-            dependency_variants.discard(dependency)
-
-            for key_variant in config.meta[dependency_name].variants:
-                if key_variant is not None and isinstance(key_variant, RegistrationKey):
-                    dependency_variants = dependency_variants.union(
-                        Registry.expand_configuration(
-                            key=key_variant,
-                            valid_key_buffer=valid_key_buffer,
-                            invalid_key_buffer=invalid_key_buffer,
-                        )
-                    )
+            for key_variant in declared_variants:
+                for member in iter_dependency_keys(key_variant):
+                    dependency_variants |= expand(member)
 
             config.meta[dependency_name].variants = list(dependency_variants)
 
@@ -1082,26 +1121,28 @@ class Registry:
 
         # include dependencies
         for dependency_name, dependency in config.dependencies.items():
-            if not isinstance(dependency, RegistrationKey):
-                raise TypeError(
-                    f"Dependency '{dependency_name}' is not a RegistrationKey"
-                )
+            # A dependency field holds a key, a list of them, or a dict of
+            # them -- and each declared variant is a whole value of that same
+            # shape. Every key reachable from any of them becomes a child edge.
+            declared_variants = config.meta[dependency_name].variants
 
-            dependency_key = dependency
-            dependency_variants: list[RegistrationKey] = config.meta[
-                dependency_name
-            ].variants
-            dependencies = (
-                [dependency_key] + dependency_variants
-                if dependency_key is not None
-                else dependency_variants
-            )
-            for dep in dependencies:
-                # ``dependency_variants`` comes from Param(variants=[...]) and may
-                # hold plain values or None alongside keys; only keys are nodes.
-                if not isinstance(dep, RegistrationKey):
-                    continue
+            # The field's own value has to reference registrations. A nested
+            # Configuration instance, or any other stray value, cannot become a
+            # DAG edge -- say so here rather than dropping it silently.
+            for member in dependency_members(dependency):
+                if not isinstance(member, RegistrationKey):
+                    raise TypeError(
+                        f"Dependency '{dependency_name}' holds "
+                        f"{type(member).__name__!r} where a RegistrationKey was "
+                        f"expected."
+                    )
 
+            # Declared variants stay lenient: Param(variants=[...]) may mix
+            # keys with plain sentinel values, and only the keys are nodes.
+            for dep in itertools.chain.from_iterable(
+                iter_dependency_keys(candidate)
+                for candidate in [dependency, *declared_variants]
+            ):
                 if not cls.in_graph(dep):
                     cls._DEPENDENCY_DAG.add_node(dep)
 
@@ -1121,19 +1162,30 @@ class Registry:
     def resolve_configuration(
         cls, config: cinnamon.configuration.Configuration
     ) -> cinnamon.configuration.Configuration:
-        """Resolve dependency keys to configs."""
+        """
+        Replace every dependency key with the ``Configuration`` it names.
+
+        Container shapes survive: a ``list[RegistrationKey]`` field becomes a
+        list of configurations in the same order, a ``dict[str, RegistrationKey]``
+        keeps its labels. Members that are already resolved are left alone, so
+        the call is idempotent.
+
+        This runs on throwaway copies during validation. The *registered*
+        configuration keeps its raw keys, which is what components receive --
+        they call ``Registry.from_key`` on them to build their own children.
+        """
+
+        def resolve(dependency_key: RegistrationKey[Any]) -> Any:
+            return Registry.retrieve_configuration(registration_key=dependency_key)
+
         for dependency_name, dependency in config.dependencies.items():
-            if dependency is not None and isinstance(dependency, RegistrationKey):
-                dependency = Registry.retrieve_configuration(
-                    registration_key=dependency
-                )
-                setattr(config, dependency_name, dependency)
+            resolved = map_dependency_keys(dependency, resolve)
+            if resolved is not dependency:
+                setattr(config, dependency_name, resolved)
 
             config.meta[dependency_name].variants = [
-                Registry.retrieve_configuration(registration_key=variant_key)
-                if isinstance(variant_key, RegistrationKey)
-                else variant_key
-                for variant_key in config.meta[dependency_name].variants
+                map_dependency_keys(variant_value, resolve)
+                for variant_value in config.meta[dependency_name].variants
             ]
 
         return config
