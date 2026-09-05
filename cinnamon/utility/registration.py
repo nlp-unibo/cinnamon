@@ -3,7 +3,6 @@ from __future__ import annotations
 import ast
 import importlib
 import types
-from copy import deepcopy
 from enum import Enum
 from importlib.machinery import PathFinder
 from pathlib import Path
@@ -30,55 +29,117 @@ TAGGABLE_TYPES = [str, int, float, bool, types.NoneType, Enum]
 
 class NamespaceExtractor(ast.NodeVisitor):
     """
-    Static code analyzer that parses cinnamon-compliant scripts for registrations.
+    Finds the namespaces a configuration module registers into, without running it.
+
+    ``Registry.build`` needs to know which namespaces live in which directory
+    before it imports anything, so this reads the decorators and registration
+    calls straight from the AST.
+
+    A namespace is discovered when it is a literal, or a module-level constant
+    bound to one -- ``NAMESPACE = "myproject"`` at the top of the file is the
+    common idiom and resolves fine. Anything computed at runtime cannot be read
+    without executing the module, and is skipped rather than guessed at: the
+    previous implementation took the text after ``namespace=`` and would record
+    the string ``"NAMESPACE"`` as though it were a real namespace.
     """
 
+    REGISTER_DECORATOR = "register"
+    REGISTER_METHOD_DECORATOR = "register_method"
+    REGISTRATION_CALLS = frozenset({"register_configuration"})
+
     def __init__(self):
-        self.namespaces = []
+        self.namespaces: List[str] = []
         self.register_flag = False
+        self._constants: dict = {}
 
     def process(self, filename: Path) -> List[str]:
+        # Reset: one extractor instance is reused for every file in a build, and
+        # a flag left set by one module used to leak into the next.
+        self.register_flag = False
+        self.namespaces = []
+        self._constants = {}
+
         with filename.open("r") as f:
             tree = ast.parse(f.read(), filename)
-            self.visit(tree)
-        namespaces = deepcopy(self.namespaces)
+
+        self._collect_constants(tree)
+        self.visit(tree)
+
+        namespaces = list(self.namespaces)
         self.namespaces.clear()
         return namespaces
 
-    def visit_FunctionDef(self, node):
-        self.register_flag = False
-        for item in node.decorator_list:
-            parsed_item = ast.unparse(item)
+    def _collect_constants(self, tree: ast.Module) -> None:
+        """Record module-level ``NAME = "literal"`` bindings."""
+        for node in tree.body:
+            targets = []
+            if isinstance(node, ast.Assign):
+                targets = node.targets
+            elif isinstance(node, ast.AnnAssign):
+                targets = [node.target]
 
-            # For register_config only
-            if parsed_item.startswith("register_method("):
-                keywords = [ast.unparse(item) for item in item.keywords]
-                namespace = (
-                    [item for item in keywords if item.startswith("namespace")][0]
-                    .split("namespace=")[-1]
-                    .strip()
-                )
-                namespace = namespace.replace("'", "").replace('"', "")
-                self.namespaces.append(namespace)
+            value = getattr(node, "value", None)
+            if not isinstance(value, ast.Constant) or not isinstance(value.value, str):
+                continue
+            for target in targets:
+                if isinstance(target, ast.Name):
+                    self._constants[target.id] = value.value
+
+    @staticmethod
+    def _called_name(node: ast.AST) -> Optional[str]:
+        """The bare name of what a decorator or call refers to."""
+        target = node.func if isinstance(node, ast.Call) else node
+        if isinstance(target, ast.Name):
+            return target.id
+        if isinstance(target, ast.Attribute):
+            return target.attr
+        return None
+
+    def _literal_keyword(self, node: ast.Call, name: str) -> Optional[str]:
+        """A keyword argument's value, if it is a string we can read statically."""
+        for keyword in node.keywords:
+            if keyword.arg != name:
+                continue
+            if isinstance(keyword.value, ast.Constant):
+                value = keyword.value.value
+                return value if isinstance(value, str) else None
+            if isinstance(keyword.value, ast.Name):
+                return self._constants.get(keyword.value.id)
+        return None
+
+    def visit_FunctionDef(self, node):
+        # Saved and restored so the flag describes *this* function only, rather
+        # than everything the visitor happens to reach afterwards.
+        previous_flag = self.register_flag
+        self.register_flag = False
+
+        for decorator in node.decorator_list:
+            name = self._called_name(decorator)
+
+            if name == self.REGISTER_METHOD_DECORATOR and isinstance(
+                decorator, ast.Call
+            ):
+                namespace = self._literal_keyword(decorator, "namespace")
+                if namespace is not None:
+                    self.namespaces.append(namespace)
                 break
 
-            # For register only
-            if parsed_item.startswith("register"):
+            if name == self.REGISTER_DECORATOR:
                 self.register_flag = True
                 break
 
         self.generic_visit(node)
+        self.register_flag = previous_flag
+
+    visit_AsyncFunctionDef = visit_FunctionDef
 
     def visit_Call(self, node):
-        if self.register_flag:
-            call_args = [ast.unparse(keyword) for keyword in node.keywords]
-            if len(call_args):
-                namespace = (
-                    [item for item in call_args if item.startswith("namespace")][0]
-                    .split("namespace=")[-1]
-                    .strip()
-                )
-                namespace = namespace.replace("'", "").replace('"', "")
+        # Only registration calls carry a namespace. Reading every call with
+        # keywords meant a Param(description=...) inside a @register function
+        # raised IndexError on the missing namespace.
+        if self.register_flag and self._called_name(node) in self.REGISTRATION_CALLS:
+            namespace = self._literal_keyword(node, "namespace")
+            if namespace is not None:
                 self.namespaces.append(namespace)
         self.generic_visit(node)
 

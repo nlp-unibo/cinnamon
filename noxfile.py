@@ -9,6 +9,7 @@ one command, not four commands across five virtual environments.
     nox -s lint             ruff check, ruff format --check, mypy
     nox -s tests            full suite behind the 100% coverage gate
     nox -s core             the suite without the CLI extra installed
+    nox -s examples         the shipped examples, with pandas and scikit-learn
     nox -s tests -p 3.10    a specific interpreter
 
 CI runs ``tests`` and ``core`` across 3.10-3.14. Missing interpreters are
@@ -26,6 +27,10 @@ LINT_VERSION = "3.12"
 nox.options.default_venv_backend = "uv|virtualenv"
 nox.options.error_on_missing_interpreters = False
 nox.options.sessions = ["lint", "tests"]
+
+#: The examples pull in pandas and scikit-learn. They do not vary by interpreter,
+#: so verifying them once is enough.
+EXAMPLES_VERSION = "3.12"
 
 
 @nox.session(python=LINT_VERSION)
@@ -58,3 +63,16 @@ def core(session: nox.Session) -> None:
         "--ignore=tests/test_cli.py",
         "--ignore=tests/test_inquirer.py",
     )
+
+
+@nox.session(python=EXAMPLES_VERSION)
+def examples(session: nox.Session) -> None:
+    """The shipped examples, including the ones needing pandas and scikit-learn.
+
+    Separate from `tests` because those dependencies are heavy and the examples
+    do not behave differently per interpreter. Without this the binding check
+    for the scikit-learn pipeline silently skips, which is how its demos came to
+    be broken for months.
+    """
+    session.install("-e", ".[cli,dev,examples]")
+    session.run("pytest", "tests/test_examples.py", "--no-cov", "-v")

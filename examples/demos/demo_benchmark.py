@@ -3,7 +3,6 @@ from logging import getLogger
 from pathlib import Path
 
 from cinnamon.registry import Registry
-from examples.components.benchmark import SVCBenchmark
 
 if __name__ == "__main__":
     """
@@ -16,7 +15,7 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     logger = getLogger(__name__)
 
-    benchmark = SVCBenchmark.instantiate(
+    benchmark = Registry.instantiate(
         name="benchmark", tags={"svc"}, namespace="examples"
     )
     benchmark.run()

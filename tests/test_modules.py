@@ -157,3 +157,218 @@ def test_load_registrations_module_exec_error(tmp_path, reset_registry):
 
     with pytest.raises(RuntimeError, match="Failed to execute module"):
         Registry.load_registrations(directory=tmp_path)
+
+
+# -- NamespaceExtractor --
+
+
+def _extract(tmp_path, source, name="module.py"):
+    path = tmp_path / name
+    path.write_text(source)
+    return NamespaceExtractor().process(path)
+
+
+def test_extractor_reads_a_register_method_decorator(tmp_path):
+    assert _extract(
+        tmp_path,
+        """
+from cinnamon.registry import register_method
+
+class C:
+    @classmethod
+    @register_method(name="a", namespace="ns", component="x.Y")
+    def default(cls): ...
+""",
+    ) == ["ns"]
+
+
+def test_extractor_reads_a_registration_call(tmp_path):
+    assert _extract(
+        tmp_path,
+        """
+from cinnamon.registry import Registry, register
+
+@register
+def registrations():
+    Registry.register_configuration(config=None, name="a", namespace="ns")
+""",
+    ) == ["ns"]
+
+
+def test_extractor_resolves_a_module_level_constant(tmp_path):
+    """`NAMESPACE = "..."` at the top of the file is the common idiom."""
+    assert _extract(
+        tmp_path,
+        """
+from cinnamon.registry import Registry, register
+
+NAMESPACE = "from/constant"
+
+@register
+def registrations():
+    Registry.register_configuration(config=None, name="a", namespace=NAMESPACE)
+""",
+    ) == ["from/constant"]
+
+
+def test_extractor_ignores_other_calls_inside_a_register_function(tmp_path):
+    """Regression: any keyword-bearing call was read as a registration.
+
+    A `Param(description=...)` has keywords and no namespace, and indexing the
+    empty match list raised IndexError -- taking down the whole build.
+    """
+    assert _extract(
+        tmp_path,
+        """
+from cinnamon.configuration import Param
+from cinnamon.registry import Registry, register
+
+@register
+def registrations():
+    value = Param(1, description="no namespace here", variants=[2])
+    Registry.register_configuration(config=value, name="a", namespace="ns")
+""",
+    ) == ["ns"]
+
+
+def test_extractor_does_not_leak_the_register_flag_between_files(tmp_path):
+    """Regression: one extractor instance is reused for every file in a build.
+
+    `register_flag` was never reset, so a `@register` function in one module
+    made every later module's keyword-bearing calls look like registrations.
+    """
+    extractor = NamespaceExtractor()
+
+    first = tmp_path / "first.py"
+    first.write_text(
+        """
+from cinnamon.registry import Registry, register
+
+@register
+def registrations():
+    Registry.register_configuration(config=None, name="a", namespace="ns")
+"""
+    )
+    second = tmp_path / "second.py"
+    second.write_text(
+        """
+from cinnamon.configuration import Param
+
+x = Param(1, description="no register decorator anywhere in this file")
+"""
+    )
+
+    assert extractor.process(first) == ["ns"]
+    assert extractor.process(second) == []
+
+
+def test_extractor_skips_a_namespace_it_cannot_read_statically(tmp_path):
+    """A computed namespace is skipped, not guessed at.
+
+    The previous implementation took the source text after `namespace=` and
+    recorded it verbatim, so a computed value became the literal namespace
+    `"build_namespace()"`.
+    """
+    assert (
+        _extract(
+            tmp_path,
+            """
+from cinnamon.registry import Registry, register
+
+def build_namespace():
+    return "computed"
+
+@register
+def registrations():
+    Registry.register_configuration(
+        config=None, name="a", namespace=build_namespace()
+    )
+""",
+        )
+        == []
+    )
+
+
+def test_extractor_handles_async_registration_functions(tmp_path):
+    assert _extract(
+        tmp_path,
+        """
+from cinnamon.registry import Registry, register
+
+@register
+async def registrations():
+    Registry.register_configuration(config=None, name="a", namespace="ns")
+""",
+    ) == ["ns"]
+
+
+def test_extractor_reads_an_annotated_constant(tmp_path):
+    """`NAMESPACE: str = "..."` binds the same as a bare assignment."""
+    assert _extract(
+        tmp_path,
+        """
+from cinnamon.registry import Registry, register
+
+NAMESPACE: str = "annotated"
+
+@register
+def registrations():
+    Registry.register_configuration(config=None, name="a", namespace=NAMESPACE)
+""",
+    ) == ["annotated"]
+
+
+def test_extractor_ignores_unusual_decorator_shapes(tmp_path):
+    """A decorator that is neither a Name nor an Attribute is simply not ours."""
+    assert (
+        _extract(
+            tmp_path,
+            """
+DECORATORS = [lambda f: f]
+
+@DECORATORS[0]
+def not_a_registration():
+    pass
+""",
+        )
+        == []
+    )
+
+
+def test_extractor_skips_register_method_without_a_readable_namespace(tmp_path):
+    """The decorator is recognised; its computed namespace is not guessed at."""
+    assert (
+        _extract(
+            tmp_path,
+            """
+from cinnamon.registry import register_method
+
+def build():
+    return "computed"
+
+class C:
+    @classmethod
+    @register_method(name="a", namespace=build(), component="x.Y")
+    def default(cls): ...
+""",
+        )
+        == []
+    )
+
+
+def test_extractor_ignores_constants_bound_to_something_other_than_a_name(tmp_path):
+    """Only `NAME = "..."` binds; an attribute or subscript target is skipped."""
+    assert (
+        _extract(
+            tmp_path,
+            """
+import types
+
+holder = types.SimpleNamespace()
+holder.namespace = "on/an/attribute"
+lookup = {}
+lookup["namespace"] = "in/a/dict"
+""",
+        )
+        == []
+    )
