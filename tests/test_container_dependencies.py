@@ -9,6 +9,7 @@ shape a component actually receives, and the deliberate limits.
 
 from typing import Any, Dict, List, Optional, Union
 
+import pydantic
 import pytest
 
 from cinnamon.configuration import Configuration, Param
@@ -468,3 +469,103 @@ def test_from_keys_matches_the_loop_it_replaces(reset_registry):
     by_sugar = Registry.from_keys([CE, SPARSITY])
 
     assert [item.weight for item in by_hand] == [item.weight for item in by_sugar]
+
+
+def test_dict_container_variants_produce_parent_keys(reset_registry):
+    """A dict field varies as a whole dict, labels and all."""
+
+    class ModelConfig(Configuration):
+        metrics: Dict[str, RegistrationKey] = Param(
+            {"acc": CE},
+            variants=[{"acc": CE, "f1": SPARSITY}, {"f1": SPARSITY}],
+        )
+
+    _register_leaves()
+    Registry.register_configuration(ModelConfig(), name="model", namespace=NAMESPACE)
+    valid_keys, _ = Registry.dag_resolution()
+
+    by_tags = {
+        tuple(sorted(key.tags)): Registry.retrieve_configuration(registration_key=key)
+        for key in valid_keys
+        if key.name == "model"
+    }
+
+    assert set(by_tags) == {(), ("metrics=variant-1",), ("metrics=variant-2",)}
+    assert by_tags[()].metrics == {"acc": CE}
+    assert by_tags[("metrics=variant-1",)].metrics == {"acc": CE, "f1": SPARSITY}
+    assert by_tags[("metrics=variant-2",)].metrics == {"f1": SPARSITY}
+
+
+def test_a_member_appearing_only_in_a_variant_is_still_a_dependency(reset_registry):
+    """Variant members are graph edges too, so they are checked and resolved."""
+
+    class ModelConfig(Configuration):
+        losses: List[RegistrationKey] = Param([CE], variants=[[ACCURACY]])
+
+    _register_leaves()
+    Registry.register_configuration(ModelConfig(), name="model", namespace=NAMESPACE)
+
+    # ACCURACY is in no default value anywhere, only inside a variant
+    assert str(ACCURACY) in _child_keys(PARENT)
+
+
+def test_container_variants_combine_with_other_varying_fields(reset_registry):
+    """A container variant is an axis like any other."""
+
+    class ModelConfig(Configuration):
+        losses: List[RegistrationKey] = Param([CE], variants=[[CE, SPARSITY]])
+        learning_rate: float = Param(0.1, variants=[0.5])
+
+    _register_leaves()
+    Registry.register_configuration(ModelConfig(), name="model", namespace=NAMESPACE)
+    valid_keys, _ = Registry.dag_resolution()
+
+    assert {tuple(sorted(key.tags)) for key in valid_keys if key.name == "model"} == {
+        (),
+        ("learning_rate=0.5",),
+        ("losses=variant-1",),
+        ("learning_rate=0.5", "losses=variant-1"),
+    }
+
+
+def test_a_variant_container_builds_its_own_members(reset_registry):
+    """The component receives the variant's members, not the default's."""
+
+    class ModelConfig(Configuration):
+        losses: List[RegistrationKey] = Param([CE], variants=[[CE, SPARSITY]])
+
+    _register_leaves()
+    Registry.register_configuration(
+        config=ModelConfig(),
+        name="model",
+        namespace=NAMESPACE,
+        component="tests.test_container_dependencies.ModelComponent",
+    )
+    valid_keys, _ = Registry.dag_resolution()
+
+    variant = next(key for key in valid_keys if key.name == "model" and key.tags)
+    assert Registry.from_key(variant).losses == [CE, SPARSITY]
+
+
+def test_an_empty_container_variant_is_allowed(reset_registry):
+    """Dropping every member is a legitimate thing to compare against."""
+
+    class ModelConfig(Configuration):
+        losses: List[RegistrationKey] = Param([CE], variants=[[]])
+
+    _register_leaves()
+    Registry.register_configuration(ModelConfig(), name="model", namespace=NAMESPACE)
+    valid_keys, _ = Registry.dag_resolution()
+
+    variant = next(key for key in valid_keys if key.name == "model" and key.tags)
+    assert Registry.retrieve_configuration(registration_key=variant).losses == []
+
+
+def test_a_container_variant_equal_to_the_default_is_rejected(reset_registry):
+    """Same rule as a scalar: a variant that changes nothing is a mistake."""
+    with pytest.raises(pydantic.ValidationError, match="also reported in variants"):
+
+        class ModelConfig(Configuration):
+            losses: List[RegistrationKey] = Param([CE], variants=[[CE]])
+
+        ModelConfig()
