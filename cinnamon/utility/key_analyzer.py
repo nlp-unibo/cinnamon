@@ -14,12 +14,14 @@ Run it through ``cmn-check``, or call :func:`analyze_keys` directly."""
 
 from __future__ import annotations
 
+import re
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from enum import Enum
 from itertools import combinations
-from typing import TYPE_CHECKING, List, Sequence
+from typing import Any, List, Sequence, Tuple
 
-from cinnamon.registry import Registry
+from cinnamon.registry import RegistrationKey, Registry
 from cinnamon.utility.suggestions import (
     NEAR_DUPLICATE_THRESHOLD,
     KeySuggestion,
@@ -27,15 +29,19 @@ from cinnamon.utility.suggestions import (
     suggest_keys,
 )
 
-if TYPE_CHECKING:  # pragma: no cover - typing only
-    from cinnamon.registry import RegistrationKey
-
 __all__ = [
     "Severity",
     "KeyFinding",
     "analyze_keys",
+    "explain_variant_tags",
     "format_findings",
+    "format_variant_explanations",
 ]
+
+#: Variant tags that name an index rather than a value: ``losses=variant-1``.
+#: Minted when the value has no short stable rendering -- a list, a dict, any
+#: object that is not a string, number, bool, None or Enum.
+_ANONYMOUS_VARIANT = re.compile(r"^(?P<field>.+)=variant-(?P<index>\d+)$")
 
 
 class Severity(str, Enum):
@@ -145,6 +151,105 @@ def analyze_keys(registry: type[Registry] = Registry) -> List[KeyFinding]:
     findings = _analyze_unresolved(registry) + _analyze_near_duplicate_tags(registry)
     findings.sort(key=lambda finding: (finding.severity is not Severity.ERROR,))
     return findings
+
+
+#: Renderings longer than this are cut. A variant may hold a hundred-element
+#: list, and a single unreadable line helps nobody.
+_MAX_RENDER = 60
+
+
+def _render(value: Any) -> str:
+    """A readable rendering of whatever a variant field holds, uncapped."""
+    if isinstance(value, RegistrationKey):
+        tags = ",".join(sorted(value.tags))
+        return f"{value.name}[{tags}]" if tags else value.name
+    if isinstance(value, Mapping):
+        return "{" + ", ".join(f"{k}: {_render(v)}" for k, v in value.items()) + "}"
+    if isinstance(value, (list, tuple, set, frozenset)):
+        return "[" + ", ".join(_render(item) for item in value) + "]"
+    return repr(value)
+
+
+def _shorten(text: str) -> str:
+    """Cap a rendering at one readable line.
+
+    Applied once to the finished string rather than inside :func:`_render`, so
+    that a long *container* is cut too -- capping only the scalar branch left a
+    hundred-element list rendering across 390 characters.
+    """
+    return text if len(text) <= _MAX_RENDER else text[: _MAX_RENDER - 3] + "..."
+
+
+def explain_variant_tags(
+    registry: type[Registry] = Registry,
+) -> List[Tuple[str, str, str, str]]:
+    """
+    Say what each indexed variant tag actually holds.
+
+    A variant of a list, a dict, or any other value without a short stable
+    rendering is tagged by position -- ``losses=variant-1``. The index is
+    deterministic, so keys stay comparable across runs and machines, but it does
+    not tell you which losses. This reads the value back off the registered
+    configuration and renders it.
+
+    Reported once per configuration and tag, not once per key. A tag means the
+    same thing wherever it appears, and a registry with four varying fields
+    carries it on a dozen keys -- repeating the explanation for each would bury
+    it.
+
+    Requires a resolved registry: the variant configurations only exist once
+    ``dag_resolution`` has run.
+
+    Returns:
+        ``(name, namespace, tag, rendering)`` tuples, sorted and deduplicated.
+    """
+    explanations = set()
+
+    for key, info in registry.registered_items():
+        if info.config is None:
+            continue
+        for tag in key.tags:
+            match = _ANONYMOUS_VARIANT.match(tag)
+            if match is None:
+                continue
+            field = match.group("field")
+            if field not in info.config.fields:
+                continue
+            explanations.add(
+                (
+                    key.name,
+                    key.namespace,
+                    tag,
+                    _shorten(_render(getattr(info.config, field))),
+                )
+            )
+
+    return sorted(explanations)
+
+
+def format_variant_explanations(
+    explanations: Sequence[Tuple[str, str, str, str]],
+) -> str:
+    """Render :func:`explain_variant_tags` output, or nothing when there is none."""
+    if not explanations:
+        return ""
+
+    lines = [
+        "=== Indexed Variants ===",
+        "These tags name a position rather than a value, because a list or dict has",
+        "no short stable rendering. Here is what each one holds.",
+    ]
+
+    current: Tuple[str, str] | None = None
+    width = max(len(tag) for _, _, tag, _ in explanations)
+    for name, namespace, tag, rendering in explanations:
+        if (name, namespace) != current:
+            current = (name, namespace)
+            lines.append("")
+            lines.append(f"  {name} (ns={namespace})")
+        lines.append(f"      {tag:<{width}}  = {rendering}")
+
+    return "\n".join(lines)
 
 
 def format_findings(findings: Sequence[KeyFinding]) -> str:
