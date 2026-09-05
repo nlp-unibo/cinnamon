@@ -1020,6 +1020,39 @@ class Registry:
         return instance
 
     @classmethod
+    def from_keys(cls, dependency: Any, **build_args) -> Any:
+        """
+        Build every component in a dependency, keeping the shape it came in.
+
+        A component receives its dependencies as keys, so that it decides when
+        each child is built. When the dependency is a container that usually
+        means a comprehension per field::
+
+            self.losses = [Registry.from_key(key) for key in losses]
+            self.metrics = {name: Registry.from_key(key)
+                            for name, key in metrics.items()}
+
+        which says nothing except "build these". ``from_keys`` says it once::
+
+            self.losses = Registry.from_keys(losses)     # list  -> list, in order
+            self.metrics = Registry.from_keys(metrics)   # dict  -> dict, same labels
+
+        A single key builds a single component, so a field typed
+        ``RegistrationKey | list[RegistrationKey]`` needs no branch. ``None``
+        returns ``None``, which is what an unset optional dependency should do.
+        Anything that is not a key is passed through untouched.
+
+        ``build_args`` are forwarded to every component built.
+
+        This builds **eagerly**. Keep the loop when a child should only be built
+        under some condition -- the laziness is the reason components are handed
+        keys rather than instances.
+        """
+        return map_dependency_keys(
+            dependency, lambda key: cls.from_key(key, **build_args)
+        )
+
+    @classmethod
     def instantiate(
         cls,
         registration_key: Registration | None = None,

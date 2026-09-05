@@ -375,3 +375,96 @@ def test_key_parses_from_its_string_form_inside_a_container():
 
     config = ModelConfig(losses=[str(CE)])
     assert config.losses == [CE]
+
+
+# -- Registry.from_keys ------------------------------------------------------
+
+
+def _register_leaf_components(reset=False):
+    for name in ("ce", "sparsity", "accuracy"):
+        Registry.register_configuration(
+            config=LeafConfig(
+                weight={"ce": 1.0, "sparsity": 2.0, "accuracy": 3.0}[name]
+            ),
+            name=name,
+            namespace=NAMESPACE,
+            component="tests.test_container_dependencies.LeafComponent",
+        )
+    Registry.dag_resolution()
+
+
+def test_from_keys_builds_a_list_in_order(reset_registry):
+    _register_leaf_components()
+
+    built = Registry.from_keys([CE, SPARSITY])
+
+    assert [type(item) for item in built] == [LeafComponent, LeafComponent]
+    assert [item.weight for item in built] == [1.0, 2.0]
+
+
+def test_from_keys_keeps_dictionary_labels(reset_registry):
+    _register_leaf_components()
+
+    built = Registry.from_keys({"first": CE, "second": ACCURACY})
+
+    assert list(built) == ["first", "second"]
+    assert built["first"].weight == 1.0
+    assert built["second"].weight == 3.0
+
+
+def test_from_keys_accepts_a_single_key(reset_registry):
+    """So a `RegistrationKey | list[RegistrationKey]` field needs no branch."""
+    _register_leaf_components()
+
+    assert Registry.from_keys(CE).weight == 1.0
+
+
+def test_from_keys_passes_none_through(reset_registry):
+    """An optional dependency left unset stays unset."""
+    _register_leaf_components()
+
+    assert Registry.from_keys(None) is None
+
+
+def test_from_keys_preserves_tuples(reset_registry):
+    _register_leaf_components()
+
+    built = Registry.from_keys((CE, SPARSITY))
+
+    assert isinstance(built, tuple)
+    assert len(built) == 2
+
+
+def test_from_keys_leaves_non_keys_alone(reset_registry):
+    """A partially resolved container is not something to choke on."""
+    _register_leaf_components()
+
+    built = Registry.from_keys([CE, "already resolved"])
+
+    assert isinstance(built[0], LeafComponent)
+    assert built[1] == "already resolved"
+
+
+def test_from_keys_forwards_build_arguments(reset_registry):
+    """Extra arguments reach every component built."""
+    Registry.register_configuration(
+        config=LeafConfig(),
+        name="ce",
+        namespace=NAMESPACE,
+        component="tests.test_container_dependencies.LeafComponent",
+    )
+    Registry.dag_resolution()
+
+    built = Registry.from_keys([CE], weight=99.0)
+
+    assert built[0].weight == 99.0
+
+
+def test_from_keys_matches_the_loop_it_replaces(reset_registry):
+    """The sugar must be exactly the comprehension, not approximately."""
+    _register_leaf_components()
+
+    by_hand = [Registry.from_key(key) for key in [CE, SPARSITY]]
+    by_sugar = Registry.from_keys([CE, SPARSITY])
+
+    assert [item.weight for item in by_hand] == [item.weight for item in by_sugar]
