@@ -7,6 +7,20 @@ from typing import TYPE_CHECKING, List, Optional, Union
 
 if TYPE_CHECKING:
     from cinnamon.registry import RegistrationKey
+    from cinnamon.utility.suggestions import KeySuggestion
+
+
+def _suggestion_block(suggestions: "List[KeySuggestion] | None") -> str:
+    """Render "did you mean" lines, or nothing when there is no near match."""
+    if not suggestions:
+        return ""
+    lines = [f"{os.linesep}Did you mean:"]
+    lines += [
+        f"  - {suggestion.key}{os.linesep}      ({suggestion.reason})"
+        for suggestion in suggestions
+    ]
+    return os.linesep.join(lines)
+
 
 __all__ = [
     "AlreadyRegisteredException",
@@ -36,20 +50,38 @@ class NamespaceNotFoundException(Exception):
         self,
         registration_key: "RegistrationKey",
         namespaces: List[str],
+        missing_namespace: Optional[str] = None,
     ):
+        hint = ""
+        if missing_namespace is not None:
+            from cinnamon.utility.suggestions import closest_string
+
+            match = closest_string(missing_namespace, namespaces)
+            hint = (
+                f"{os.linesep}Did you mean namespace '{match}'?"
+                if match is not None
+                else ""
+            )
+
         super(NamespaceNotFoundException, self).__init__(
             f"The registration key namespace cannot be found. {os.linesep}"
             f"Key: {registration_key}{os.linesep}"
-            f"Namespaces: {namespaces}{os.linesep}"
+            f"Missing namespace: {missing_namespace}{os.linesep}"
+            f"Known namespaces: {namespaces}{hint}{os.linesep}"
             f"Please, make sure you add the main directory containing that namespace "
-            f"when calling Registry.setup() method"
+            f"when calling Registry.build()"
         )
 
 
 class NotRegisteredException(Exception):
-    def __init__(self, registration_key: "RegistrationKey"):
+    def __init__(
+        self,
+        registration_key: "RegistrationKey",
+        suggestions: "Optional[List[KeySuggestion]]" = None,
+    ):
         super(NotRegisteredException, self).__init__(
             f"Could not find key {registration_key}. Did you register it?"
+            f"{_suggestion_block(suggestions)}"
         )
 
 

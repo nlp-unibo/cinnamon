@@ -8,8 +8,11 @@ from pathlib import Path
 from typing import List, Optional, Tuple
 
 from cinnamon.registry import RegistrationKey, Registry
+from cinnamon.utility import key_analyzer
 from cinnamon.utility.inquirer import filter_keys
+from cinnamon.utility.key_analyzer import analyze_keys, format_findings
 from cinnamon.utility.sanity import check_directory, check_external_json_path
+from cinnamon.utility.static_analyzer import analyze_registry, print_analysis_summary
 
 logger = getLogger(__name__)
 
@@ -36,7 +39,12 @@ def _require_inquirer():
         ) from None
 
 
-def _build_parser(*, run_directory: bool = False, filename: bool = False):
+def _build_parser(
+    *,
+    run_directory: bool = False,
+    filename: bool = False,
+    strict: bool = False,
+):
     """Assemble the argument parser shared by every ``cmn-*`` entry point."""
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -67,6 +75,12 @@ def _build_parser(*, run_directory: bool = False, filename: bool = False):
         default=None,
         help="Path to file containing all external directories",
     )
+    if strict:
+        parser.add_argument(
+            "--strict",
+            action="store_true",
+            help="Treat warnings as failures",
+        )
     return parser
 
 
@@ -83,8 +97,13 @@ def _resolve_sources(args) -> Tuple[Path, Optional[List[Path]]]:
         External directories: {external_directories}
     """)
 
-    # add to PYTHONPATH
-    sys.path.insert(0, directory.as_posix())
+    # Put both the registration directory and the working directory on the
+    # import path. A console script, unlike ``python -m``, does not add the
+    # working directory itself, so component paths written relative to the
+    # project root ("examples.components.Loader") would not import.
+    for candidate in (directory.as_posix(), Path.cwd().as_posix()):
+        if candidate not in sys.path:
+            sys.path.insert(0, candidate)
 
     return directory, external_directories
 
@@ -264,3 +283,51 @@ if __name__ == '__main__':
 
     with open(script_path, "w") as f:
         f.write(code_template)
+
+
+def check() -> None:
+    """
+    Report registration problems without running anything.
+
+    Two passes, in the order the problems occur:
+
+    1. **Keys** -- run after ``Registry.load`` so that *every* broken reference
+       is visible. ``dag_resolution`` stops at the first one, which is why a
+       project with three typos otherwise takes three runs to fix.
+    2. **Bindings** -- only once the keys resolve, since the component analyzer
+       needs an expanded registry.
+
+    Exits non-zero when errors are found, so it can gate a commit or a CI job.
+    """
+    _configure_logging()
+
+    args = _build_parser(strict=True).parse_args()
+    directory, external_directories = _resolve_sources(args)
+
+    Registry.load(directory=directory, external_directories=external_directories)
+
+    findings = analyze_keys(Registry)
+    print(format_findings(findings))
+
+    errors = [
+        finding
+        for finding in findings
+        if finding.severity is key_analyzer.Severity.ERROR
+    ]
+    warnings = [finding for finding in findings if finding not in errors]
+
+    if errors:
+        print(
+            f"\n{len(errors)} unresolved key(s): skipping the binding analysis, "
+            f"which needs a registry that resolves."
+        )
+        raise SystemExit(1)
+
+    Registry.dag_resolution()
+    bindings = analyze_registry(Registry)
+    print()
+    print_analysis_summary(bindings)
+
+    binding_errors = sum(1 for ok_flag, _, _ in bindings.values() if not ok_flag)
+    if binding_errors or (warnings and getattr(args, "strict", False)):
+        raise SystemExit(1)

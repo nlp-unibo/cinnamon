@@ -39,7 +39,7 @@ single `RegistrationKey`.
 - **Conditions** — attach runtime invariants to configurations via `add_condition`, validated before any component is built.
 - **Dependency nesting** — compose configurations by pointing fields at `RegistrationKey` instances; the `Registry` resolves the dependency graph bottom-up.
 - **Community-ready** — pull components and `Configuration` classes from external projects via `external_directories` and build on top of them.
-- **CLI included** — `cmn-build`, `cmn-run`, and `cmn-generate` for running and generating experiment scripts without boilerplate.
+- **CLI included** — `cmn-build`, `cmn-run`, and `cmn-generate` for running and generating experiment scripts without boilerplate, plus `cmn-check` to catch mistyped registration keys before you run anything.
 
 ---
 

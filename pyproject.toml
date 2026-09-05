@@ -44,6 +44,7 @@ examples = [
 cmn-build = "cinnamon.cli:build"
 cmn-run = "cinnamon.cli:run"
 cmn-generate = "cinnamon.cli:generate"
+cmn-check = "cinnamon.cli:check"
 
 [tool.setuptools]
 packages = ["cinnamon", "cinnamon.utility"]

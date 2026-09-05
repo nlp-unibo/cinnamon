@@ -54,6 +54,7 @@ from cinnamon.utility.registration import (
     match_tags,
 )
 from cinnamon.utility.sanity import time_it
+from cinnamon.utility.suggestions import suggest_keys
 
 logger = getLogger(__name__)
 
@@ -532,6 +533,52 @@ class Registry:
 
     @classmethod
     @time_it
+    def load(
+        cls,
+        directory: Union[Path, str],
+        external_directories: List[Union[str, Path]] | None = None,
+    ) -> None:
+        """
+        Populate the registry and the dependency DAG, without resolving them.
+
+        This is the first half of ``build``: after it returns, every
+        registration has been executed and every referenced key is a node in the
+        DAG -- including keys that were referenced but never registered. That
+        makes it the point at which the whole set of broken references can be
+        inspected at once, which ``dag_resolution`` cannot do because it stops
+        at the first one.
+
+        Args:
+            directory: the main directory of the project containing configurations.
+            external_directories: external directories containing configurations.
+        """
+        directory = Path(directory).resolve()
+
+        cls.initialize()
+
+        local_namespaces, local_module_mapping = cls.parse_configuration_files(
+            directories=[directory]
+        )
+        cls.update_namespaces(
+            namespaces=local_namespaces, module_mapping=local_module_mapping
+        )
+
+        if external_directories is not None:
+            external_directories = cls.resolve_external_directories(
+                external_directories=external_directories
+            )
+            cls._MODULES = external_directories
+            ext_namespaces, ext_module_mapping = cls.parse_configuration_files(
+                directories=external_directories
+            )
+            cls.update_namespaces(
+                namespaces=ext_namespaces, module_mapping=ext_module_mapping
+            )
+
+        cls.load_registrations(directory=directory)
+
+    @classmethod
+    @time_it
     def build(
         cls,
         directory: Union[Path, str],
@@ -568,30 +615,7 @@ class Registry:
             on the dependency DAG is carried out.
         """
 
-        directory = Path(directory).resolve()
-
-        cls.initialize()
-
-        local_namespaces, local_module_mapping = cls.parse_configuration_files(
-            directories=[directory]
-        )
-        cls.update_namespaces(
-            namespaces=local_namespaces, module_mapping=local_module_mapping
-        )
-
-        if external_directories is not None:
-            external_directories = cls.resolve_external_directories(
-                external_directories=external_directories
-            )
-            cls._MODULES = external_directories
-            ext_namespaces, ext_module_mapping = cls.parse_configuration_files(
-                directories=external_directories
-            )
-            cls.update_namespaces(
-                namespaces=ext_namespaces, module_mapping=ext_module_mapping
-            )
-
-        cls.load_registrations(directory=directory)
+        cls.load(directory=directory, external_directories=external_directories)
         valid_keys, invalid_keys = cls.dag_resolution()
 
         cls._REGISTRY = {
@@ -1038,7 +1062,10 @@ class Registry:
         )
 
         if not cls.in_registry(registration_key=registration_key):
-            raise NotRegisteredException(registration_key=registration_key)
+            raise NotRegisteredException(
+                registration_key=registration_key,
+                suggestions=suggest_keys(registration_key, cls._REGISTRY),
+            )
 
         config_info: ConfigurationInfo = cls._REGISTRY[registration_key]
         config = config_info.config
@@ -1153,6 +1180,7 @@ class Registry:
                         raise NamespaceNotFoundException(
                             registration_key=registration_key,
                             namespaces=cls._EXP_NAMESPACES,
+                            missing_namespace=dep.namespace,
                         )
                     cls.load_registrations(directory=cls._MODULE_MAPPING[dep.namespace])
 
@@ -1217,7 +1245,10 @@ class Registry:
         )
 
         if not cls.in_registry(registration_key=parsed_key):
-            raise NotRegisteredException(registration_key=parsed_key)
+            raise NotRegisteredException(
+                registration_key=parsed_key,
+                suggestions=suggest_keys(parsed_key, cls._REGISTRY),
+            )
 
         return cls._REGISTRY[parsed_key]
 
@@ -1283,6 +1314,19 @@ class Registry:
         on the internal container.
         """
         return cls._REGISTRY.items()
+
+    @classmethod
+    def unresolved_keys(cls) -> Set["RegistrationKey[Any]"]:
+        """
+        Keys that something depends on but nothing registered.
+
+        Meaningful between ``load`` and ``dag_resolution``: registration adds a
+        node for every referenced key, so anything in the graph without a
+        registry entry is a broken reference. After a successful ``build`` the
+        set is empty, since resolution would have failed.
+        """
+        nodes = set(cls._DEPENDENCY_DAG.nodes) - {cls._ROOT_KEY}
+        return nodes - set(cls._REGISTRY)
 
     @classmethod
     def retrieve_keys(

@@ -624,3 +624,128 @@ def test_cli_build_reuses_existing_registrations_directory(
     cli.build()
 
     assert json.loads((registrations / "valid_keys.json").read_text()) == [str(key)]
+
+
+# -- check --
+
+
+def _write_project(tmp_path, body):
+    configurations = tmp_path / "configurations"
+    configurations.mkdir()
+    (configurations / "regs.py").write_text(body)
+    return tmp_path
+
+
+CLEAN_PROJECT = """
+from cinnamon.configuration import Configuration
+from cinnamon.registry import RegistrationKey, Registry, register
+
+class Leaf(Configuration):
+    x: int = 1
+
+@register
+def registrations():
+    Registry.register_configuration(Leaf(), name="tokenizer", namespace="nlp")
+"""
+
+BROKEN_PROJECT = """
+from cinnamon.configuration import Configuration
+from cinnamon.registry import RegistrationKey, Registry, register
+
+class Leaf(Configuration):
+    x: int = 1
+
+class Pipeline(Configuration):
+    tok: RegistrationKey = RegistrationKey(name="tokeniser", namespace="nlp")
+
+@register
+def registrations():
+    Registry.register_configuration(Leaf(), name="tokenizer", namespace="nlp")
+    Registry.register_configuration(Pipeline(), name="pipeline", namespace="nlp")
+"""
+
+WARNING_PROJECT = """
+from cinnamon.configuration import Configuration
+from cinnamon.registry import Registry, register
+
+class Leaf(Configuration):
+    x: int = 1
+
+@register
+def registrations():
+    Registry.register_configuration(Leaf(), name="a", tags={"imdb"}, namespace="nlp")
+    Registry.register_configuration(Leaf(), name="b", tags={"IMDB"}, namespace="nlp")
+"""
+
+
+def test_cli_check_passes_on_a_clean_project(
+    tmp_path, monkeypatch, capsys, reset_registry
+):
+    """A resolvable project reports nothing and exits normally."""
+    project = _write_project(tmp_path, CLEAN_PROJECT)
+    monkeypatch.setattr("sys.argv", ["cmn-check", "-dir", str(project)])
+
+    cli.check()
+
+    assert "No registration key problems found." in capsys.readouterr().out
+
+
+def test_cli_check_reports_broken_references_and_exits_nonzero(
+    tmp_path, monkeypatch, capsys, reset_registry
+):
+    """A broken reference is an error: reported with a suggestion, exit code 1."""
+    project = _write_project(tmp_path, BROKEN_PROJECT)
+    monkeypatch.setattr("sys.argv", ["cmn-check", "-dir", str(project)])
+
+    with pytest.raises(SystemExit) as raised:
+        cli.check()
+
+    assert raised.value.code == 1
+    output = capsys.readouterr().out
+    assert "[error] unresolved-key" in output
+    assert "name 'tokeniser' -> 'tokenizer'" in output
+    # the binding pass is skipped, since it needs a registry that resolves
+    assert "skipping the binding analysis" in output
+
+
+def test_cli_check_warnings_do_not_fail_by_default(
+    tmp_path, monkeypatch, capsys, reset_registry
+):
+    project = _write_project(tmp_path, WARNING_PROJECT)
+    monkeypatch.setattr("sys.argv", ["cmn-check", "-dir", str(project)])
+
+    cli.check()
+
+    assert "[warning] near-duplicate-tag" in capsys.readouterr().out
+
+
+def test_cli_check_strict_fails_on_warnings(
+    tmp_path, monkeypatch, capsys, reset_registry
+):
+    project = _write_project(tmp_path, WARNING_PROJECT)
+    monkeypatch.setattr("sys.argv", ["cmn-check", "-dir", str(project), "--strict"])
+
+    with pytest.raises(SystemExit) as raised:
+        cli.check()
+
+    assert raised.value.code == 1
+
+
+def test_cli_check_fails_on_binding_errors(
+    tmp_path, monkeypatch, capsys, reset_registry
+):
+    """Keys may resolve while a component path does not import."""
+    project = _write_project(
+        tmp_path,
+        CLEAN_PROJECT.replace(
+            'name="tokenizer", namespace="nlp")',
+            'name="tokenizer", namespace="nlp", component="nope.Missing")',
+        ),
+    )
+    monkeypatch.setattr("sys.argv", ["cmn-check", "-dir", str(project)])
+
+    with pytest.raises(SystemExit) as raised:
+        cli.check()
+
+    assert raised.value.code == 1
+    assert "cannot be imported" in capsys.readouterr().out
