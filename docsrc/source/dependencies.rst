@@ -196,13 +196,45 @@ Only one level of nesting is supported. ``list[list[RegistrationKey]]`` and
 ``dict[str, list[RegistrationKey]]`` raise ``TypeError`` when the dependency is
 inspected, with a message saying so.
 
+---------------------------------------------
+Varying a container
+---------------------------------------------
+
+A container varies **as a whole container**. Each variant is a complete
+replacement for the field's value, and lists and dicts behave the same way:
+
+.. code-block:: python
+
+    class ModelConfig(Configuration):
+        losses: list[RegistrationKey] = Param(
+            [CE],
+            variants=[[CE, SPARSITY], []],          # add one, or drop them all
+        )
+        metrics: dict[str, RegistrationKey] = Param(
+            {'acc': ACCURACY},
+            variants=[{'acc': ACCURACY, 'f1': F1}],  # labels vary too
+        )
+
+Everything that applies to an ordinary variant applies here. A container variant
+combines with the other varying fields, so the sweep is still the full product; a
+member that appears only inside a variant is a dependency like any other, checked
+and resolved; and a variant identical to the default is rejected, because it
+changes nothing.
+
 .. note::
     **A container does not multiply its members' variants into the parent, while a
     scalar dependency does.** Three losses with three variants each would otherwise
-    be twenty-seven parent keys from a single field. To vary a container, vary the
-    whole thing::
+    be twenty-seven parent keys from a single field. Those member variants are
+    still registered and usable on their own -- they simply do not compose upward.
+    To vary a container, vary the whole thing.
 
-        losses: list[RegistrationKey] = Param([A], variants=[[A, B], [A, B, C]])
+.. note::
+    Container variants are tagged by index -- ``losses=variant-1`` -- because the
+    contents of a list or dict do not reduce to a short, stable label the way a
+    scalar value does. The index follows declaration order, so keys stay the same
+    across runs and machines, but the tag does not tell you what is in the
+    variant. ``cmn-build`` writes the full configuration of every key, which is
+    where to look.
 
 =============================================
 External dependencies
