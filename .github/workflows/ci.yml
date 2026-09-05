@@ -5,6 +5,14 @@ on:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
+  workflow_dispatch:
+
+# A new push to a pull request makes the previous run irrelevant. Cancel it
+# rather than queueing behind it -- faster feedback, fewer wasted minutes.
+# Runs on main are never cancelled: those results are the record.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   lint:
@@ -78,3 +86,22 @@ jobs:
       # pragma, since its two arms can never both run on one version.
       - name: Run tests with coverage gate
         run: pytest --cov-fail-under=100 --cov-report=term-missing
+
+  all-green:
+    # One check to require in branch protection. Requiring the eleven
+    # underlying jobs by name would mean editing the protection rule every time
+    # the matrix changes, and a job silently removed from the workflow would
+    # stop being required without anyone noticing.
+    name: All checks passed
+    if: always()
+    needs: [lint, test-core, test-full]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify that every job succeeded
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped')
+        run: |
+          echo "One or more required jobs did not succeed:"
+          echo '${{ toJSON(needs) }}'
+          exit 1
+      - name: Report success
+        run: echo "lint, test-core and test-full all passed."
