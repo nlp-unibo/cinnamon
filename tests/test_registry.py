@@ -848,3 +848,109 @@ def test_resolve_configuration_is_idempotent(reset_registry):
 
     reresolved = Registry.resolve_configuration(config=resolved)
     assert reresolved.c1 is resolved.c1
+
+
+# -- resolution order -------------------------------------------------------
+
+
+def _register_chain(depth, parents_first=True):
+    """A -> B -> C ... of the given depth, in a chosen registration order."""
+    classes = []
+    for level in range(depth):
+        if level + 1 < depth:
+            body = {
+                "__annotations__": {"child": RegistrationKey},
+                "child": RegistrationKey(name=f"n{level + 1}", namespace="chain"),
+            }
+        else:
+            body = {"__annotations__": {"x": int}, "x": 1}
+        classes.append(type(f"Chain{level}", (Configuration,), body))
+
+    levels = range(depth) if parents_first else reversed(range(depth))
+    for level in levels:
+        Registry.register_configuration(
+            config=classes[level](), name=f"n{level}", namespace="chain"
+        )
+
+
+def test_a_chain_far_deeper_than_the_stack_resolves(reset_registry):
+    """Expansion recurses, so the traversal order decides how deep it nests.
+
+    Reaching a parent before its children made the recursion as deep as the
+    longest chain, which Python's stack capped at 491 links. Expanding in
+    reverse topological order keeps every call shallow.
+    """
+    _register_chain(2000, parents_first=True)
+
+    valid_keys, _ = Registry.dag_resolution()
+
+    assert len(valid_keys) == 2000
+
+
+@pytest.mark.parametrize("parents_first", [True, False], ids=["parents", "children"])
+def test_registration_order_does_not_change_the_outcome(reset_registry, parents_first):
+    """The same graph must resolve the same way however modules registered.
+
+    It did not: children-first left each expansion shallow and worked, while
+    parents-first recursed the whole chain and raised RecursionError. Which of
+    those a project got depended on the order its modules happened to load in.
+    """
+    _register_chain(600, parents_first=parents_first)
+
+    valid_keys, invalid_keys = Registry.dag_resolution()
+
+    assert {key.name for key in valid_keys} == {f"n{level}" for level in range(600)}
+    assert invalid_keys == set()
+
+
+def test_expansion_returns_the_same_keys_whether_or_not_it_is_cached(reset_registry):
+    """The memoized branch must agree with the branch that does the work.
+
+    It returned every out-edge, which swept in "child" edges to the key's
+    dependencies alongside its "variant" edges. A caller then treated another
+    configuration's key as an alternative to this one and produced a parent
+    variant that should not exist.
+    """
+    # The key must have *both* a dependency and variants: on a leaf the two
+    # branches coincide, and the disagreement is invisible.
+    parent_key = Registry.register_configuration(
+        config=VariantConfigWithChild.default(), name="parent", namespace="testing"
+    )
+    Registry.register_configuration(
+        config=BaseConfig.default(), name="test", tags={"t2"}, namespace="testing"
+    )
+
+    fresh = Registry.expand_configuration(key=parent_key)
+    assert Registry.retrieve_configuration(registration_key=parent_key).expanded
+
+    cached = Registry.expand_configuration(key=parent_key)
+
+    assert cached == fresh
+    # specifically: the dependency is not returned as an alternative to its parent
+    assert RegistrationKey(name="test", tags={"t2"}, namespace="testing") not in cached
+
+
+def test_a_shared_child_does_not_leak_into_a_parents_variants(reset_registry):
+    """The concrete symptom of the two branches disagreeing."""
+    Registry.register_configuration(
+        config=ConfigWithChild.default(), name="config", namespace="testing"
+    )
+    Registry.register_configuration(
+        config=VariantConfigWithVariantChild.default(),
+        name="test",
+        tags={"t2"},
+        namespace="testing",
+    )
+    Registry.register_configuration(
+        config=ConfigWithVariants.default(),
+        name="test",
+        tags={"t3"},
+        namespace="testing",
+    )
+
+    valid_keys, _ = Registry.dag_resolution()
+
+    # 't3' is a sibling of the 'config' key's child, never an alternative to it
+    assert not any(
+        key.name == "config" and key.tags == frozenset({"c1.t3"}) for key in valid_keys
+    )
