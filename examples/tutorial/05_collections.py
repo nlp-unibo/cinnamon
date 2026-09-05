@@ -37,10 +37,16 @@ class Model:
         losses: list[RegistrationKey],
         metrics: dict[str, RegistrationKey],
     ):
-        # Same pattern as a scalar dependency, once per member. The container
-        # shape is preserved exactly, so the dict keeps its labels.
-        self.losses = [Registry.from_key(k) for k in losses]
-        self.metrics = {name: Registry.from_key(k) for name, k in metrics.items()}
+        # `from_keys` builds a whole dependency at once and keeps its shape: a
+        # list stays a list in the same order, a dict keeps its labels. It is
+        # the same thing as
+        #
+        #     [Registry.from_key(key) for key in losses]
+        #     {name: Registry.from_key(key) for name, key in metrics.items()}
+        #
+        # without a comprehension per field saying "build these" twice.
+        self.losses = Registry.from_keys(losses)
+        self.metrics = Registry.from_keys(metrics)
 
 
 class MetricConfig(Configuration):
@@ -78,6 +84,13 @@ def main() -> None:
     model = Registry.from_key(key("model"))
     print("losses (ordered):", [loss.score(3.0) for loss in model.losses])
     print("metrics (named):  ", {n: m.score(3.0) for n, m in model.metrics.items()})
+
+    # `from_keys` takes a single key too, so a field typed
+    # `RegistrationKey | list[RegistrationKey]` needs no branch, and `None`
+    # comes back as `None` for an optional dependency that was left unset.
+    # It builds eagerly: keep the comprehension when a child should only be
+    # built under some condition. That laziness is why components are handed
+    # keys rather than instances in the first place.
 
     # Every member is a real edge in the graph, so a typo in any one of them is
     # caught by `cmn-check` rather than at the moment you try to build.
