@@ -57,6 +57,51 @@ through it:
     # parse() accepts a key object, its string form, or name/tags/namespace directly
     RegistrationKey.parse(name='model', tags={'bert'}, namespace='nlp') == key  # True
 
+---------------------------------------------
+Serializing a key
+---------------------------------------------
+
+A key has two written forms.
+
+**The string form** is what ``str(key)`` gives and what ``cmn-build`` writes into
+``registrations/valid_keys.json``. It is compact and reads well in a log:
+
+.. code-block:: python
+
+    str(key)
+    # "name=loader--tags=['imdb', 'v2']--namespace=nlp"
+
+    RegistrationKey.from_string("name=loader--tags=['imdb']--namespace=nlp")
+
+**The mapping form** is plain JSON data, and is the better choice for anything
+that has to survive a round trip:
+
+.. code-block:: python
+
+    key.to_dict()
+    # {'name': 'loader', 'namespace': 'nlp', 'tags': ['imdb', 'v2']}
+
+    RegistrationKey.from_dict({'name': 'loader', 'namespace': 'nlp'})
+
+Tags are sorted, so the output is stable across runs and comparable byte for
+byte. Only the three components that make up the key's identity appear:
+``description`` and ``metadata`` annotate a key rather than identify it, and two
+keys differing only in those are equal.
+
+A class cannot make itself serializable to :func:`json.dumps` -- the encoder
+dispatches on a fixed set of types and consults ``default`` only for what it does
+not recognise -- so cinnamon provides the hook:
+
+.. code-block:: python
+
+    import json
+    from cinnamon.registry import json_default
+
+    json.dumps({'losses': [key_a, key_b]}, default=json_default)
+
+Inside a ``Configuration`` none of this is needed. Pydantic already knows how to
+serialize a key, so ``config.model_dump_json()`` writes its string form.
+
 =============================================
 Registration
 =============================================

@@ -3,8 +3,9 @@ from __future__ import annotations
 import ast
 import importlib.util
 import itertools
+import re
 import sys
-from collections.abc import ItemsView
+from collections.abc import ItemsView, Mapping
 from dataclasses import dataclass
 from logging import getLogger
 from pathlib import Path
@@ -61,7 +62,14 @@ logger = getLogger(__name__)
 Constructor = Callable[[], "cinnamon.configuration.Configuration"]
 T = TypeVar("T")
 
-__all__ = ["RegistrationKey", "register", "register_method", "Registry", "Registration"]
+__all__ = [
+    "RegistrationKey",
+    "register",
+    "register_method",
+    "Registry",
+    "Registration",
+    "json_default",
+]
 
 
 class RegistrationKey(Generic[T]):
@@ -90,6 +98,15 @@ class RegistrationKey(Generic[T]):
     ATTRIBUTE_SEPARATOR: str = "--"
     HIERARCHY_SEPARATOR: str = "."
     MAX_TAGS_PER_LINE: int = 6
+
+    #: Parses the string form. Anchored on the attribute names rather than
+    #: splitting on ``--``: a tag may legitimately contain the separator, and
+    #: splitting cut ``['a--b']`` in half and then failed to evaluate it.
+    _STRING_FORMAT = re.compile(
+        r"name=(?P<name>.*?)"
+        r"(?:--tags=(?P<tags>\[.*\]))?"
+        r"--namespace=(?P<namespace>.*)"
+    )
 
     def __init__(
         self,
@@ -122,13 +139,13 @@ class RegistrationKey(Generic[T]):
             special_tags: set of special tags for internal use.
         """
 
+        namespace = namespace if namespace is not None else "default"
+        tags = frozenset(tags) if tags is not None else frozenset()
+        self._reject_reserved_separator(name=name, namespace=namespace, tags=tags)
+
         object.__setattr__(self, "name", name)
-        object.__setattr__(
-            self, "namespace", namespace if namespace is not None else "default"
-        )
-        object.__setattr__(
-            self, "tags", frozenset(tags) if tags is not None else frozenset()
-        )
+        object.__setattr__(self, "namespace", namespace)
+        object.__setattr__(self, "tags", tags)
 
         self.description = description
         self.metadata = metadata
@@ -138,6 +155,38 @@ class RegistrationKey(Generic[T]):
         self.special_tags = set(special_tags) if special_tags is not None else set()
 
         self._hash = hash(str(self))
+
+    @classmethod
+    def _reject_reserved_separator(
+        cls, name: str, namespace: str, tags: "frozenset[str]"
+    ) -> None:
+        """
+        Refuse components containing the attribute separator.
+
+        ``str(key)`` joins the three components with ``--``, and a component
+        containing it makes the result ambiguous: a key named ``x--tags=['a']``
+        with no tags produces exactly the same string as a key named ``x`` with
+        the tag ``a``. No parser can tell those apart, so the only way to keep
+        the string form total is to keep the separator out of the components.
+
+        Note that a *single* hyphen is fine -- ``tf-idf`` is a perfectly good
+        tag. So are ``=`` and ``.``, which variant expansion generates itself
+        (``weight=2.0``, ``loss.weight=2.0``).
+        """
+        separator = cls.ATTRIBUTE_SEPARATOR
+        offenders = []
+        if separator in name:
+            offenders.append(f"name '{name}'")
+        if separator in namespace:
+            offenders.append(f"namespace '{namespace}'")
+        offenders += [f"tag '{tag}'" for tag in sorted(tags) if separator in tag]
+
+        if offenders:
+            raise ValueError(
+                f"{', '.join(offenders)} contains '{separator}', which separates "
+                f"the parts of a key's string form and cannot appear inside one. "
+                f"A single '-' is fine, as are '=' and '.'."
+            )
 
     def __setattr__(self, attr: str, value: Any) -> None:
         if attr in RegistrationKey._IMMUTABLE:
@@ -314,24 +363,30 @@ class RegistrationKey(Generic[T]):
             The corresponding parsed ``RegistrationKey`` instance
         """
 
-        registration_attributes = string_format.split(cls.ATTRIBUTE_SEPARATOR)
-        registration_dict: Dict[str, Any] = {}
-        for registration_attribute in registration_attributes:
-            try:
-                key, raw_value = registration_attribute.split(
-                    cls.KEY_VALUE_SEPARATOR, 1
-                )
-                registration_dict[key] = (
-                    set(ast.literal_eval(raw_value)) if key == "tags" else raw_value
-                )
-            except ValueError as e:
-                logger.exception(
-                    f"Failed parsing registration key from string.. "
-                    f"Got: {string_format}"
-                )
-                raise e
+        match = cls._STRING_FORMAT.fullmatch(string_format)
+        if match is None:
+            logger.error(
+                f"Failed parsing registration key from string: {string_format}"
+            )
+            raise ValueError(
+                f"'{string_format}' is not a registration key. Expected "
+                f"name=<name>[--tags=[...]]--namespace=<namespace>."
+            )
 
-        return RegistrationKey[Any](**registration_dict)
+        raw_tags = match.group("tags")
+        try:
+            tags = set(ast.literal_eval(raw_tags)) if raw_tags is not None else None
+        except (ValueError, SyntaxError) as error:
+            logger.error(f"Failed parsing registration key tags: {string_format}")
+            raise ValueError(
+                f"Could not read the tags of '{string_format}': {error}"
+            ) from error
+
+        return RegistrationKey[Any](
+            name=match.group("name"),
+            tags=tags,
+            namespace=match.group("namespace"),
+        )
 
     @classmethod
     def parse(
@@ -381,6 +436,44 @@ class RegistrationKey(Generic[T]):
     def match(self, key: RegistrationKey, tags: Tags) -> bool:
         return self.tags.intersection(key.tags) == tags
 
+    def to_dict(self) -> Dict[str, Any]:
+        """
+        The key as plain JSON-compatible data.
+
+        ``{"name": ..., "namespace": ..., "tags": [...]}``, with tags sorted so
+        the result is stable across runs and comparable byte for byte.
+
+        Only the three components that make up the key's identity are included
+        -- ``description`` and ``metadata`` annotate a key rather than identify
+        it, and two keys differing only in those are equal.
+
+        Prefer this to the string form for anything that has to survive a round
+        trip: the string form has to be parsed back out of a single line, while
+        this cannot be ambiguous no matter what a tag contains.
+        """
+        return {
+            "name": self.name,
+            "namespace": self.namespace,
+            "tags": sorted(self.tags),
+        }
+
+    @classmethod
+    def from_dict(cls, data: Mapping[str, Any]) -> RegistrationKey[Any]:
+        """Rebuild a key from :meth:`to_dict` output."""
+        try:
+            name = data["name"]
+        except KeyError as error:
+            raise ValueError(
+                f"A registration key needs a name. Got: {dict(data)}"
+            ) from error
+
+        tags = data.get("tags")
+        return RegistrationKey[Any](
+            name=name,
+            namespace=data.get("namespace"),
+            tags=set(tags) if tags is not None else None,
+        )
+
     def to_pretty_string(self) -> str:
         # batched() takes a chunk *size*, so pass the per-line budget directly;
         # handing it the chunk count produced MAX_TAGS_PER_LINE lines of
@@ -395,6 +488,28 @@ class RegistrationKey(Generic[T]):
             f"                namespace: {self.namespace}\n"
             f"            ]\n        "
         )
+
+
+def json_default(value: Any) -> Any:
+    """
+    ``default=`` hook that teaches :mod:`json` about registration keys.
+
+    A class cannot make itself serializable to :func:`json.dumps` -- the encoder
+    dispatches on a fixed set of types and consults ``default`` only for what it
+    does not recognise. So this is the hook rather than a method::
+
+        json.dumps({"losses": [key_a, key_b]}, default=json_default)
+
+    Keys become the mapping from :meth:`RegistrationKey.to_dict`, whatever they
+    are nested inside. Anything else is passed on to the normal ``TypeError``,
+    so unrelated unserializable objects still fail where they should.
+
+    Inside a ``Configuration`` none of this is needed: pydantic already knows how
+    to serialize a key, and ``config.model_dump_json()`` writes its string form.
+    """
+    if isinstance(value, RegistrationKey):
+        return value.to_dict()
+    raise TypeError(f"Object of type {type(value).__name__} is not JSON serializable")
 
 
 class BufferedRegistration:
@@ -858,10 +973,20 @@ class Registry:
         cls,
     ) -> Tuple[Set[RegistrationKey[Any]], Set[RegistrationKey[Any]]]:
         """
-        Expands and resolves dependencies in registration DAG.
-        The dependency traversal is done bottom-up by recursively expanding top nodes
-        (i.e., ``RegistrationKey`` instances).
-        Expanded keys are retrieved, and built for full validation.
+        Expands and resolves every dependency in the registration DAG.
+
+        Keys are expanded **children first**, in reverse topological order.
+        ``expand_configuration`` recurses into a key's dependencies, so reaching
+        a parent before its children makes the recursion as deep as the longest
+        chain in the project -- and Python's stack limit then caps that chain at
+        roughly 490 links.
+
+        That cap used to depend on the order modules happened to register in: the
+        same graph resolved when children were registered first (each expansion
+        finding its children already done, so nesting stayed shallow) and hit
+        ``RecursionError`` when parents came first. Taking the order from the
+        graph rather than from registration removes both the depth limit and the
+        dependence on something no user controls.
 
         Returns:
             valid_keys: the set of valid registration keys
@@ -874,7 +999,13 @@ class Registry:
         valid_key_buffer: Set[RegistrationKey[Any]] = set()
         invalid_key_buffer: Set[RegistrationKey[Any]] = set()
         logger.info(f"Resolving {len(cls._REGISTRY)} configurations...")
-        for key in cls._DEPENDENCY_DAG.successors(cls._ROOT_KEY):
+
+        # Materialised before expanding: expansion adds variant nodes to the
+        # graph, and topological_sort is a generator over a live view.
+        order = list(nx.topological_sort(cls._DEPENDENCY_DAG))
+        for key in reversed(order):
+            if key == cls._ROOT_KEY:
+                continue
             Registry.expand_configuration(
                 key=key,
                 valid_key_buffer=valid_key_buffer,
@@ -901,10 +1032,23 @@ class Registry:
         config_info = cls.retrieve_configuration_info(registration_key=key)
         config = config_info.config
 
-        # We retrieve all keys related to input key through dependency DAG
+        # Already expanded: rebuild what the fresh path below would have
+        # returned, which is this key plus the variant keys derived from it.
+        #
+        # Only "variant" edges count. Taking every out-edge also swept in the
+        # "child" edges to the key's dependencies, so a caller received another
+        # configuration's key as though it were an alternative to this one, and
+        # generated a spurious parent variant from it. The two paths disagreed
+        # silently for as long as parents happened to be expanded before their
+        # children.
         if config.expanded:
-            keys = {edge[1] for edge in cls._DEPENDENCY_DAG.out_edges(key)}.union({key})
-            return keys
+            return {
+                child
+                for _, child, edge_type in cls._DEPENDENCY_DAG.out_edges(
+                    key, data="type"
+                )
+                if edge_type == "variant"
+            } | {key}
 
         keys = set()
 

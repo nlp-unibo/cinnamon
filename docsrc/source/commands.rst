@@ -125,9 +125,25 @@ and reports which ``RegistrationKey`` instances are valid or invalid.
 After a successful run, ``cmn-build`` writes two JSON files inside a ``registrations/``
 folder in your project directory:
 
-- ``valid_keys.json`` — all ``RegistrationKey`` instances that passed validation.
-- ``invalid_keys.json`` — all keys that failed, along with the reason stored in
-  ``RegistrationKey.metadata``.
+- ``valid_keys.json`` — every key that passed validation.
+- ``invalid_keys.json`` — every key that failed, each with the reason it did.
+
+Both hold objects rather than strings, so a consumer reads fields instead of
+parsing a line, and :meth:`~cinnamon.registry.RegistrationKey.from_dict` reads
+them straight back:
+
+.. code-block:: json
+
+    [
+      {
+        "name": "model",
+        "namespace": "nlp",
+        "tags": ["learning_rate=0.01"]
+      }
+    ]
+
+Entries in ``invalid_keys.json`` carry an extra ``reason`` field describing the
+constraint or condition that rejected them.
 
 Valid and invalid keys are also logged to the console at ``INFO`` level.
 

@@ -55,18 +55,19 @@ def test_cli_build_reaches_registry_build(tmp_path, monkeypatch, reset_registry)
     assert valid_file.exists()
     assert invalid_file.exists()
 
-    valid_str = json.loads(valid_file.read_text())
-    assert valid_str == [str(key)]
+    written = json.loads(valid_file.read_text())
+    assert written == [key.to_dict()]
     # round-trips back to a RegistrationKey
-    assert RegistrationKey.from_string(valid_str[0]) == key
+    assert RegistrationKey.from_dict(written[0]) == key
     assert json.loads(invalid_file.read_text()) == []
 
 
 def test_cli_build_with_invalid_keys(tmp_path, monkeypatch, reset_registry):
-    """Invalid keys are still logged and written out."""
+    """Invalid keys are written out with the reason they failed."""
     called = {}
     valid_key = RegistrationKey(name="ok", namespace="testing")
     invalid_key = RegistrationKey(name="bad", namespace="testing")
+    invalid_key.metadata = "Condition too_small failed!"
 
     def fake_build(directory, external_directories=None):
         called["directory"] = directory
@@ -79,8 +80,10 @@ def test_cli_build_with_invalid_keys(tmp_path, monkeypatch, reset_registry):
 
     valid_file = tmp_path / "registrations" / "valid_keys.json"
     invalid_file = tmp_path / "registrations" / "invalid_keys.json"
-    assert json.loads(valid_file.read_text()) == [str(valid_key)]
-    assert json.loads(invalid_file.read_text()) == [str(invalid_key)]
+    assert json.loads(valid_file.read_text()) == [valid_key.to_dict()]
+    assert json.loads(invalid_file.read_text()) == [
+        {**invalid_key.to_dict(), "reason": "Condition too_small failed!"}
+    ]
 
 
 def test_cli_build_nonexistent_directory_raises(monkeypatch, reset_registry):
@@ -611,7 +614,7 @@ def test_cli_build_reuses_existing_registrations_directory(
     """Re-running build() over an existing registrations/ folder overwrites it."""
     registrations = tmp_path / "registrations"
     registrations.mkdir()
-    (registrations / "valid_keys.json").write_text('["stale"]')
+    (registrations / "valid_keys.json").write_text('[{"name": "stale"}]')
     key = RegistrationKey(name="fresh", namespace="testing")
 
     monkeypatch.setattr("sys.argv", ["cmn-build", "-dir", str(tmp_path)])
@@ -623,7 +626,9 @@ def test_cli_build_reuses_existing_registrations_directory(
 
     cli.build()
 
-    assert json.loads((registrations / "valid_keys.json").read_text()) == [str(key)]
+    assert json.loads((registrations / "valid_keys.json").read_text()) == [
+        key.to_dict()
+    ]
 
 
 # -- check --
