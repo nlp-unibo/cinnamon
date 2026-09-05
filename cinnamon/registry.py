@@ -139,13 +139,13 @@ class RegistrationKey(Generic[T]):
             special_tags: set of special tags for internal use.
         """
 
+        namespace = namespace if namespace is not None else "default"
+        tags = frozenset(tags) if tags is not None else frozenset()
+        self._reject_reserved_separator(name=name, namespace=namespace, tags=tags)
+
         object.__setattr__(self, "name", name)
-        object.__setattr__(
-            self, "namespace", namespace if namespace is not None else "default"
-        )
-        object.__setattr__(
-            self, "tags", frozenset(tags) if tags is not None else frozenset()
-        )
+        object.__setattr__(self, "namespace", namespace)
+        object.__setattr__(self, "tags", tags)
 
         self.description = description
         self.metadata = metadata
@@ -155,6 +155,38 @@ class RegistrationKey(Generic[T]):
         self.special_tags = set(special_tags) if special_tags is not None else set()
 
         self._hash = hash(str(self))
+
+    @classmethod
+    def _reject_reserved_separator(
+        cls, name: str, namespace: str, tags: "frozenset[str]"
+    ) -> None:
+        """
+        Refuse components containing the attribute separator.
+
+        ``str(key)`` joins the three components with ``--``, and a component
+        containing it makes the result ambiguous: a key named ``x--tags=['a']``
+        with no tags produces exactly the same string as a key named ``x`` with
+        the tag ``a``. No parser can tell those apart, so the only way to keep
+        the string form total is to keep the separator out of the components.
+
+        Note that a *single* hyphen is fine -- ``tf-idf`` is a perfectly good
+        tag. So are ``=`` and ``.``, which variant expansion generates itself
+        (``weight=2.0``, ``loss.weight=2.0``).
+        """
+        separator = cls.ATTRIBUTE_SEPARATOR
+        offenders = []
+        if separator in name:
+            offenders.append(f"name '{name}'")
+        if separator in namespace:
+            offenders.append(f"namespace '{namespace}'")
+        offenders += [f"tag '{tag}'" for tag in sorted(tags) if separator in tag]
+
+        if offenders:
+            raise ValueError(
+                f"{', '.join(offenders)} contains '{separator}', which separates "
+                f"the parts of a key's string form and cannot appear inside one. "
+                f"A single '-' is fine, as are '=' and '.'."
+            )
 
     def __setattr__(self, attr: str, value: Any) -> None:
         if attr in RegistrationKey._IMMUTABLE:

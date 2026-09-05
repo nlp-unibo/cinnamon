@@ -156,19 +156,25 @@ def build():
     registration_path = directory.joinpath("registrations")
     registration_path.mkdir(parents=True, exist_ok=True)
 
-    # RegistrationKey is not JSON-serializable; its str() form round-trips
-    # via RegistrationKey.from_string() (used by cmn-run / cmn-generate).
-    valid_keys = [str(key) for key in valid_keys]
-    invalid_keys = [str(key) for key in invalid_keys]
-
+    # Written as objects rather than strings: a consumer gets name, namespace and
+    # tags as data instead of having to parse a line, and RegistrationKey.from_dict
+    # reads them straight back.
+    #
+    # Invalid keys carry why they failed. to_dict() is identity only -- two keys
+    # differing just in metadata are equal -- so the reason is added here, where
+    # it is the whole point of the file.
     with registration_path.joinpath("valid_keys.json").open("w") as f:
-        json.dump(valid_keys, f)
+        json.dump([key.to_dict() for key in valid_keys], f, indent=2)
     with registration_path.joinpath("invalid_keys.json").open("w") as f:
-        json.dump(invalid_keys, f)
+        json.dump(
+            [{**key.to_dict(), "reason": key.metadata} for key in invalid_keys],
+            f,
+            indent=2,
+        )
 
     logger.info("Valid registration keys:")
     for key in valid_keys:
-        logger.info(key)
+        logger.info(str(key))
 
     logger.info("\n")
     logger.info("*" * 50)
@@ -176,7 +182,7 @@ def build():
 
     logger.info("Invalid registration keys:")
     for key in invalid_keys:
-        logger.info(key)
+        logger.info(str(key))
 
 
 def run():
