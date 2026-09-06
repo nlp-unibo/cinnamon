@@ -1,0 +1,78 @@
+name: Publish to PyPI
+
+# Releases are cut by pushing a tag. Nothing publishes on a push to main: an
+# upload cannot be undone or replaced, so it should take a deliberate act, not
+# a merge.
+on:
+  push:
+    tags: [ "v*" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build and check the distributions
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install build tooling
+        run: |
+          python -m pip install --upgrade pip
+          pip install build twine
+      - name: Build sdist and wheel
+        run: python -m build
+      # The tag is the only thing a human types, so it is the only thing that
+      # can disagree with the package. Refusing the mismatch here is cheaper
+      # than yanking a release that says 1.1.0 and is tagged v1.2.0.
+      - name: Verify the tag matches cinnamon.__version__
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          version=$(python -c "import re,pathlib; print(re.search(r'\"(.+)\"', pathlib.Path('cinnamon/__init__.py').read_text()).group(1))")
+          tag="${GITHUB_REF_NAME#v}"
+          if [ "$version" != "$tag" ]; then
+            echo "tag $GITHUB_REF_NAME does not match __version__ $version"
+            exit 1
+          fi
+          echo "tag and __version__ agree on $version"
+      - name: Check the metadata PyPI will render
+        run: twine check --strict dist/*
+      # Installing from the built wheel rather than the source tree: this is the
+      # artefact users get, and it is the last point at which a packaging
+      # mistake is still free to fix.
+      - name: Install the wheel and run the CLI
+        run: |
+          python -m venv /tmp/verify
+          /tmp/verify/bin/pip install dist/*.whl
+          /tmp/verify/bin/python -c "import cinnamon; print(cinnamon.__version__)"
+          /tmp/verify/bin/cmn-check -dir examples/tutorial/07_project_layout
+      - name: Upload the distributions
+        uses: actions/upload-artifact@v4
+        with:
+          name: distributions
+          path: dist/
+
+  publish:
+    name: Publish
+    needs: build
+    runs-on: ubuntu-latest
+    # Trusted Publishing: PyPI verifies this workflow's OIDC identity, so there
+    # is no API token to store, leak or rotate. Configure it once at
+    # https://pypi.org/manage/project/cinnamon-core/settings/publishing/
+    # with owner nlp-unibo, repository cinnamon, workflow publish.yml.
+    environment:
+      name: pypi
+      url: https://pypi.org/project/cinnamon-core/
+    permissions:
+      id-token: write
+    steps:
+      - name: Download the distributions
+        uses: actions/download-artifact@v4
+        with:
+          name: distributions
+          path: dist/
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1

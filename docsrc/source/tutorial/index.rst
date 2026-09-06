@@ -9,7 +9,7 @@ change a value, run it again, see what moves.
 
 .. code-block:: bash
 
-    pip install cinnamon
+    pip install cinnamon-core
     python examples/tutorial/01_configuration.py
 
 Every file on the following pages is included from the repository rather than

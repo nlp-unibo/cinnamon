@@ -4,7 +4,7 @@
 
 **A lightweight Python framework for decoupling configuration from code logic.**
 
-[![PyPI version](https://img.shields.io/pypi/v/cinnamon.svg)](https://pypi.org/project/cinnamon/)
+[![PyPI version](https://img.shields.io/pypi/v/cinnamon-core.svg)](https://pypi.org/project/cinnamon-core/)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Tests](https://github.com/nlp-unibo/cinnamon/actions/workflows/ci.yml/badge.svg)](https://github.com/nlp-unibo/cinnamon/actions)
@@ -46,8 +46,25 @@ single `RegistrationKey`.
 ## Installation
 
 ```bash
-pip install cinnamon
+pip install cinnamon-core
 ```
+
+The distribution is `cinnamon-core`; the import package is `cinnamon`:
+
+```python
+import cinnamon
+```
+
+They differ because `cinnamon` on PyPI is an unrelated project. `cinnamon-core`
+is the package these releases have always used, and it supersedes the old
+`cinnamon-generic`, `cinnamon-th` and `cinnamon-tf` split, which are no longer
+maintained.
+
+> **Upgrading from 0.2.x?** 2.0.0 is a rewrite. Configurations are Pydantic
+> models with typed class annotations, and the `Component` base class is gone —
+> components are plain classes now, bound by import path. Start from the
+> [Quickstart](https://nlp-unibo.github.io/cinnamon/quickstart.html); the 0.2.x
+> API does not carry over.
 
 That covers the library and the two non-interactive commands, `cmn-build` and
 `cmn-check`.
@@ -56,9 +73,9 @@ Optional extras:
 
 | Extra | What it adds                                              | Install |
 |---|-----------------------------------------------------------|---|
-| `cli` | Interactive prompts for `cmn-run` and `cmn-generate` | `pip install "cinnamon[cli]"` |
-| `examples` | Dependencies for the built-in examples                    | `pip install "cinnamon[examples]"` |
-| `dev` | pytest, ruff, mypy                                        | `pip install "cinnamon[dev]"` |
+| `cli` | Interactive prompts for `cmn-run` and `cmn-generate` | `pip install "cinnamon-core[cli]"` |
+| `examples` | Dependencies for the built-in examples                    | `pip install "cinnamon-core[examples]"` |
+| `dev` | pytest, ruff, mypy                                        | `pip install "cinnamon-core[dev]"` |
 
 ---
 
@@ -144,12 +161,12 @@ for the complete walkthrough.
 
 ## Learning cinnamon
 
-**[`examples/tutorial/`](examples/tutorial/)** — seven runnable steps, no dependencies
+**[`examples/tutorial/`](https://github.com/nlp-unibo/cinnamon/tree/main/examples/tutorial/)** — seven runnable steps, no dependencies
 beyond cinnamon itself. Each one is a single file you can read in a screen and change,
 and the test suite runs every one of them on each commit.
 
 ```bash
-pip install cinnamon
+pip install cinnamon-core
 python examples/tutorial/01_configuration.py
 ```
 
@@ -158,13 +175,13 @@ The same steps, with commentary and the code included from these files, are at
 
 | | Introduces |
 |---|---|
-| [1. Configuration](examples/tutorial/01_configuration.py) | `Configuration`, `Param`, validation |
-| [2. Registration](examples/tutorial/02_registration.py) | components as plain classes, `RegistrationKey` |
-| [3. Variants](examples/tutorial/03_variants.py) | one component, many configurations |
-| [4. Dependencies](examples/tutorial/04_dependencies.py) | referencing another registration |
-| [5. Collections](examples/tutorial/05_collections.py) | `list` and `dict` of keys |
-| [6. Conditions](examples/tutorial/06_conditions.py) | rejecting combinations that make no sense |
-| [7. Project layout](examples/tutorial/07_project_layout/) | the real directory structure and the CLI |
+| [1. Configuration](https://github.com/nlp-unibo/cinnamon/tree/main/examples/tutorial/01_configuration.py) | `Configuration`, `Param`, validation |
+| [2. Registration](https://github.com/nlp-unibo/cinnamon/tree/main/examples/tutorial/02_registration.py) | components as plain classes, `RegistrationKey` |
+| [3. Variants](https://github.com/nlp-unibo/cinnamon/tree/main/examples/tutorial/03_variants.py) | one component, many configurations |
+| [4. Dependencies](https://github.com/nlp-unibo/cinnamon/tree/main/examples/tutorial/04_dependencies.py) | referencing another registration |
+| [5. Collections](https://github.com/nlp-unibo/cinnamon/tree/main/examples/tutorial/05_collections.py) | `list` and `dict` of keys |
+| [6. Conditions](https://github.com/nlp-unibo/cinnamon/tree/main/examples/tutorial/06_conditions.py) | rejecting combinations that make no sense |
+| [7. Project layout](https://github.com/nlp-unibo/cinnamon/tree/main/examples/tutorial/07_project_layout/) | the real directory structure and the CLI |
 
 Step 7 is the one to copy when starting a project of your own.
 
@@ -192,7 +209,7 @@ Full documentation is available at **[nlp-unibo.github.io/cinnamon](https://nlp-
 
 ## Contributing
 
-Contributions are welcome. [`CONTRIBUTING.md`](CONTRIBUTING.md) covers the working
+Contributions are welcome. [`CONTRIBUTING.md`](https://github.com/nlp-unibo/cinnamon/blob/main/CONTRIBUTING.md) covers the working
 agreement: one branch per change, `nox` green before pushing, and a pull request into
 `main`.
 
@@ -215,4 +232,4 @@ For questions, issues, or feature requests, open a
 
 ## License
 
-[MIT](LICENSE)
+[MIT](https://github.com/nlp-unibo/cinnamon/blob/main/LICENSE)

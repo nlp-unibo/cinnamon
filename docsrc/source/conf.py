@@ -27,7 +27,17 @@ sys.path.insert(
 project = "Cinnamon"
 copyright = "2025, Federico Ruggeri"
 author = "Federico Ruggeri"
-release = "0.1"
+# Read from the package rather than restated here. This said "0.1" while the
+# package said 1.1.0, so every built page carried a version number that had been
+# wrong for four releases. pyproject reads the same attribute, so there is one
+# place to change.
+#
+# The import cannot go at the top of the file: it only resolves once the
+# sys.path entries above are in place.
+import cinnamon  # noqa: E402
+
+release = cinnamon.__version__
+version = release
 
 # -- General configuration ---------------------------------------------------
 
