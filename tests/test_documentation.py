@@ -15,6 +15,8 @@ documentation uses, and whether its code is even syntactically Python.
 import ast
 import importlib
 import re
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -22,6 +24,7 @@ import pytest
 ROOT = Path(__file__).resolve().parent.parent
 DOCS = ROOT / "docsrc" / "source"
 TUTORIAL = ROOT / "examples" / "tutorial"
+README = ROOT / "README.md"
 
 #: Classes whose attributes the documentation refers to by name.
 DOCUMENTED_CLASSES = {
@@ -276,4 +279,88 @@ def test_the_retired_overview_url_still_resolves():
     """
     assert (REDIRECTS / "overview.html").exists(), (
         "the overview redirect is gone; /cinnamon/overview.html now 404s"
+    )
+
+
+MD_PYTHON_BLOCK = re.compile(r"```python\n(.*?)```", re.DOTALL)
+
+
+def test_the_readme_quickstart_runs(tmp_path):
+    """The README's quickstart, executed rather than read.
+
+    It is the first thing anyone sees, and nothing had ever run it. Two of its
+    five steps did not work. Step 2 gave ``batch_size`` a default of 32 and then
+    listed 32 among its ``variants``, which cinnamon rejects outright. Step 4
+    called ``DataLoader.instantiate(...)``, a classmethod that died with the
+    ``Component`` base class -- the same defect that broke both shipped demos,
+    still sitting in the README a month later. Anyone following the page got a
+    traceback at step 2 and another at step 4.
+
+    Neither was reachable by the name checks above: ``DataLoader`` is the
+    reader's class rather than ours, and a default colliding with a variant is a
+    runtime error, not a missing name. Only running it finds this.
+
+    The blocks are laid out on disk the way the README tells the reader to lay
+    them out -- component in ``components.py``, registration under
+    ``configurations/`` -- and then run in a subprocess, because ``Registry`` is
+    class-level state and ``build`` scans the working directory.
+    """
+    blocks = MD_PYTHON_BLOCK.findall(README.read_text())
+    assert len(blocks) >= 5, f"expected the 5 quickstart blocks, found {len(blocks)}"
+
+    component, registration, build, instantiate, variants = blocks[:5]
+
+    (tmp_path / "components.py").write_text(component)
+    (tmp_path / "configurations").mkdir()
+    (tmp_path / "configurations" / "__init__.py").write_text("")
+    (tmp_path / "configurations" / "loader.py").write_text(registration)
+    (tmp_path / "main.py").write_text(
+        "from components import DataLoader\n"
+        "from configurations.loader import DataLoaderConfig\n"
+        f"{build}\n{instantiate}\n{variants}\n"
+        "print('quickstart ok')\n"
+    )
+
+    result = subprocess.run(
+        [sys.executable, "main.py"],
+        cwd=tmp_path,
+        capture_output=True,
+        text=True,
+        timeout=120,
+    )
+
+    assert result.returncode == 0, (
+        f"the README quickstart does not run:\n{result.stderr}"
+    )
+    assert "quickstart ok" in result.stdout
+
+
+#: Links from the README into the documentation site. The README is rendered by
+#: GitHub, outside the site, so these have to be absolute -- the ``:doc:`` rule
+#: that applies inside ``docsrc`` cannot help here.
+README_DOC_LINK = re.compile(
+    r"https://nlp-unibo\.github\.io/cinnamon/([A-Za-z0-9_/]*\.html)?"
+)
+
+
+def test_readme_links_into_the_docs_point_at_pages_that_exist():
+    """Every documentation link in the README resolves to a real page.
+
+    Nothing checked these, and one of them rotted exactly as you would expect:
+    the "Documentation" link pointed at ``overview.html`` for as long as it took
+    someone to click it after that page became the landing page. Inside
+    ``docsrc`` the fix is ``:doc:``, which Sphinx validates. The README is
+    rendered by GitHub and cannot use it, so the check lives here instead.
+    """
+    missing = []
+    for target in README_DOC_LINK.findall(README.read_text()):
+        if not target:  # the site root, which is index.rst
+            continue
+        source = DOCS / target.replace(".html", ".rst")
+        redirect = REDIRECTS / target
+        if not source.exists() and not redirect.exists():
+            missing.append(target)
+
+    assert not missing, (
+        f"README links to documentation pages that do not exist: {sorted(set(missing))}"
     )
