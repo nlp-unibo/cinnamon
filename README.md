@@ -34,12 +34,12 @@ single `RegistrationKey`.
 ## Features
 
 - **Pydantic-backed configurations** — field types, constraints (`ge`, `le`, `Literal`), and cross-field validators via `@model_validator`.
-- **Registry-based dependency injection** — register a `Configuration`, bind it to a `Component`, and let cinnamon build the dependency graph automatically.
+- **Registry-based dependency injection** — register a `Configuration`, bind it to a component by import path, and let cinnamon build the dependency graph automatically. Your component stays a plain class: no base class, no decorator, no import of cinnamon.
 - **Variants** — declare alternative parameter values alongside their defaults and enumerate every valid combination.
 - **Conditions** — attach runtime invariants to configurations via `add_condition`, validated before any component is built.
-- **Dependency nesting** — compose configurations by pointing fields at `RegistrationKey` instances; the `Registry` resolves the dependency graph bottom-up.
+- **Dependencies** — compose configurations by pointing fields at `RegistrationKey` instances, singly or as a `list`/`dict` of them; the `Registry` resolves the graph children-first, so a child's variants propagate to its parents.
 - **Community-ready** — pull components and `Configuration` classes from external projects via `external_directories` and build on top of them.
-- **CLI included** — `cmn-build`, `cmn-run`, and `cmn-generate` for running and generating experiment scripts without boilerplate, plus `cmn-check` to catch mistyped registration keys before you run anything.
+- **CLI included** — `cmn-check` reports unresolved keys with suggestions and mismatched component signatures without importing your components; `cmn-build` resolves and writes the key list; `cmn-run` and `cmn-generate` run experiments and generate scripts without boilerplate.
 
 ---
 
@@ -86,7 +86,7 @@ from cinnamon.registry import register_method
 class DataLoaderConfig(Configuration):
     folder_name: str = Param('data/', description='Root data directory')
     batch_size: int  = Param(32, ge=1,  description='Samples per batch',
-                             variants=[16, 32, 64])
+                             variants=[16, 64])
 
     @classmethod
     @register_method(name='loader', tags={'default'}, namespace='myproject',
@@ -107,11 +107,15 @@ Registry.build(directory=Path('.'))
 **4. Instantiate** — retrieve and build a component from its registration key:
 
 ```python
-loader = DataLoader.instantiate(name='loader', tags={'default'}, namespace='myproject')
+loader = Registry.instantiate(name='loader', tags={'default'}, namespace='myproject')
 loader.load()
 ```
 
-**5. Enumerate variants** — generate every parameter combination automatically:
+The `Registry` builds the configuration, resolves its dependencies, validates its
+conditions, and passes the resulting values to `DataLoader.__init__`.
+
+**5. Enumerate variants** — every combination other than the all-defaults one,
+which the `Registry` already registers on its own:
 
 ```python
 config = DataLoaderConfig.default()
@@ -134,19 +138,23 @@ for the complete walkthrough.
 | Component | Any plain Python class, referenced by its import path (e.g. `components.DataLoader`) | [→](https://nlp-unibo.github.io/cinnamon/component.html) |
 | `RegistrationKey` | A `(name, tags, namespace)` identifier that binds a config to a component | [→](https://nlp-unibo.github.io/cinnamon/registration.html) |
 | `Registry` | Stores registrations, resolves the dependency DAG, and builds components | [→](https://nlp-unibo.github.io/cinnamon/registration.html) |
-| Dependencies | Nested configurations declared as `RegistrationKey` fields | [→](https://nlp-unibo.github.io/cinnamon/dependencies.html) |
+| Dependencies | Other registrations referenced by `RegistrationKey` fields, singly or as a `list`/`dict` | [→](https://nlp-unibo.github.io/cinnamon/dependencies.html) |
 
 ---
 
 ## Learning cinnamon
 
 **[`examples/tutorial/`](examples/tutorial/)** — seven runnable steps, no dependencies
-beyond cinnamon itself. Each one is a single file you can read in a screen and change.
+beyond cinnamon itself. Each one is a single file you can read in a screen and change,
+and the test suite runs every one of them on each commit.
 
 ```bash
-pip install -e .
+pip install cinnamon
 python examples/tutorial/01_configuration.py
 ```
+
+The same steps, with commentary and the code included from these files, are at
+[nlp-unibo.github.io/cinnamon/tutorial](https://nlp-unibo.github.io/cinnamon/tutorial/index.html).
 
 | | Introduces |
 |---|---|
@@ -157,6 +165,8 @@ python examples/tutorial/01_configuration.py
 | [5. Collections](examples/tutorial/05_collections.py) | `list` and `dict` of keys |
 | [6. Conditions](examples/tutorial/06_conditions.py) | rejecting combinations that make no sense |
 | [7. Project layout](examples/tutorial/07_project_layout/) | the real directory structure and the CLI |
+
+Step 7 is the one to copy when starting a project of your own.
 
 ## A full example
 
@@ -182,8 +192,19 @@ Full documentation is available at **[nlp-unibo.github.io/cinnamon](https://nlp-
 
 ## Contributing
 
-Contributions are welcome. To add new components and configurations, open a pull request
-with your implementation and a matching entry in the examples or tests.
+Contributions are welcome. [`CONTRIBUTING.md`](CONTRIBUTING.md) covers the working
+agreement: one branch per change, `nox` green before pushing, and a pull request into
+`main`.
+
+`nox` reproduces the whole CI pipeline locally in about a minute:
+
+```bash
+pip install nox
+nox                  # lint, type-check, and the suite behind a 100% coverage gate
+nox -s core          # the suite without the CLI extra installed
+nox -s examples      # the tutorial and the scikit-learn pipeline
+nox -s docs          # the documentation, warnings treated as errors
+```
 
 For questions, issues, or feature requests, open a
 [GitHub issue](https://github.com/nlp-unibo/cinnamon/issues) or contact:
