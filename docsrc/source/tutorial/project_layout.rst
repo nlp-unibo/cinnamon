@@ -61,8 +61,8 @@ Driving it from the command line
     cmn-build -dir .          # resolve, and write the key list to registrations/
     cmn-run   -dir .          # pick a configuration interactively and run it
 
-``cmn-check`` and ``cmn-build`` need only ``pip install cinnamon``. ``cmn-run``
-prompts, so it also wants ``pip install "cinnamon[cli]"``. :doc:`../commands`
+``cmn-check`` and ``cmn-build`` need only ``pip install cinnamon-core``. ``cmn-run``
+prompts, so it also wants ``pip install "cinnamon-core[cli]"``. :doc:`../commands`
 covers all four commands in detail.
 
 Four registrations come out of two declarations, because the strategy declares a
@@ -84,7 +84,7 @@ After the tutorial
 ===============================================
 
 - :doc:`../examples/index` — a full scikit-learn pipeline: loader, processors,
-  model, benchmark. Needs ``pip install "cinnamon[examples]"`` and downloads the
+  model, benchmark. Needs ``pip install "cinnamon-core[examples]"`` and downloads the
   IMDB dataset on first run.
 - :doc:`../configuration`, :doc:`../component`, :doc:`../registration` and
   :doc:`../dependencies` cover each concept in depth.

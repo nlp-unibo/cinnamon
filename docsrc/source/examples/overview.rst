@@ -46,7 +46,7 @@ Install cinnamon and the example dependencies:
 
 .. code-block:: bash
 
-    pip install "cinnamon[examples]"
+    pip install "cinnamon-core[examples]"
 
 =============================================
 Running the demos

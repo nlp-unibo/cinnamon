@@ -305,10 +305,17 @@ def test_the_readme_quickstart_runs(tmp_path):
     ``configurations/`` -- and then run in a subprocess, because ``Registry`` is
     class-level state and ``build`` scans the working directory.
     """
-    blocks = MD_PYTHON_BLOCK.findall(README.read_text())
-    assert len(blocks) >= 5, f"expected the 5 quickstart blocks, found {len(blocks)}"
+    readme = README.read_text()
+    start = readme.index("## Quickstart")
+    quickstart = readme[start : readme.index("## Key concepts", start)]
 
-    component, registration, build, instantiate, variants = blocks[:5]
+    blocks = MD_PYTHON_BLOCK.findall(quickstart)
+    assert len(blocks) == 5, (
+        f"expected the 5 quickstart steps, found {len(blocks)} python blocks "
+        f"between '## Quickstart' and '## Key concepts'"
+    )
+
+    component, registration, build, instantiate, variants = blocks
 
     (tmp_path / "components.py").write_text(component)
     (tmp_path / "configurations").mkdir()
@@ -364,3 +371,59 @@ def test_readme_links_into_the_docs_point_at_pages_that_exist():
     assert not missing, (
         f"README links to documentation pages that do not exist: {sorted(set(missing))}"
     )
+
+
+#: An install instruction naming a distribution, in markdown or rst.
+INSTALL_COMMAND = re.compile(r"pip install \"?([A-Za-z0-9_./\[\],-]+)\"?")
+
+#: Everything that is not a distribution name: the editable and local-path forms
+#: used when working on cinnamon itself, and the tooling the docs tell you to
+#: install alongside it.
+NOT_A_DISTRIBUTION = {"-e", ".", "./cinnamon", "nox", "--upgrade"}
+
+
+def test_documented_installs_name_the_right_distribution():
+    """``pip install cinnamon`` fetches somebody else's project.
+
+    The distribution is ``cinnamon-core``. ``cinnamon`` on PyPI is an unrelated
+    data-drift monitoring tool, so every ``pip install cinnamon`` in the README,
+    the landing page, the tutorial and the command reference sent readers to the
+    wrong library -- and then to an ``ImportError``, since that project has no
+    ``cinnamon.registry``.
+
+    Nothing could have caught this from inside the repository: the name was
+    consistent everywhere, self-consistent, and wrong. It took looking at PyPI.
+    The check exists so the answer stays looked-up rather than re-derived.
+    """
+    wrong = []
+    for path in [README, *RST_FILES, ROOT / "CONTRIBUTING.md"]:
+        for match in INSTALL_COMMAND.findall(path.read_text()):
+            name = match.split("[")[0]
+            if name in NOT_A_DISTRIBUTION or not name:
+                continue
+            if name != "cinnamon-core":
+                wrong.append(f"{path.name}: pip install {match}")
+
+    assert not wrong, (
+        "the distribution is cinnamon-core; 'cinnamon' on PyPI is an unrelated "
+        f"project: {sorted(set(wrong))}"
+    )
+
+
+def test_the_typed_marker_is_shipped():
+    """``Typing :: Typed`` is a claim; ``py.typed`` is what backs it.
+
+    Without the marker file a type checker ignores the annotations in an
+    installed package, so the classifier would promise something the wheel does
+    not deliver.
+    """
+    pyproject = (ROOT / "pyproject.toml").read_text()
+
+    if "Typing :: Typed" in pyproject:
+        assert (ROOT / "cinnamon" / "py.typed").exists(), (
+            "pyproject claims Typing :: Typed but cinnamon/py.typed is missing"
+        )
+        assert 'cinnamon = ["py.typed"]' in pyproject, (
+            "cinnamon/py.typed exists but is not declared as package-data, so it "
+            "is not in the wheel"
+        )

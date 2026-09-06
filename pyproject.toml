@@ -3,7 +3,13 @@ requires = ["setuptools>=61.0.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "cinnamon"
+# The distribution is "cinnamon-core"; the import package is "cinnamon".
+# They differ because "cinnamon" on PyPI belongs to an unrelated project, and
+# because this is the package that has been published since 2023 -- the 0.2.x
+# releases of cinnamon-core are the direct ancestors of this one. The old
+# cinnamon-generic / cinnamon-th / cinnamon-tf split is superseded by this
+# single distribution.
+name = "cinnamon-core"
 dynamic = ["version"]
 description = "A simple framework for general-purpose configuration and code logic de-coupling."
 readme = "README.md"
@@ -11,18 +17,45 @@ authors = [
     { name = "Federico Ruggeri", email = "federico.ruggeri6@unibo.it" }
 ]
 license = { text = "MIT" }
+keywords = [
+    "configuration",
+    "dependency-injection",
+    "registry",
+    "experiment-management",
+    "hyperparameter-search",
+    "reproducibility",
+    "research",
+]
 classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Topic :: Software Development :: Libraries :: Python Modules",
+    "Typing :: Typed",
 ]
 # Adjust your minimum Python version requirement here if needed
 requires-python = ">=3.10"
+
 dependencies = [
     "networkx>=3.4.2,<4",
     "pydantic>=2.0,<3"
 ]
+
+[project.urls]
+Homepage = "https://nlp-unibo.github.io/cinnamon/"
+Documentation = "https://nlp-unibo.github.io/cinnamon/"
+Source = "https://github.com/nlp-unibo/cinnamon"
+Issues = "https://github.com/nlp-unibo/cinnamon/issues"
+Changelog = "https://github.com/nlp-unibo/cinnamon/releases"
 
 [project.optional-dependencies]
 dev = [
@@ -49,6 +82,12 @@ cmn-check = "cinnamon.cli:check"
 
 [tool.setuptools]
 packages = ["cinnamon", "cinnamon.utility"]
+
+# PEP 561. Without this marker the annotations are shipped but ignored: a type
+# checker will not read them out of an installed package, so the "Typing ::
+# Typed" classifier would be a claim with nothing behind it.
+[tool.setuptools.package-data]
+cinnamon = ["py.typed"]
 
 [tool.setuptools.dynamic]
 version = { attr = "cinnamon.__version__" }

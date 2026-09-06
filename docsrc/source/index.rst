@@ -58,7 +58,16 @@ Install
 
 .. code-block:: bash
 
-    pip install cinnamon
+    pip install cinnamon-core
+
+.. note::
+    The distribution is ``cinnamon-core``; the import package is ``cinnamon``.
+    You install ``cinnamon-core`` and then write ``import cinnamon``.
+
+    They differ because ``cinnamon`` on PyPI is an unrelated project.
+    ``cinnamon-core`` is the package these releases have always used, and it
+    supersedes the old ``cinnamon-generic`` / ``cinnamon-th`` / ``cinnamon-tf``
+    split.
 
 That is everything the library needs, and everything ``cmn-build`` and
 ``cmn-check`` need. The two commands that *prompt* — ``cmn-run`` and
@@ -66,7 +75,7 @@ That is everything the library needs, and everything ``cmn-build`` and
 
 .. code-block:: bash
 
-    pip install "cinnamon[cli]"
+    pip install "cinnamon-core[cli]"
 
 From source:
 

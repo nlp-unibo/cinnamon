@@ -15,7 +15,7 @@ To use ``cmn-run`` and ``cmn-generate``, which prompt, install the ``cli`` extra
 
 .. code-block:: bash
 
-    pip install "cinnamon[cli]"
+    pip install "cinnamon-core[cli]"
 
 The quotes matter in ``zsh`` and ``fish``, which treat brackets as globs.
 
