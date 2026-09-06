@@ -4,7 +4,7 @@
 
 **A lightweight Python framework for decoupling configuration from code logic.**
 
-[![PyPI version](https://img.shields.io/pypi/v/cinnamon-core.svg)](https://pypi.org/project/cinnamon-core/)
+[![PyPI version](https://img.shields.io/pypi/v/cinnamon-core)](https://pypi.org/project/cinnamon-core/)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Tests](https://github.com/nlp-unibo/cinnamon/actions/workflows/ci.yml/badge.svg)](https://github.com/nlp-unibo/cinnamon/actions)

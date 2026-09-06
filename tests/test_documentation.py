@@ -448,3 +448,33 @@ def test_the_docs_do_not_restate_the_version():
     assert not re.search(r'release\s*=\s*["\']', conf), (
         "conf.py hardcodes a version string again"
     )
+
+
+#: Anything naming a distribution on PyPI, or a shields badge reading one.
+PYPI_REFERENCE = re.compile(
+    r"(?:pypi\.org/project/|img\.shields\.io/pypi/[a-z]+/)([A-Za-z0-9._-]+)"
+)
+
+
+def test_pypi_references_name_the_right_distribution():
+    """The badge and the project links point at *our* package.
+
+    The version badge read ``img.shields.io/pypi/v/cinnamon`` and linked to
+    ``pypi.org/project/cinnamon`` -- an unrelated project, so the README showed a
+    stranger's version number at the top of the page and sent anyone clicking it
+    to their project.
+
+    Companion to :func:`test_documented_installs_name_the_right_distribution`,
+    which covers the install commands. Same mistake, different syntax, and the
+    install check cannot see a URL.
+    """
+    wrong = [
+        f"{path.name}: {name}"
+        for path in (README, ROOT / "CONTRIBUTING.md")
+        for name in PYPI_REFERENCE.findall(path.read_text())
+        if name != "cinnamon-core"
+    ]
+
+    assert not wrong, (
+        f"these point at a distribution that is not cinnamon-core: {sorted(set(wrong))}"
+    )
