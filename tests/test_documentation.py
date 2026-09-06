@@ -19,7 +19,9 @@ from pathlib import Path
 
 import pytest
 
-DOCS = Path(__file__).resolve().parent.parent / "docsrc" / "source"
+ROOT = Path(__file__).resolve().parent.parent
+DOCS = ROOT / "docsrc" / "source"
+TUTORIAL = ROOT / "examples" / "tutorial"
 
 #: Classes whose attributes the documentation refers to by name.
 DOCUMENTED_CLASSES = {
@@ -146,4 +148,75 @@ def test_no_page_documents_the_removed_component_base_class():
 
     assert not offenders, (
         f"pages still describe the removed Component base class: {offenders}"
+    )
+
+
+def test_every_tutorial_step_has_a_documentation_page():
+    """The tutorial section covers every step that exists in the repository.
+
+    The pages pull their code in with ``literalinclude``, so a *renamed* file
+    breaks the docs build and is caught. An *added* one is the silent case: the
+    new step ships, no page mentions it, and the section quietly stops being the
+    tutorial. Sphinx cannot see that, because nothing is broken -- there is just
+    less than there should be.
+    """
+    steps = sorted(path.name for path in TUTORIAL.glob("[0-9][0-9]_*"))
+    assert steps, f"no tutorial steps found under {TUTORIAL}"
+
+    included = "\n".join(
+        path.read_text() for path in (DOCS / "tutorial").rglob("*.rst")
+    )
+
+    undocumented = [step for step in steps if step not in included]
+
+    assert not undocumented, (
+        f"tutorial steps with no documentation page: {undocumented}. "
+        f"Add a page under docsrc/source/tutorial/ that literalincludes each one."
+    )
+
+
+def test_tutorial_pages_point_at_files_that_exist():
+    """Every ``literalinclude`` path in the docs resolves.
+
+    Sphinx already fails the build on a missing include, but only when the docs
+    are built. This says the same thing in the test suite, where it is cheap and
+    fails with the offending path rather than a build log.
+    """
+    missing = []
+    for page in DOCS.rglob("*.rst"):
+        for target in re.findall(r"\.\. literalinclude:: (\S+)", page.read_text()):
+            if not (page.parent / target).resolve().exists():
+                missing.append(f"{page.relative_to(DOCS)} -> {target}")
+
+    assert not missing, f"literalinclude targets that do not exist: {missing}"
+
+
+#: Any way of spelling "this documentation site". Both host names serve it --
+#: the github.io address 301s to the unibo one.
+SELF_LINK = re.compile(
+    r"https?://[^\s`<>]*(?:nlp-unibo\.github\.io|nlp\.unibo\.it)/cinnamon/[^\s`<>]+"
+)
+
+
+def test_the_docs_do_not_link_to_themselves_by_absolute_url():
+    """Internal references must be ``:doc:`` so Sphinx can check them.
+
+    An absolute link to our own site looks identical in the rendered page and is
+    invisible to ``-W``: Sphinx never resolves it, so renaming or removing the
+    target produces a 404 that no build, test or review will catch. That is not
+    hypothetical -- the README pointed at ``overview.html`` for as long as it
+    took someone to click it after the page was folded into the landing page,
+    and four concept pages linked to each other the same way.
+
+    ``:doc:`` gets validated at build time and rewritten to the right relative
+    path on every page, so this is strictly better as well as safer.
+    """
+    offenders = []
+    for path in RST_FILES:
+        for match in SELF_LINK.findall(path.read_text()):
+            offenders.append(f"{path.relative_to(DOCS)}: {match}")
+
+    assert not offenders, (
+        "documentation links to itself by absolute URL; use :doc:`page` instead "
+        f"so Sphinx validates it: {offenders}"
     )

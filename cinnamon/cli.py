@@ -5,11 +5,10 @@ import os
 import sys
 from logging import getLogger
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import Callable, List, Optional, Tuple
 
 from cinnamon.registry import RegistrationKey, Registry
 from cinnamon.utility import key_analyzer
-from cinnamon.utility.inquirer import filter_keys
 from cinnamon.utility.key_analyzer import (
     analyze_keys,
     explain_variant_tags,
@@ -33,15 +32,30 @@ def _configure_logging() -> None:
 
 
 def _require_inquirer():
+    """Load the interactive layer, or explain how to install it.
+
+    Imported here rather than at module scope. ``cmn-build`` and ``cmn-check``
+    are not interactive and are meant to work on a core install -- ``cmn-check``
+    in particular exists to gate a commit or a CI job, where an interactive
+    prompt library has no business being a requirement. A module-level
+    ``from cinnamon.utility.inquirer import filter_keys`` pulls InquirerPy in
+    transitively, so *every* command failed on a core install with a raw
+    ``ModuleNotFoundError``, and this function never got to run.
+
+    Returns the two entry points the interactive commands need, so there is
+    exactly one place that knows the extra is optional.
+    """
     try:
         from InquirerPy import inquirer
 
-        return inquirer
+        from cinnamon.utility.inquirer import filter_keys
     except ImportError:
         raise ImportError(
-            "InquirerPy is required for the CLI. "
-            "Install it with: pip install cinnamon[cli]"
+            "InquirerPy is required by cmn-run and cmn-generate. "
+            "Install it with: pip install 'cinnamon[cli]'"
         ) from None
+
+    return inquirer, filter_keys
 
 
 def _build_parser(
@@ -129,13 +143,19 @@ def _log_selection(keys: List[RegistrationKey]) -> None:
     )
 
 
-def _prompt_for_keys(candidates: List[RegistrationKey]) -> List[RegistrationKey]:
+def _prompt_for_keys(
+    candidates: List[RegistrationKey],
+    filter_keys: Callable[..., Optional[List[RegistrationKey]]],
+) -> List[RegistrationKey]:
     """
     Prompt until the user settles on a non-empty selection.
 
     Filters that match nothing are re-prompted; an explicit cancellation
     (``filter_keys`` returning ``None``) returns no keys so the caller aborts.
     Without that distinction, cancelling would re-open the prompt forever.
+
+    *filter_keys* is passed in rather than imported: it lives in the module that
+    needs the optional CLI extra. See :func:`_require_inquirer`.
     """
     while True:
         selected = filter_keys(keys=list(candidates))
@@ -192,7 +212,7 @@ def build():
 
 def run():
     _configure_logging()
-    inquirer = _require_inquirer()
+    inquirer, filter_keys = _require_inquirer()
 
     args = _build_parser().parse_args()
     directory, external_directories = _resolve_sources(args)
@@ -204,7 +224,7 @@ def run():
         logger.info("Could not find any registered runnable component. Aborting...")
         return
 
-    filtered_keys = _prompt_for_keys(keys)
+    filtered_keys = _prompt_for_keys(keys, filter_keys)
     if not len(filtered_keys):
         return
     _log_selection(filtered_keys)
@@ -234,7 +254,7 @@ def run():
 
 def generate():
     _configure_logging()
-    inquirer = _require_inquirer()
+    inquirer, filter_keys = _require_inquirer()
 
     args = _build_parser(run_directory=True, filename=True).parse_args()
     directory, external_directories = _resolve_sources(args)
@@ -248,7 +268,7 @@ def generate():
         logger.info("Could not find any registered runnable component. Aborting...")
         return
 
-    filtered_keys = _prompt_for_keys(valid_keys)
+    filtered_keys = _prompt_for_keys(valid_keys, filter_keys)
     if not len(filtered_keys):
         return
     _log_selection(filtered_keys)

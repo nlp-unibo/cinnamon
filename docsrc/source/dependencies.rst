@@ -3,10 +3,10 @@
 Registration Dependencies
 *********************************************
 
-In `registration <https://nlp-unibo.github.io/cinnamon/registration.html>`_, we saw that
+In :doc:`registration`, we saw that
 cinnamon pairs a ``Configuration`` to its component via a ``RegistrationKey``.
 Moreover, ``Configuration`` instances can nest other ``Configuration`` instances to compose
-more sophisticated ones (see `configuration <https://nlp-unibo.github.io/cinnamon/configuration.html>`_).
+more sophisticated ones (see :doc:`configuration`).
 
 What remains is the question of **how** to organise code so that cinnamon can find and
 wire everything together automatically.

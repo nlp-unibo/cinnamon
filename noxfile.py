@@ -65,6 +65,14 @@ def core(session: nox.Session) -> None:
         "--ignore=tests/test_inquirer.py",
     )
 
+    # Then run the commands themselves. Skipping test_cli.py here is right --
+    # those tests need InquirerPy -- but it left nothing in this session that
+    # imported cinnamon.cli at all, which is how the module-level InquirerPy
+    # import came to break cmn-build and cmn-check without a single red test.
+    project = "examples/tutorial/07_project_layout"
+    session.run("cmn-check", "-dir", project)
+    session.run("cmn-build", "-dir", project)
+
 
 @nox.session(python=EXAMPLES_VERSION)
 def examples(session: nox.Session) -> None:
@@ -84,9 +92,11 @@ def docs(session: nox.Session) -> None:
     """Build the documentation with warnings treated as errors.
 
     The package is installed with the ``cli`` extra because autodoc imports each
-    module to document it, and ``cinnamon.cli`` imports InquirerPy at module
-    level. A deleted module, a broken reference or a missing optional dependency
-    all fail here rather than shipping as a broken page.
+    module to document it, and ``cinnamon.utility.inquirer`` needs InquirerPy.
+    (``cinnamon.cli`` no longer does; ``conf.py`` mocks the dependency anyway so
+    the build does not silently depend on the extra being present.) A deleted
+    module, a broken reference or a missing optional dependency all fail here
+    rather than shipping as a broken page.
 
     Runs ``build_docs.sh`` -- the same script CI and the publish workflow use --
     so all three exercise one code path and cannot quietly disagree about flags
