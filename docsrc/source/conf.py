@@ -85,3 +85,11 @@ html_theme = "sphinx_rtd_theme"
 # html_theme_path = [sphinx_pdj_theme.get_html_theme_path()]
 # No custom assets yet; an entry for a missing directory only warns.
 html_static_path = []
+
+# Files copied verbatim into the build root, on top of the generated pages.
+#
+# Holds redirect stubs for pages that have moved: GitHub Pages serves static
+# files and cannot issue a 301, so a zero-delay meta refresh is the available
+# mechanism. To retire another URL, add ``<old-name>.html`` to that directory
+# rather than leaving the address to 404.
+html_extra_path = ["_redirects"]
