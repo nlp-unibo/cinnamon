@@ -220,3 +220,60 @@ def test_the_docs_do_not_link_to_themselves_by_absolute_url():
         "documentation links to itself by absolute URL; use :doc:`page` instead "
         f"so Sphinx validates it: {offenders}"
     )
+
+
+#: Stubs that keep a retired URL working. GitHub Pages serves static files and
+#: cannot issue a 301, so each is a zero-delay meta refresh.
+REDIRECTS = DOCS / "_redirects"
+
+REFRESH = re.compile(r'http-equiv="refresh"\s+content="0;\s*url=([^"]+)"')
+
+
+def test_redirect_stubs_are_copied_into_the_build():
+    """``html_extra_path`` is what puts the stubs in the output.
+
+    Without it they are inert files in the source tree that no build ever looks
+    at -- and the failure is silent, because a redirect nobody exercises looks
+    exactly like a redirect that works.
+    """
+    conf = (DOCS / "conf.py").read_text()
+
+    assert 'html_extra_path = ["_redirects"]' in conf, (
+        "conf.py no longer copies _redirects/ into the build; every retired URL "
+        "in that directory is now a 404"
+    )
+
+
+@pytest.mark.parametrize("stub", sorted(REDIRECTS.glob("*.html")), ids=lambda p: p.name)
+def test_redirect_stub_points_at_a_page_that_exists(stub):
+    """A redirect to a page that is also gone is worse than a 404.
+
+    The target is checked against the *sources*, so this fails at test time
+    rather than after a deploy.
+    """
+    match = REFRESH.search(stub.read_text())
+    assert match, f"{stub.name} has no zero-delay meta refresh"
+
+    target = match.group(1)
+    assert not target.startswith(("http://", "https://")), (
+        f"{stub.name} redirects to an absolute URL; use a relative one so the "
+        f"stub works on either host name"
+    )
+
+    # "./" is the landing page; "foo.html" is the page built from "foo.rst".
+    page = "index.rst" if target in ("./", ".", "") else target.replace(".html", ".rst")
+    assert (DOCS / page).exists(), (
+        f"{stub.name} redirects to {target}, which is built from {page} -- and "
+        f"that source does not exist"
+    )
+
+
+def test_the_retired_overview_url_still_resolves():
+    """The specific URL that moved, named so the reason is not lost.
+
+    ``overview.rst`` became the landing page. The README, and anything else
+    already pointing at ``/cinnamon/overview.html``, would otherwise 404.
+    """
+    assert (REDIRECTS / "overview.html").exists(), (
+        "the overview redirect is gone; /cinnamon/overview.html now 404s"
+    )
