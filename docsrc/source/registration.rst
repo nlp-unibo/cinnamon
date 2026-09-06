@@ -190,6 +190,23 @@ This is equivalent to ``@register_method`` but keeps the registration logic sepa
 from the ``Configuration`` class — useful when re-using an existing configuration
 without modification.
 
+If you already hold a ``RegistrationKey``, ``register_configuration_from_key()``
+takes it directly rather than making you split it into three arguments:
+
+.. code-block:: python
+
+    key = RegistrationKey(name='test', tags={'default'}, namespace='testing')
+
+    Registry.register_configuration_from_key(
+        config=CustomConfig.default(),
+        registration_key=key,
+        component='components.CustomComponent'
+    )
+
+The key is used as given, so it keeps its ``description`` and any special tags.
+``register_configuration()`` is the same method with the key assembled for you,
+and resolution uses this form for the variant keys it derives.
+
 ---------------------------------------------
 Runnable components
 ---------------------------------------------

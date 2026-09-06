@@ -1114,11 +1114,12 @@ class Registry:
                 continue
 
             if not Registry.in_registry(variant_key):
-                cls.register_configuration(
+                # The key already exists, so register under it rather than
+                # taking it apart into three fields for a callee that would
+                # rebuild it (issue #3).
+                cls.register_configuration_from_key(
                     config=variant_config,
-                    name=variant_key.name,
-                    tags=variant_key.tags,
-                    namespace=variant_key.namespace,
+                    registration_key=variant_key,
                     component=config_info.component,
                     run_method=config_info.run_method,
                 )
@@ -1304,12 +1305,58 @@ class Registry:
             ``NamespaceNotFoundException``: if one of the dependencies of
                 ``RegistrationKey`` belongs to a namespace not covered.
         """
+        return cls.register_configuration_from_key(
+            config=config,
+            registration_key=RegistrationKey[Any](
+                name=name, tags=tags, namespace=namespace
+            ),
+            component=component,
+            run_method=run_method,
+        )
+
+    @classmethod
+    def register_configuration_from_key(
+        cls,
+        config: cinnamon.configuration.Configuration,
+        registration_key: RegistrationKey[Any],
+        component: str | None = None,
+        run_method: str | None = None,
+    ) -> RegistrationKey[Any]:
+        """
+        Register a ``Configuration`` under a key you already hold.
+
+        ``register_configuration`` takes ``name``, ``namespace`` and ``tags`` and
+        assembles the key itself, which is right when that is what you have.
+        Resolution is the other case: ``expand_configuration`` derives a variant
+        key with ``key.from_variant(...)`` and then had to take it apart into
+        three fields for a callee that put them straight back together.
+
+        The key is used **as given**, not copied. It therefore keeps whatever
+        ``description`` and ``special_tags`` it arrived with, where the
+        rebuilt key lost them and started from empty.
+
+        Args:
+            config: the ``Configuration`` instance to register.
+            registration_key: the key to register it under.
+            component: component module path, as a string.
+            run_method: component method to run when it is instantiated as
+                runnable.
+
+        Returns:
+            The key it registered, which is the one passed in.
+
+        Raises:
+            ``AlreadyExpandedException``: if the dependency DAG has been expanded.
+
+            ``AlreadyRegisteredException``: if the key is already used.
+
+            ``NamespaceNotFoundException``: if one of the dependencies belongs to
+                a namespace not covered.
+        """
         if cls.expanded:
             raise AlreadyExpandedException()
 
-        registration_key = RegistrationKey[Any](
-            name=name, tags=tags, namespace=namespace
-        )
+        namespace = registration_key.namespace
 
         # Check if already registered
         if cls.in_registry(registration_key=registration_key):
