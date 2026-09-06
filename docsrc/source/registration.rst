@@ -218,6 +218,58 @@ Registered runnable keys carry the internal ``__runnable`` special tag and can b
 retrieved with ``Registry.retrieve_runnable_keys()``.
 
 =============================================
+Entry points
+=============================================
+
+Every script that uses cinnamon opens the same four lines:
+
+.. code-block:: python
+
+    if __name__ == '__main__':
+        directory = Path(__file__).parent.parent.resolve()
+        Registry.build(directory=directory)
+        logging.basicConfig(level=logging.INFO)
+        logger = getLogger(__name__)
+
+``@setup`` replaces them:
+
+.. code-block:: python
+
+    from pathlib import Path
+
+    from cinnamon.registry import Registry, setup
+
+
+    @setup(directory=Path(__file__).parent.parent)
+    def main():
+        benchmark = Registry.instantiate(name='benchmark', namespace='examples')
+        benchmark.run()
+
+The decorated function **runs immediately when its module is** ``__main__`` --
+whether started as ``python main.py`` or as ``python -m main``. That is what
+removes the ``if __name__`` guard, rather than merely moving the build call into
+a decorator.
+
+Imported from anywhere else it does not run, so a module keeps its ordinary
+behaviour under ``import`` and under test. The function stays callable, and
+calling it rebuilds the registry first.
+
+.. note::
+    Because it runs at decoration time, put the decorated function where you
+    would have put the ``if __name__`` block: after everything it refers to.
+    That is the same discipline, not a new one.
+
+``directory`` defaults to the working directory, matching the ``-dir`` flag of
+the :doc:`commands`. ``logging_level`` defaults to ``logging.INFO``; pass
+``None`` for a script that configures its own logging:
+
+.. code-block:: python
+
+    @setup(logging_level=None)
+    def main():
+        ...
+
+=============================================
 Retrieving registrations
 =============================================
 
