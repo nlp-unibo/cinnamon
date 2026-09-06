@@ -427,3 +427,24 @@ def test_the_typed_marker_is_shipped():
             "cinnamon/py.typed exists but is not declared as package-data, so it "
             "is not in the wheel"
         )
+
+
+def test_the_docs_do_not_restate_the_version():
+    """``conf.py`` reads the version rather than repeating it.
+
+    It said ``release = "0.1"`` while the package said 1.1.0, so every built page
+    carried a version number that had been wrong for four releases. Nothing
+    noticed, because a wrong-but-syntactically-fine string breaks no build.
+
+    ``pyproject.toml`` already reads ``cinnamon.__version__``. This makes the
+    docs read it too, so there is one place to change at release time instead of
+    three that must be remembered together.
+    """
+    conf = (DOCS / "conf.py").read_text()
+
+    assert "release = cinnamon.__version__" in conf, (
+        "conf.py should read the version from the package, not restate it"
+    )
+    assert not re.search(r'release\s*=\s*["\']', conf), (
+        "conf.py hardcodes a version string again"
+    )

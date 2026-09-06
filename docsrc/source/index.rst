@@ -67,7 +67,13 @@ Install
     They differ because ``cinnamon`` on PyPI is an unrelated project.
     ``cinnamon-core`` is the package these releases have always used, and it
     supersedes the old ``cinnamon-generic`` / ``cinnamon-th`` / ``cinnamon-tf``
-    split.
+    split, which are no longer maintained.
+
+.. warning::
+    **Upgrading from 0.2.x?** 2.0.0 is a rewrite. Configurations are Pydantic
+    models with typed class annotations, and the ``Component`` base class is
+    gone -- components are plain classes now, bound by import path. Start from
+    :doc:`quickstart`; the 0.2.x API does not carry over.
 
 That is everything the library needs, and everything ``cmn-build`` and
 ``cmn-check`` need. The two commands that *prompt* — ``cmn-run`` and
