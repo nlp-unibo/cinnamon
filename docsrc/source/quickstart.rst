@@ -183,6 +183,8 @@ After a successful build, construct a ``DataLoader`` instance from its registere
 
 .. code-block:: python
 
+    from cinnamon.registry import RegistrationKey
+
     # From a key
     key = RegistrationKey(name='data_loader', tags={'test'}, namespace='showcasing')
     loader = Registry.from_key(key)
@@ -215,14 +217,28 @@ The **register, bind, and build** workflow unlocks a number of powerful features
 - Integrating **external** components and configurations written by other users.
 - Static and dynamic **condition** validation.
 
-See `Configuration <https://nlp-unibo.github.io/cinnamon/configuration.html>`_ for a
-full walkthrough of parameters, conditions, variants, and nesting.
+The :doc:`tutorial <tutorial/index>` is the natural next step: seven runnable files
+that introduce each of these one at a time, ending with a worked project laid out
+the way a real one is.
 
-See `Registration <https://nlp-unibo.github.io/cinnamon/registration.html>`_ for more
-details on how to structure registration code and use the ``Registry`` APIs.
+For reference depth, :doc:`configuration` covers parameters, conditions, variants
+and nesting; :doc:`registration` covers how to structure registration code and the
+``Registry`` APIs; :doc:`dependencies` covers keys, containers, and how variants
+propagate through the graph; and :doc:`commands` covers the four ``cmn-*``
+commands.
 
-.. toctree::
-   :maxdepth: 4
-   :hidden:
-   :caption: Contents:
-   :titlesonly:
+=============================================
+Before you run anything
+=============================================
+
+``cmn-check`` resolves the whole registry and reports what is wrong: unresolved
+keys, with a suggestion for what you probably meant, and components whose
+``__init__`` does not match the configuration bound to them.
+
+.. code-block:: bash
+
+    cmn-check -dir .
+
+It imports none of your components to do it, so it stays fast on a project that
+takes a minute to import, and it exits non-zero when it finds errors — which makes
+it usable as a commit hook or a CI step.

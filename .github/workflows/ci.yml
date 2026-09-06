@@ -62,6 +62,14 @@ jobs:
           pytest --no-cov \
             --ignore=tests/test_cli.py \
             --ignore=tests/test_inquirer.py
+      # Ignoring test_cli.py above is correct -- those tests need InquirerPy --
+      # but it meant nothing in this job ever imported cinnamon.cli, so a
+      # module-level import of the extra broke cmn-build and cmn-check on a core
+      # install while every job stayed green. Run the commands for real.
+      - name: Run the non-interactive commands
+        run: |
+          cmn-check -dir examples/tutorial/07_project_layout
+          cmn-build -dir examples/tutorial/07_project_layout
 
   test-full:
     name: Test full suite

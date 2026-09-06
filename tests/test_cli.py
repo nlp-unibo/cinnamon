@@ -145,7 +145,11 @@ def test_cli_run_no_runnable_keys_aborts(tmp_path, monkeypatch, reset_registry):
     monkeypatch.setattr(cli.Registry, "retrieve_runnable_keys", lambda: [])
 
     prompted = []
-    monkeypatch.setattr(cli, "filter_keys", lambda keys: prompted.append(keys) or [])
+    monkeypatch.setattr(
+        cli,
+        "_require_inquirer",
+        lambda: (_FakeInquirerCLI(), lambda keys: prompted.append(keys) or []),
+    )
 
     cli.run()
 
@@ -183,8 +187,9 @@ def test_cli_run_executes_components(tmp_path, monkeypatch, reset_registry):
         cli.Registry, "build", lambda directory, external_directories=None: None
     )
     monkeypatch.setattr(cli.Registry, "retrieve_runnable_keys", lambda: [key])
-    monkeypatch.setattr(cli, "filter_keys", lambda keys: [key])
-    monkeypatch.setattr(cli, "_require_inquirer", lambda: _FakeInquirerCLI())
+    monkeypatch.setattr(
+        cli, "_require_inquirer", lambda: (_FakeInquirerCLI(), lambda keys: [key])
+    )
     monkeypatch.setattr(
         cli.Registry,
         "retrieve_configuration_info",
@@ -211,8 +216,9 @@ def test_cli_run_missing_run_method_raises(tmp_path, monkeypatch, reset_registry
         cli.Registry, "build", lambda directory, external_directories=None: None
     )
     monkeypatch.setattr(cli.Registry, "retrieve_runnable_keys", lambda: [key])
-    monkeypatch.setattr(cli, "filter_keys", lambda keys: [key])
-    monkeypatch.setattr(cli, "_require_inquirer", lambda: _FakeInquirerCLI())
+    monkeypatch.setattr(
+        cli, "_require_inquirer", lambda: (_FakeInquirerCLI(), lambda keys: [key])
+    )
     monkeypatch.setattr(
         cli.Registry,
         "retrieve_configuration_info",
@@ -245,8 +251,11 @@ def test_cli_run_confirm_false_aborts(tmp_path, monkeypatch, reset_registry):
         cli.Registry, "build", lambda directory, external_directories=None: None
     )
     monkeypatch.setattr(cli.Registry, "retrieve_runnable_keys", lambda: [key])
-    monkeypatch.setattr(cli, "filter_keys", lambda keys: [key])
-    monkeypatch.setattr(cli, "_require_inquirer", lambda: _FakeInquirerCLIFalse())
+    monkeypatch.setattr(
+        cli,
+        "_require_inquirer",
+        lambda: (_FakeInquirerCLIFalse(), lambda keys: [key]),
+    )
 
     component = _FakeComponent()
     monkeypatch.setattr(
@@ -289,8 +298,11 @@ def test_cli_generate_writes_script(tmp_path, monkeypatch, reset_registry):
             "myexp",
         ],
     )
-    monkeypatch.setattr(cli, "_require_inquirer", lambda: _FakeInquirerCLI())
-    monkeypatch.setattr(cli, "filter_keys", lambda keys: list(keys))
+    monkeypatch.setattr(
+        cli,
+        "_require_inquirer",
+        lambda: (_FakeInquirerCLI(), lambda keys: list(keys)),
+    )
     monkeypatch.setattr(
         cli.Registry,
         "build",
@@ -326,8 +338,11 @@ def test_cli_generate_template_is_valid_python(tmp_path, monkeypatch, reset_regi
             "myexp",
         ],
     )
-    monkeypatch.setattr(cli, "_require_inquirer", lambda: _FakeInquirerCLI())
-    monkeypatch.setattr(cli, "filter_keys", lambda keys: list(keys))
+    monkeypatch.setattr(
+        cli,
+        "_require_inquirer",
+        lambda: (_FakeInquirerCLI(), lambda keys: list(keys)),
+    )
     monkeypatch.setattr(
         cli.Registry,
         "build",
@@ -359,7 +374,11 @@ def test_cli_generate_no_valid_keys_aborts(tmp_path, monkeypatch, reset_registry
             "myexp",
         ],
     )
-    monkeypatch.setattr(cli, "_require_inquirer", lambda: _FakeInquirerCLI())
+    monkeypatch.setattr(
+        cli,
+        "_require_inquirer",
+        lambda: (_FakeInquirerCLI(), lambda keys: list(keys)),
+    )
     monkeypatch.setattr(
         cli.Registry,
         "build",
@@ -393,8 +412,11 @@ def test_cli_generate_with_external_path(tmp_path, monkeypatch, reset_registry):
             str(ext),
         ],
     )
-    monkeypatch.setattr(cli, "_require_inquirer", lambda: _FakeInquirerCLI())
-    monkeypatch.setattr(cli, "filter_keys", lambda keys: list(keys))
+    monkeypatch.setattr(
+        cli,
+        "_require_inquirer",
+        lambda: (_FakeInquirerCLI(), lambda keys: list(keys)),
+    )
     monkeypatch.setattr(
         cli.Registry,
         "build",
@@ -434,8 +456,11 @@ def test_cli_generate_confirm_false_aborts(tmp_path, monkeypatch, reset_registry
             "myexp",
         ],
     )
-    monkeypatch.setattr(cli, "_require_inquirer", lambda: _FakeInquirerCLIFalse())
-    monkeypatch.setattr(cli, "filter_keys", lambda keys: list(keys))
+    monkeypatch.setattr(
+        cli,
+        "_require_inquirer",
+        lambda: (_FakeInquirerCLIFalse(), lambda keys: list(keys)),
+    )
     monkeypatch.setattr(
         cli.Registry,
         "build",
@@ -473,8 +498,11 @@ def test_cli_generate_overwrite_prompt(tmp_path, monkeypatch, reset_registry):
             "myexp",
         ],
     )
-    monkeypatch.setattr(cli, "_require_inquirer", lambda: _FakeInquirerCLI())
-    monkeypatch.setattr(cli, "filter_keys", lambda keys: list(keys))
+    monkeypatch.setattr(
+        cli,
+        "_require_inquirer",
+        lambda: (_FakeInquirerCLI(), lambda keys: list(keys)),
+    )
     monkeypatch.setattr(
         cli.Registry,
         "build",
@@ -513,8 +541,11 @@ def test_cli_generate_overwrite_abort(tmp_path, monkeypatch, reset_registry):
             "myexp",
         ],
     )
-    monkeypatch.setattr(cli, "_require_inquirer", lambda: _FakeInquirerCLI())
-    monkeypatch.setattr(cli, "filter_keys", lambda keys: list(keys))
+    monkeypatch.setattr(
+        cli,
+        "_require_inquirer",
+        lambda: (_FakeInquirerCLI(), lambda keys: list(keys)),
+    )
     monkeypatch.setattr(
         cli.Registry,
         "build",
@@ -533,9 +564,8 @@ def test_prompt_for_keys_retries_when_filters_match_nothing(monkeypatch):
     """An empty match re-opens the prompt; a later non-empty result is returned."""
     key = RegistrationKey(name="exp", namespace="testing")
     results = [[], [key]]
-    monkeypatch.setattr(cli, "filter_keys", lambda keys: results.pop(0))
 
-    assert cli._prompt_for_keys([key]) == [key]
+    assert cli._prompt_for_keys([key], lambda keys: results.pop(0)) == [key]
     assert results == []  # both prompts consumed
 
 
@@ -548,9 +578,7 @@ def test_prompt_for_keys_stops_on_cancel(monkeypatch):
         calls.append(keys)
         return None
 
-    monkeypatch.setattr(cli, "filter_keys", fake_filter)
-
-    assert cli._prompt_for_keys([key]) == []
+    assert cli._prompt_for_keys([key], fake_filter) == []
     assert len(calls) == 1  # cancelled, not retried
 
 
@@ -564,8 +592,9 @@ def test_cli_run_aborts_when_selection_cancelled(tmp_path, monkeypatch, reset_re
         cli.Registry, "build", lambda directory, external_directories=None: None
     )
     monkeypatch.setattr(cli.Registry, "retrieve_runnable_keys", lambda: [key])
-    monkeypatch.setattr(cli, "filter_keys", lambda keys: None)
-    monkeypatch.setattr(cli, "_require_inquirer", lambda: _FakeInquirerCLI())
+    monkeypatch.setattr(
+        cli, "_require_inquirer", lambda: (_FakeInquirerCLI(), lambda keys: None)
+    )
     monkeypatch.setattr(
         cli.Registry, "from_key", lambda registration_key, **kwargs: component
     )
@@ -595,8 +624,9 @@ def test_cli_generate_aborts_when_selection_cancelled(
             "myexp",
         ],
     )
-    monkeypatch.setattr(cli, "_require_inquirer", lambda: _FakeInquirerCLI())
-    monkeypatch.setattr(cli, "filter_keys", lambda keys: None)
+    monkeypatch.setattr(
+        cli, "_require_inquirer", lambda: (_FakeInquirerCLI(), lambda keys: None)
+    )
     monkeypatch.setattr(
         cli.Registry,
         "build",
@@ -838,3 +868,16 @@ def test_cli_check_says_nothing_when_no_variant_is_indexed(
     cli.check()
 
     assert "Indexed Variants" not in capsys.readouterr().out
+
+
+def test_require_inquirer_returns_both_entry_points():
+    """One place knows the CLI extra is optional, and it hands back everything.
+
+    Lives here rather than in ``test_core_install.py`` because it needs
+    InquirerPy present; that file asserts the complementary half, that importing
+    ``cinnamon.cli`` never reaches for it.
+    """
+    inquirer, filter_keys = cli._require_inquirer()
+
+    assert hasattr(inquirer, "confirm")
+    assert callable(filter_keys)

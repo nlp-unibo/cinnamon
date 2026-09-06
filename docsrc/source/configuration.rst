@@ -444,7 +444,7 @@ or a nested ``Configuration`` instance:
 
 .. note::
     In cinnamon, nested configurations are called **dependencies**.
-    See `dependencies <https://nlp-unibo.github.io/cinnamon/dependencies.html>`_
+    See :doc:`dependencies`
     for how the ``Registry`` resolves and builds them automatically.
 
 

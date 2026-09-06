@@ -8,6 +8,10 @@ pip install -e .
 python examples/tutorial/01_configuration.py
 ```
 
+The same seven steps, with the code included from these files and a page of
+commentary each, are at
+<https://nlp-unibo.github.io/cinnamon/tutorial/index.html>.
+
 ## The idea, in one line
 
 **Components carry the weight. Configurations describe it.**

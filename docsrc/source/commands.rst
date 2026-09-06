@@ -11,14 +11,19 @@ Installation
 =============================================
 
 The core ``cinnamon`` package does not include the interactive CLI dependency.
-To use ``cmn-run`` and ``cmn-generate``, install the ``cli`` extra:
+To use ``cmn-run`` and ``cmn-generate``, which prompt, install the ``cli`` extra:
 
 .. code-block:: bash
 
-    pip install cinnamon[cli]
+    pip install "cinnamon[cli]"
 
-``cmn-build`` and ``cmn-check`` have no extra dependencies and work with the
-base install.
+The quotes matter in ``zsh`` and ``fish``, which treat brackets as globs.
+
+``cmn-build`` and ``cmn-check`` have no extra dependencies and work on the base
+install. That matters most for ``cmn-check``, whose job is to gate a commit or a
+CI run: needing a terminal-prompt library to do static analysis would be an odd
+requirement to put on a build server. The core CI job runs both commands on a
+base install for real, so the guarantee is checked rather than merely stated.
 
 =============================================
 Common arguments

@@ -349,7 +349,7 @@ You do not need to scatter registration calls throughout your codebase.
 Cinnamon supports a **specific code organisation** that handles all registration
 automatically while keeping things readable.
 
-See `dependencies <https://nlp-unibo.github.io/cinnamon/dependencies.html>`_ for the
+See :doc:`dependencies` for the
 recommended project layout and a full walkthrough of how ``Registry.build()`` discovers
 and executes registrations.
 

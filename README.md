@@ -9,7 +9,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Tests](https://github.com/nlp-unibo/cinnamon/actions/workflows/ci.yml/badge.svg)](https://github.com/nlp-unibo/cinnamon/actions)
 
-[Documentation](https://nlp-unibo.github.io/cinnamon/overview.html) · [Examples](https://nlp-unibo.github.io/cinnamon/examples/index.html) · [Quickstart](https://nlp-unibo.github.io/cinnamon/quickstart.html)
+[Documentation](https://nlp-unibo.github.io/cinnamon/) · [Quickstart](https://nlp-unibo.github.io/cinnamon/quickstart.html) · [Tutorial](https://nlp-unibo.github.io/cinnamon/tutorial/index.html) · [Examples](https://nlp-unibo.github.io/cinnamon/examples/index.html)
 
 </div>
 
@@ -49,11 +49,14 @@ single `RegistrationKey`.
 pip install cinnamon
 ```
 
+That covers the library and the two non-interactive commands, `cmn-build` and
+`cmn-check`.
+
 Optional extras:
 
 | Extra | What it adds                                              | Install |
 |---|-----------------------------------------------------------|---|
-| `cli` | `cmn-build`, `cmn-run`, `cmn-generate` interactive prompts | `pip install "cinnamon[cli]"` |
+| `cli` | Interactive prompts for `cmn-run` and `cmn-generate` | `pip install "cinnamon[cli]"` |
 | `examples` | Dependencies for the built-in examples                    | `pip install "cinnamon[examples]"` |
 | `dev` | pytest, ruff, mypy                                        | `pip install "cinnamon[dev]"` |
 
