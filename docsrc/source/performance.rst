@@ -65,6 +65,33 @@ For comparison, on the same machine: ``import pandas`` costs 171 ms and
 is one where importing a single component costs more than resolving everything.
 
 =============================================
+How resolution is ordered
+=============================================
+
+There is one strategy, not a choice of several. ``dag_resolution`` walks the
+dependency graph in **reverse topological order** — every configuration's
+children are expanded before it is:
+
+.. code-block:: python
+
+    order = list(nx.topological_sort(cls._DEPENDENCY_DAG))
+    for key in reversed(order):
+        ...
+
+The order comes from the graph, so it does not depend on the sequence your
+modules happen to register in. That is worth stating because it was not always
+true: resolution used to expand from the roots downwards, taking its order from
+registration — something no user controls and nothing reports.
+
+``tests/test_scaling.py`` pins the guarantee by resolving the same five
+registrations in all 120 permutations and requiring the valid keys, the invalid
+keys **and the number of expansions** to match. The third is the one that has
+teeth: against the old resolver the keys agreed in every order, and only the
+work moved, between 6 and 10 expansions. Order sensitivity surfaced as *depth*
+rather than as wrong answers, which is why a ``RecursionError`` on a long chain
+was the first anyone saw of it.
+
+=============================================
 Why it stays linear
 =============================================
 

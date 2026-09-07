@@ -22,10 +22,11 @@ have caught it going wrong again.
 ``benchmarks/dag_scaling.py`` has the timings. It is deliberately not run here.
 """
 
+import itertools
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any, Callable, Dict, Tuple
+from typing import Any, Callable, Dict, List, Tuple
 
 import pytest
 
@@ -231,3 +232,103 @@ def test_the_benchmark_script_runs():
 
     assert result.returncode == 0, result.stderr
     assert "worst error against the model" in result.stdout
+
+
+# -- resolution order is taken from the graph, not from registration --
+
+
+def _mixed_graph_specs() -> list:
+    """A graph with a chain, variants, a container and a shared child.
+
+    Small enough to permute exhaustively, varied enough that any order
+    sensitivity in expansion has somewhere to show up.
+    """
+
+    def key(name: str) -> RegistrationKey:
+        return RegistrationKey(name=name, namespace=NAMESPACE)
+
+    return [
+        ("leaf", {"a": int}, {"a": Param(1, variants=[2])}),
+        ("other", {"a": int}, {"a": Param(5)}),
+        (
+            "mid",
+            {"child": RegistrationKey, "b": int},
+            {"child": Param(key("leaf")), "b": Param(0, variants=[1])},
+        ),
+        (
+            "bag",
+            {"deps": List[RegistrationKey]},
+            {"deps": Param([key("leaf"), key("other")])},
+        ),
+        (
+            "top",
+            {"child": RegistrationKey, "bag": RegistrationKey},
+            {"child": Param(key("mid")), "bag": Param(key("bag"))},
+        ),
+    ]
+
+
+def _resolve_in_order(specs) -> Tuple[Tuple[str, ...], Tuple[str, ...], int]:
+    Registry.initialize()
+    for name, annotations, body in specs:
+        cls = type(
+            f"Mixed_{name}",
+            (Configuration,),
+            {"__annotations__": annotations, **body},
+        )
+        Registry.register_configuration(config=cls(), name=name, namespace=NAMESPACE)
+
+    calls = 0
+    original = Registry.expand_configuration.__func__  # type: ignore[attr-defined]
+
+    def counting(cls, *args, **kwargs):
+        nonlocal calls
+        calls += 1
+        return original(cls, *args, **kwargs)
+
+    Registry.expand_configuration = classmethod(counting)  # type: ignore[assignment]
+    try:
+        valid, invalid = Registry.dag_resolution()
+    finally:
+        Registry.expand_configuration = classmethod(original)  # type: ignore[assignment]
+
+    return (
+        tuple(sorted(str(key) for key in valid)),
+        tuple(sorted(str(key) for key in invalid)),
+        calls,
+    )
+
+
+def test_resolution_does_not_depend_on_registration_order(reset_registry):
+    """Every permutation of the same registrations resolves identically.
+
+    Identically in all three respects: the valid keys, the invalid keys, **and
+    the number of expansions**. The third is the one with teeth.
+
+    Expanding from the roots downwards took its order from whichever module
+    happened to register first -- something no user controls and nothing
+    reports. Measured against that resolver, this graph still produced the same
+    twelve keys in all 120 orders; what changed was the work, between 6 and 10
+    expansions. Order sensitivity showed up as *depth*, not as wrong answers,
+    and the consequence was a ``RecursionError`` on a chain long enough for the
+    unlucky orders to matter -- which is why it went unnoticed for so long, and
+    why asserting only the key sets here would not catch a regression.
+
+    Reverse topological order takes the order from the graph, so the work is
+    fixed at ``registrations + edges`` whatever sequence things arrive in. There
+    is no strategy to configure: this is the only path, and this test is what
+    keeps it the only behaviour.
+    """
+    specs = _mixed_graph_specs()
+    reference = _resolve_in_order(specs)
+
+    valid, invalid, calls = reference
+    assert len(valid) == 12 and not invalid
+    # Five registrations, five dependency edges.
+    assert calls == 10
+
+    for permutation in itertools.permutations(specs):
+        assert _resolve_in_order(list(permutation)) == reference, (
+            f"registration order changed the outcome: "
+            f"{[name for name, _, _ in permutation]}"
+        )
