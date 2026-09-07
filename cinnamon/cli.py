@@ -112,7 +112,7 @@ def _build_parser(
     return parser
 
 
-def _resolve_sources(args) -> Tuple[Path, Optional[List[Path]]]:
+def _resolve_sources(args) -> Tuple[Path, Optional[List[str]]]:
     """Validate the requested paths, log them, and put *directory* on the path."""
     directory = check_directory(directory_path=args.directory)
     external_directories = None
