@@ -146,6 +146,42 @@ for the complete walkthrough.
 
 ---
 
+## Performance
+
+Resolution is **linear** in the size of your project, in all three directions
+that can grow:
+
+```
+resolution ≈ 0.034 ms × registrations
+            + 0.045 ms × dependency edges
+            + 0.113 ms × variant configurations
+```
+
+A 500-registration project with 1,000 dependency edges resolves in about 60 ms.
+`import sklearn` on the same machine costs 564 ms — so for any project where
+resolution is measurable, importing one component costs more than resolving
+everything. That is what binding components by import path buys, and why
+`cmn-check` can validate a project without loading a component at all.
+
+Variant configurations are the expensive term, about three times a plain
+registration, because each is copied, resolved and validated. If resolution
+feels slow, the number to look at is how many configurations your sweep expands
+to, not how many you wrote.
+
+Those constants belong to one machine. Reproduce them on yours:
+
+```bash
+python benchmarks/dag_scaling.py
+```
+
+Dependency chains are not limited by Python's recursion limit — a 1,500-deep
+chain resolves under the default of 1,000. See
+[Performance](https://nlp-unibo.github.io/cinnamon/performance.html) for the
+graph shapes measured, why it stays linear, and the things that turned out
+**not** to be bottlenecks.
+
+---
+
 ## Key concepts
 
 | Concept | Description | Docs |

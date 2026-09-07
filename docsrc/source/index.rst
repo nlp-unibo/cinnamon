@@ -150,6 +150,7 @@ for questions/doubts/issues!
    :titlesonly:
 
    Commands <commands.rst>
+   Performance <performance.rst>
    Code Documentation <modules.rst>
 
 .. toctree::
