@@ -40,11 +40,52 @@ def test_check_directory_file_not_dir(tmp_path):
 
 
 def test_check_external_json_path_valid(tmp_path):
-    payload = [{"extension": "/tmp/ext_repo"}]
+    payload = ["/tmp/ext_repo", "/tmp/other_repo"]
     conf = tmp_path / "externals.json"
     conf.write_text(json.dumps(payload))
 
     assert check_external_json_path(conf) == payload
+
+
+def test_check_external_json_path_empty_list_is_valid(tmp_path):
+    """No external directories is a legitimate answer, not a malformed file."""
+    conf = tmp_path / "externals.json"
+    conf.write_text("[]")
+
+    assert check_external_json_path(conf) == []
+
+
+def test_check_external_json_path_rejects_a_non_list(tmp_path):
+    conf = tmp_path / "externals.json"
+    conf.write_text(json.dumps({"extension": "/tmp/ext_repo"}))
+
+    with pytest.raises(TypeError, match="must contain a list"):
+        check_external_json_path(conf)
+
+
+def test_check_external_json_path_rejects_a_non_string_entry(tmp_path):
+    """The shape this file was documented as, and silently accepted, before.
+
+    ``resolve_external_directories`` calls ``Path()`` on each entry, so a JSON
+    object used to fail several frames later with a message naming neither the
+    file nor the entry. This test is the regression: the payload below is the
+    one the previous version of ``test_check_external_json_path_valid``
+    asserted was fine.
+    """
+    conf = tmp_path / "externals.json"
+    conf.write_text(json.dumps([{"extension": "/tmp/ext_repo"}]))
+
+    with pytest.raises(TypeError, match="entry 0"):
+        check_external_json_path(conf)
+
+
+@pytest.mark.parametrize("entry", ["", "   "])
+def test_check_external_json_path_rejects_an_empty_entry(tmp_path, entry):
+    conf = tmp_path / "externals.json"
+    conf.write_text(json.dumps(["/tmp/ext_repo", entry]))
+
+    with pytest.raises(ValueError, match="entry 1"):
+        check_external_json_path(conf)
 
 
 def test_check_external_json_path_missing():
