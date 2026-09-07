@@ -46,6 +46,11 @@ All four commands accept the same two optional arguments:
             "/path/to/external/project_b"
         ]
 
+    The file is validated before anything is loaded: it must hold a list, every
+    entry must be a non-empty string, and the error names the file and the
+    offending entry. Whether each path exists is checked separately, when the
+    directories are resolved.
+
     See :doc:`dependencies` for details on external directories.
 
 =============================================
