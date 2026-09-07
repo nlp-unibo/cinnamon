@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import ast
+import functools
 import importlib.util
 import itertools
+import logging
 import re
 import sys
 from collections.abc import ItemsView, Mapping
@@ -54,7 +56,7 @@ from cinnamon.utility.registration import (
     match_namespace,
     match_tags,
 )
-from cinnamon.utility.sanity import time_it
+from cinnamon.utility.sanity import check_directory, time_it
 from cinnamon.utility.suggestions import suggest_keys
 
 logger = getLogger(__name__)
@@ -66,6 +68,7 @@ __all__ = [
     "RegistrationKey",
     "register",
     "register_method",
+    "setup",
     "Registry",
     "Registration",
     "json_default",
@@ -561,6 +564,74 @@ def register_method(
         return func
 
     return register_wrapper
+
+
+def setup(
+    directory: Union[Path, str] | None = None,
+    external_directories: List[Union[str, Path]] | None = None,
+    logging_level: int | None = logging.INFO,
+) -> Callable:
+    """
+    Build the registry around an entry point, and run it.
+
+    Every script that uses cinnamon opens the same four lines::
+
+        if __name__ == '__main__':
+            directory = Path(__file__).parent.parent.resolve()
+            Registry.build(directory=directory)
+            logging.basicConfig(level=logging.INFO)
+            logger = getLogger(__name__)
+
+    which this replaces with::
+
+        @setup(directory=Path(__file__).parent.parent)
+        def main():
+            benchmark = Registry.instantiate(name='benchmark', namespace='examples')
+            benchmark.run()
+
+    **The decorated function runs immediately when its module is** ``__main__``,
+    which is what removes the ``if __name__`` guard rather than merely moving the
+    build call into a decorator. Imported from anywhere else it does not run, so
+    a module keeps its ordinary behaviour under ``import`` and under test; the
+    decorated function stays callable, and calling it rebuilds the registry.
+
+    Because it runs at decoration time, put it where you would have put the
+    ``if __name__`` block: after everything it refers to. That is the same
+    discipline, not a new one.
+
+    Args:
+        directory: the project directory to build from. Defaults to the working
+            directory, matching the ``-dir`` flag of the ``cmn-*`` commands.
+        external_directories: external directories containing configurations.
+        logging_level: level to pass to ``logging.basicConfig``. Pass ``None`` to
+            leave logging alone, for a script that configures its own.
+
+    Returns:
+        The decorator, which returns the function unchanged apart from the build
+        that precedes each call.
+    """
+
+    def setup_wrapper(func: Callable) -> Callable:
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            if logging_level is not None:
+                logging.basicConfig(level=logging_level)
+            Registry.build(
+                directory=check_directory(directory_path=directory),
+                external_directories=external_directories,
+            )
+            return func(*args, **kwargs)
+
+        # ``__main__`` means this file is the script being run -- by path or by
+        # ``python -m``. Anywhere else the module has been imported, and running
+        # somebody's entry point as a side effect of importing their module
+        # would be indefensible.
+        if func.__module__ == "__main__":
+            wrapper()
+
+        return wrapper
+
+    return setup_wrapper
 
 
 def register(func: Callable) -> Callable:
