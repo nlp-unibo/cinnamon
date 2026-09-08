@@ -35,12 +35,17 @@ class NamespaceExtractor(ast.NodeVisitor):
     before it imports anything, so this reads the decorators and registration
     calls straight from the AST.
 
-    A namespace is discovered when it is a literal, or a module-level constant
+    A namespace is discovered when it is a literal, a module-level constant
     bound to one -- ``NAMESPACE = "myproject"`` at the top of the file is the
-    common idiom and resolves fine. Anything computed at runtime cannot be read
-    without executing the module, and is skipped rather than guessed at: the
-    previous implementation took the text after ``namespace=`` and would record
-    the string ``"NAMESPACE"`` as though it were a real namespace.
+    common idiom -- or such a constant imported from another module, which is
+    how a project keeps one namespace for many configuration files. Imports are
+    followed on the filesystem, by parsing the module they name; nothing is
+    executed, and nothing needs to be importable yet.
+
+    Anything computed at runtime cannot be read without executing the module,
+    and is skipped rather than guessed at: the previous implementation took the
+    text after ``namespace=`` and would record the string ``"NAMESPACE"`` as
+    though it were a real namespace.
     """
 
     REGISTER_DECORATOR = "register"
@@ -51,27 +56,41 @@ class NamespaceExtractor(ast.NodeVisitor):
         self.namespaces: List[str] = []
         self.register_flag = False
         self._constants: dict = {}
+        self._imports: dict = {}
+        self._filename: Path = Path()
 
     def process(self, filename: Path) -> List[str]:
         # Reset: one extractor instance is reused for every file in a build, and
         # a flag left set by one module used to leak into the next.
         self.register_flag = False
         self.namespaces = []
-        self._constants = {}
+        self._filename = filename
 
         with filename.open("r") as f:
             tree = ast.parse(f.read(), filename)
 
-        self._collect_constants(tree)
+        self._constants, self._imports = self._bindings(tree)
         self.visit(tree)
 
         namespaces = list(self.namespaces)
         self.namespaces.clear()
         return namespaces
 
-    def _collect_constants(self, tree: ast.Module) -> None:
-        """Record module-level ``NAME = "literal"`` bindings."""
+    @staticmethod
+    def _bindings(tree: ast.Module) -> Tuple[dict, dict]:
+        """Module-level ``NAME = "literal"`` and ``from x import NAME`` bindings."""
+        constants: dict = {}
+        imports: dict = {}
         for node in tree.body:
+            if isinstance(node, ast.ImportFrom):
+                for alias in node.names:
+                    imports[alias.asname or alias.name] = (
+                        node.module,
+                        node.level,
+                        alias.name,
+                    )
+                continue
+
             targets = []
             if isinstance(node, ast.Assign):
                 targets = node.targets
@@ -83,7 +102,60 @@ class NamespaceExtractor(ast.NodeVisitor):
                 continue
             for target in targets:
                 if isinstance(target, ast.Name):
-                    self._constants[target.id] = value.value
+                    constants[target.id] = value.value
+
+        return constants, imports
+
+    @staticmethod
+    def _import_source(
+        filename: Path, module: Optional[str], level: int
+    ) -> Optional[Path]:
+        """
+        The file an ``from module import ...`` refers to, found on disk.
+
+        A relative import resolves against the importing file. An absolute one
+        is matched against the file's parent directories, so it resolves whether
+        or not the project is on ``sys.path`` -- during a build it is not yet.
+        """
+        parts = module.split(".") if module else []
+        roots = list(filename.parents)
+        if level:
+            # A relative import names one directory: one dot is the importing
+            # file's own, each further dot one higher. Slicing rather than
+            # indexing keeps a dot count past the filesystem root harmless.
+            roots = roots[level - 1 : level]
+
+        for root in roots:
+            candidate = root.joinpath(*parts)
+            for path in (candidate.with_suffix(".py"), candidate / "__init__.py"):
+                if path.is_file():
+                    return path
+        return None
+
+    def _imported_constant(self, name: str) -> Optional[str]:
+        """
+        Follow ``from x import NAME`` across files until a literal is found.
+
+        Each hop reads one more file, and a file already read ends the walk, so
+        a re-export chain terminates and an import cycle does too.
+        """
+        filename, imports = self._filename, self._imports
+        seen: set = set()
+
+        while name in imports:
+            module, level, name = imports[name]
+            source = self._import_source(filename, module, level)
+            if source is None or source in seen:
+                return None
+            seen.add(source)
+
+            filename = source
+            with source.open("r") as f:
+                constants, imports = self._bindings(ast.parse(f.read(), source))
+            if name in constants:
+                return constants[name]
+
+        return None
 
     @staticmethod
     def _called_name(node: ast.AST) -> Optional[str]:
@@ -104,7 +176,10 @@ class NamespaceExtractor(ast.NodeVisitor):
                 value = keyword.value.value
                 return value if isinstance(value, str) else None
             if isinstance(keyword.value, ast.Name):
-                return self._constants.get(keyword.value.id)
+                name_id = keyword.value.id
+                if name_id in self._constants:
+                    return self._constants[name_id]
+                return self._imported_constant(name_id)
         return None
 
     def visit_FunctionDef(self, node):

@@ -861,7 +861,11 @@ class Registry:
         mapping: Dict[str, Path] = {}
         for directory in directories:
             for config_folder in directory.rglob(Registry._CONFIGURATION_FOLDER):
-                for python_script in config_folder.glob("*.py"):
+                # rglob, not glob: ``load_registrations`` executes every script
+                # under a configurations folder, nested ones included, so the
+                # namespace scan has to look just as deep or those namespaces
+                # are missing from the mapping.
+                for python_script in config_folder.rglob("*.py"):
                     dir_namespaces = extractor.process(filename=python_script)
                     namespaces.extend(dir_namespaces)
                     mapping.update(
@@ -961,15 +965,22 @@ class Registry:
 
                 new_keys = set(cls.REGISTRATION_METHODS.keys()).difference(current_keys)
 
-                module_dict = module.__dict__
                 for key in new_keys:
                     key_method = cls.REGISTRATION_METHODS[key]
                     if isinstance(key_method, BufferedRegistration):
                         qual_parts = key_method.func.__qualname__.split(".")
                         method_name = qual_parts[-1]
-                        class_method_name = qual_parts[-2]
 
-                        class_method = module_dict[class_method_name]
+                        # The class is looked up in the globals of the function
+                        # that was decorated, not in the module being executed:
+                        # a configuration script that imports a sibling script
+                        # buffers that sibling's registrations too, and those
+                        # classes are defined over there. The qualified name is
+                        # then walked the rest of the way, so a configuration
+                        # nested inside another class is found as well.
+                        class_method = key_method.func.__globals__[qual_parts[0]]
+                        for attribute in qual_parts[1:-1]:
+                            class_method = getattr(class_method, attribute)
 
                         Registry.register_configuration(
                             config=getattr(class_method, method_name)(),
