@@ -372,3 +372,165 @@ lookup["namespace"] = "in/a/dict"
         )
         == []
     )
+
+
+# -- configuration modules that share a namespace and import each other --
+
+
+def test_namespaces_are_found_in_nested_configuration_folders():
+    """``load_registrations`` runs nested scripts, so the scan must reach them.
+
+    A namespace only registered under ``configurations/nested/`` used to be
+    missing from the mapping, because the scan globbed one level while the
+    loader walked the whole tree.
+    """
+    directory = Path(".", "tests", "sibling_repo").resolve()
+    namespaces, mapping = Registry.parse_configuration_files(directories=[directory])
+
+    assert namespaces == ["sibling"]
+    assert mapping == {"sibling": directory}
+
+
+def test_a_configuration_script_may_import_a_sibling(reset_registry):
+    """Importing a sibling buffers its registrations under the importing file.
+
+    The class behind each of those registrations lives in the sibling, so
+    looking it up in the importing module's globals raised ``KeyError`` --
+    and which of the two files ran first was down to directory order.
+
+    ``inner`` covers the other half of the lookup: a configuration nested
+    inside another class is reached by walking its qualified name, not by
+    expecting the whole of it to be a module-level name.
+    """
+    directory = Path(".", "tests", "sibling_repo")
+    Registry.load_registrations(directory=directory)
+
+    for name in ("base", "extra", "derived", "deep", "inner"):
+        assert Registry.in_registry(RegistrationKey(name=name, namespace="sibling"))
+
+
+def test_extractor_follows_an_imported_constant(tmp_path):
+    """One `keys.py` for a whole configuration package is the usual layout."""
+    package = tmp_path / "project" / "configurations"
+    package.mkdir(parents=True)
+    (package / "keys.py").write_text('NAMESPACE = "imported"\n')
+
+    assert _extract(
+        tmp_path,
+        """
+from cinnamon.registry import Registry, register
+
+from project.configurations.keys import NAMESPACE
+
+@register
+def registrations():
+    Registry.register_configuration(config=None, name="a", namespace=NAMESPACE)
+""",
+        name="importer.py",
+    ) == ["imported"]
+
+
+def test_extractor_follows_a_relative_import_and_a_package_constant(tmp_path):
+    """``from .keys import NAMESPACE`` resolves, including through a package."""
+    package = tmp_path / "keys"
+    package.mkdir()
+    (package / "__init__.py").write_text('SHARED = "relative"\n')
+
+    assert _extract(
+        tmp_path,
+        """
+from cinnamon.registry import Registry, register
+
+from .keys import SHARED as NAMESPACE
+
+@register
+def registrations():
+    Registry.register_configuration(config=None, name="a", namespace=NAMESPACE)
+""",
+        name="importer.py",
+    ) == ["relative"]
+
+
+def test_extractor_follows_a_re_exported_constant(tmp_path):
+    """A constant imported through an intermediate module still resolves."""
+    (tmp_path / "keys.py").write_text('NAMESPACE = "re-exported"\n')
+    (tmp_path / "middle.py").write_text("from keys import NAMESPACE\n")
+
+    assert _extract(
+        tmp_path,
+        """
+from cinnamon.registry import Registry, register
+
+from middle import NAMESPACE
+
+@register
+def registrations():
+    Registry.register_configuration(config=None, name="a", namespace=NAMESPACE)
+""",
+        name="importer.py",
+    ) == ["re-exported"]
+
+
+def test_extractor_gives_up_on_an_import_it_cannot_find(tmp_path):
+    """A third-party module is not on disk beside the file importing it."""
+    assert (
+        _extract(
+            tmp_path,
+            """
+from cinnamon.registry import Registry, register
+
+from somebody_elses_package import NAMESPACE
+
+@register
+def registrations():
+    Registry.register_configuration(config=None, name="a", namespace=NAMESPACE)
+""",
+            name="importer.py",
+        )
+        == []
+    )
+
+
+def test_extractor_ends_the_walk_on_an_import_cycle(tmp_path):
+    """Two modules importing the name from each other terminate the walk."""
+    (tmp_path / "left.py").write_text("from right import NAMESPACE\n")
+    (tmp_path / "right.py").write_text("from left import NAMESPACE\n")
+
+    assert (
+        _extract(
+            tmp_path,
+            """
+from cinnamon.registry import Registry, register
+
+from left import NAMESPACE
+
+@register
+def registrations():
+    Registry.register_configuration(config=None, name="a", namespace=NAMESPACE)
+""",
+            name="importer.py",
+        )
+        == []
+    )
+
+
+def test_extractor_gives_up_when_the_imported_module_does_not_define_it(tmp_path):
+    """The module is on disk, the name simply is not a constant in it."""
+    (tmp_path / "keys.py").write_text('OTHER = "not the one"\n')
+
+    assert (
+        _extract(
+            tmp_path,
+            """
+from cinnamon.registry import Registry, register
+
+from keys import NAMESPACE
+
+@register
+def registrations():
+    Registry.register_configuration(config=None, name="a", namespace=NAMESPACE)
+""",
+            name="importer.py",
+        )
+        == []
+    )

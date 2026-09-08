@@ -23,6 +23,13 @@ is given, imports the modules inside, and runs whatever the ``@register`` and
 ``@register_method`` decorators buffered. ``components/`` is a convention, not a
 requirement — a component is found by the import path its registration names.
 
+Those modules are ordinary Python. They may sit in subfolders of
+``configurations/``, they may import each other — a configuration subclassing one
+from a sibling module is the usual reason — and the namespace they register into
+may be a constant imported from a shared module rather than repeated as a literal
+in each file. ``Registry.build`` reads namespaces off the source before importing
+anything, and follows such an import on disk to find the literal behind it.
+
 ===============================================
 The registrations
 ===============================================
