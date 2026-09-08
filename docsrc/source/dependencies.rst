@@ -153,6 +153,65 @@ decorator it finds, and then resolve the full dependency graph.
 
 
 =============================================
+Varying a dependency
+=============================================
+
+A scalar dependency varies like any other field, and the parent gains one key
+per alternative. What distinguishes those parent keys is worth understanding,
+because it is derived rather than chosen.
+
+**A parent's variant tags are the child key's tags, prefixed by the field
+name.** The child's ``name`` and ``namespace`` are not part of it.
+
+Most of the time the alternatives are produced by the child itself. A child
+that declares ``Param(1, variants=[2])`` resolves to a variant key tagged
+``sentences=2``, and that tag propagates upward:
+
+.. code-block:: text
+
+    name=strategy--tags=['truncate']
+    name=strategy--tags=['sentences=2', 'truncate']
+    name=summariser--namespace=tutorial/summarisation
+    name=summariser--tags=['strategy.sentences=2', 'strategy.truncate']
+
+``strategy.sentences=2`` reads as "the ``strategy`` field pointing at the child
+tagged ``sentences=2``". Every child variant carries a distinct ``param=value``
+tag, so every parent key is distinct, and the hierarchy stays readable however
+deep the nesting goes.
+
+The other way to vary a dependency is to name the alternatives yourself:
+
+.. code-block:: python
+
+    class TrainerConfig(Configuration):
+        loader: RegistrationKey = Param(
+            RegistrationKey(name='loader', tags={'csv'}, namespace='data'),
+            variants=[
+                RegistrationKey(name='loader', tags={'json'}, namespace='data'),
+                RegistrationKey(name='loader', tags={'parquet'}, namespace='data'),
+            ],
+        )
+
+This yields ``loader.csv``, ``loader.json`` and ``loader.parquet`` — three
+distinct parent keys — because each alternative carries a distinct tag.
+
+.. warning::
+    **Alternatives declared this way must carry distinct, non-empty tags.**
+    Since only tags are inherited, two alternatives with the same tag set
+    produce the same parent key, and one of them is silently dropped.
+    Alternatives with *no* tags — distinguished only by ``name``, as in
+    ``loader-csv`` and ``loader-json`` — collapse into the parent's own key, and
+    every alternative is lost.
+
+    Nothing detects this yet, and ``cmn-check`` does not report it. See
+    `issue #31 <https://github.com/nlp-unibo/cinnamon/issues/31>`_ for the
+    analysis and the two candidate fixes.
+
+    Tags are what makes a key addressable, so tagging alternatives is worth
+    doing on its own merits: ``loader.parquet`` says what the run used, while a
+    key distinguished only by the child's name would say nothing.
+
+=============================================
 Depending on many registrations
 =============================================
 
