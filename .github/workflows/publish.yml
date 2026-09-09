@@ -14,9 +14,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - name: Install build tooling
@@ -50,7 +50,7 @@ jobs:
           /tmp/verify/bin/python -c "import cinnamon; print(cinnamon.__version__)"
           /tmp/verify/bin/cmn-check -dir examples/tutorial/07_project_layout
       - name: Upload the distributions
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: distributions
           path: dist/
@@ -70,7 +70,7 @@ jobs:
       id-token: write
     steps:
       - name: Download the distributions
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: distributions
           path: dist/
