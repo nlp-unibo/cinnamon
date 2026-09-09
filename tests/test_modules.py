@@ -357,6 +357,43 @@ class C:
     )
 
 
+def test_extractor_reads_a_register_class_decorator(tmp_path):
+    """Past a decorator that registers nothing, and on to the one that does."""
+    assert _extract(
+        tmp_path,
+        """
+from dataclasses import dataclass
+
+from cinnamon.registry import register_class
+
+NAMESPACE = "decorated"
+
+@dataclass
+@register_class(name="a", namespace=NAMESPACE, component="x.Y")
+class C: ...
+""",
+    ) == ["decorated"]
+
+
+def test_extractor_skips_register_class_without_a_readable_namespace(tmp_path):
+    """Recognised as a registration; its computed namespace is not guessed at."""
+    assert (
+        _extract(
+            tmp_path,
+            """
+from cinnamon.registry import register_class
+
+def build():
+    return "computed"
+
+@register_class(name="a", namespace=build(), component="x.Y")
+class C: ...
+""",
+        )
+        == []
+    )
+
+
 def test_extractor_ignores_constants_bound_to_something_other_than_a_name(tmp_path):
     """Only `NAME = "..."` binds; an attribute or subscript target is skipped."""
     assert (
@@ -408,6 +445,76 @@ def test_a_configuration_script_may_import_a_sibling(reset_registry):
 
     for name in ("base", "extra", "derived", "deep", "inner"):
         assert Registry.in_registry(RegistrationKey(name=name, namespace="sibling"))
+
+
+def test_a_class_decorated_repo_is_scanned_and_built(reset_registry):
+    """``register_class`` has to be visible to the scan, not only at import.
+
+    ``Registry.build`` reads namespaces out of the source before importing
+    anything, and it used to read only the decorators on *methods*. A directory
+    whose configurations all sit behind the class decorator therefore scanned as
+    registering nothing, and every key pointing into it from another directory
+    failed with ``NamespaceNotFoundException`` -- while a build of that
+    directory on its own looked fine, because nothing had to cross into it.
+    """
+    directory = Path(".", "tests", "class_repo").resolve()
+    namespaces, mapping = Registry.parse_configuration_files(directories=[directory])
+
+    assert namespaces == ["decorated"]
+    assert mapping == {"decorated": directory}
+
+    Registry.build(directory=directory)
+
+    # Registered without a passthrough ``default`` anywhere in the directory,
+    # including one nested inside another class.
+    assert (
+        Registry.retrieve_configuration(
+            registration_key=RegistrationKey(name="base", namespace="decorated")
+        ).size
+        == 1
+    )
+    assert (
+        Registry.retrieve_configuration(
+            registration_key=RegistrationKey(
+                name="derived", tags={"big"}, namespace="decorated"
+            )
+        ).size
+        == 2
+    )
+    assert (
+        Registry.retrieve_configuration(
+            registration_key=RegistrationKey(name="inner", namespace="decorated")
+        ).size
+        == 4
+    )
+
+    # A configuration that writes its own ``default`` keeps it: that method is
+    # what the registration builds from, rather than the inherited one.
+    assert (
+        Registry.retrieve_configuration(
+            registration_key=RegistrationKey(name="conditioned", namespace="decorated")
+        ).size
+        == 3
+    )
+
+
+def test_a_class_decorated_namespace_is_reachable_from_another_directory(
+    reset_registry,
+):
+    """The failure that motivated the scan: a key crossing into that namespace.
+
+    A build of a class-decorated directory on its own looks fine -- nothing has
+    to resolve into it, so an empty namespace list costs nothing. It shows up
+    the moment another directory refers in, which is what an external
+    dependency does.
+    """
+    Registry.build(
+        directory=Path(".", "tests", "class_consumer_repo"),
+        external_directories=[Path(".", "tests", "class_repo")],
+    )
+
+    assert Registry.in_registry(RegistrationKey(name="config", namespace="consumer"))
+    assert Registry.in_registry(RegistrationKey(name="base", namespace="decorated"))
 
 
 def test_every_script_registers_when_one_pulls_in_another_namespace(reset_registry):

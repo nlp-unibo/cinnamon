@@ -110,12 +110,59 @@ Registration
 optionally binding it to a ``Component`` class so that component instances can be built
 from it later.
 
-There are two ways to register: via a decorated ``@classmethod``, or via an ad-hoc
-function.
+There are three ways to register: via a decorator on the ``Configuration`` class,
+via a decorated ``@classmethod``, or via an ad-hoc function.
+
+---------------------------------------------
+Class registration
+---------------------------------------------
+
+Most configurations describe one component under one key, and differ from their
+parent only in the parameters they set. Decorate the class:
+
+.. code-block:: python
+
+    from cinnamon.configuration import Configuration, Param
+    from cinnamon.registry import register_class
+
+    @register_class(
+        name='test',
+        tags={'default'},
+        namespace='testing',
+        component='components.CustomComponent'
+    )
+    class CustomConfig(Configuration):
+        x: int = Param(5, description='An example parameter')
+
+The ``Registry`` builds the configuration by calling ``CustomConfig.default()``,
+which every ``Configuration`` already has. So a subclass that only overrides a
+parameter writes nothing else:
+
+.. code-block:: python
+
+    @register_class(name='test', tags={'large'}, namespace='testing',
+                    component='components.CustomComponent')
+    class LargeConfig(CustomConfig):
+        x: int = Param(100)
+
+A configuration whose ``default()`` does real work -- adding a condition, say --
+writes it as an ordinary ``@classmethod``, and that is the one the registration
+builds from.
+
+.. note::
+
+   Pass ``namespace`` as a keyword argument, named by a string literal or a
+   module-level constant. ``Registry.build`` reads namespaces out of your source
+   *before* importing anything, so a namespace it cannot read statically leaves
+   the directory looking as though it registers nothing -- which only shows up
+   once a key from another directory has to resolve into it.
 
 ---------------------------------------------
 Class method registration
 ---------------------------------------------
+
+Reach for this when one ``Configuration`` class registers under several keys,
+which a class decorator cannot express.
 
 Decorate a ``@classmethod`` of your ``Configuration`` with ``@register_method`` to
 register it automatically when the ``Registry`` scans your ``configurations`` folder:
@@ -144,8 +191,9 @@ When the ``Registry`` processes this file, it:
 2. Records that ``CustomConfig.default()`` is the constructor to call.
 3. Binds the result to ``components.CustomComponent`` (the component's module path as a string).
 
-Any ``@classmethod`` can be decorated, not just ``default()``. This is useful for
-registering multiple templates from the same ``Configuration`` class:
+Any ``@classmethod`` can be decorated, not just ``default()`` -- which is the
+reason to prefer this form over ``@register_class``: it registers multiple
+templates from the same ``Configuration`` class.
 
 .. code-block:: python
 

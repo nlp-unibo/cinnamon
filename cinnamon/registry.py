@@ -68,6 +68,7 @@ __all__ = [
     "RegistrationKey",
     "register",
     "register_method",
+    "register_class",
     "setup",
     "Registry",
     "Registration",
@@ -532,6 +533,73 @@ class BufferedRegistration:
         self.component = component
         self.run_method = run_method
 
+    def config(self) -> cinnamon.configuration.Configuration:
+        """Build the configuration by calling the method that was decorated.
+
+        A decorator sees the function, not the class it will end up on, so the
+        class is found back through the qualified name: the first part is
+        looked up in the *decorated function's* globals rather than in the
+        module being executed, because a configuration script that imports a
+        sibling buffers that sibling's registrations too, and those classes are
+        defined over there. The rest of the qualified name is then walked, so a
+        configuration nested inside another class is found as well.
+        """
+        qual_parts = self.func.__qualname__.split(".")
+        owner = self.func.__globals__[qual_parts[0]]
+        for attribute in qual_parts[1:-1]:
+            owner = getattr(owner, attribute)
+        return getattr(owner, qual_parts[-1])()
+
+
+class BufferedClassRegistration:
+    """A ``Configuration`` subclass buffered by :func:`register_class`.
+
+    Holds the class itself, because a class decorator is handed the class. So
+    there is no qualified name to walk back, and no ``default`` for the class
+    to declare: one that only overrides parameters inherits the ``default`` its
+    parent already has, which is what the method it would have written did.
+    """
+
+    def __init__(
+        self,
+        configuration: type[cinnamon.configuration.Configuration],
+        name: str,
+        namespace: str,
+        tags: Tags = None,
+        component: str | None = None,
+        run_method: str | None = None,
+    ):
+        self.configuration = configuration
+        self.name = name
+        self.namespace = namespace
+        self.tags = tags
+        self.component = component
+        self.run_method = run_method
+
+    def config(self) -> cinnamon.configuration.Configuration:
+        return self.configuration.default()
+
+
+#: What :meth:`Registry.build` resolves into a registration rather than calls.
+Buffered = Union[BufferedRegistration, BufferedClassRegistration]
+
+
+def _buffer(registration: Buffered) -> None:
+    """Hold a registration until ``Registry.build`` reaches its key."""
+    key = str(
+        RegistrationKey[Any](
+            name=registration.name,
+            tags=registration.tags,
+            namespace=registration.namespace,
+        )
+    )
+    if (
+        hasattr(Registry, "REGISTRATION_CONTEXT")
+        and Registry.REGISTRATION_CONTEXT.is_registering
+        and key not in Registry.REGISTRATION_METHODS
+    ):
+        Registry.REGISTRATION_METHODS[key] = registration
+
 
 #: A registration key, or its canonical string form. Defined after the class so
 #: the alias holds the real type: a forward reference here cannot be resolved
@@ -547,13 +615,8 @@ def register_method(
     run_method: str | None = None,
 ) -> Callable:
     def register_wrapper(func):
-        key = str(RegistrationKey[Any](name=name, tags=tags, namespace=namespace))
-        if (
-            hasattr(Registry, "REGISTRATION_CONTEXT")
-            and Registry.REGISTRATION_CONTEXT.is_registering
-            and key not in Registry.REGISTRATION_METHODS
-        ):
-            Registry.REGISTRATION_METHODS[key] = BufferedRegistration(
+        _buffer(
+            BufferedRegistration(
                 func=func,
                 name=name,
                 tags=tags,
@@ -561,7 +624,85 @@ def register_method(
                 component=component,
                 run_method=run_method,
             )
+        )
         return func
+
+    return register_wrapper
+
+
+def register_class(
+    name: str,
+    namespace: str,
+    tags: Tags = None,
+    component: str | None = None,
+    run_method: str | None = None,
+) -> Callable:
+    """
+    Register a ``Configuration`` subclass, as a decorator on the class itself.
+
+    :func:`register_method` needs a method to hang on, so a configuration that
+    changes nothing but its parameters still has to write one out:
+
+    .. code-block:: python
+
+       class TransformerFRConfig(GRUFRConfig):
+           backbone: RegistrationKey = Param(TRANSFORMER)
+
+           @classmethod
+           @register_method(
+               name="model",
+               tags={"fr", "transformer"},
+               namespace=NAMESPACE,
+               component="myproject.models.FR",
+           )
+           def default(cls):
+               return super().default()
+
+    That method says nothing the class does not already say. Decorating the
+    class says the same thing and stops there:
+
+    .. code-block:: python
+
+       @register_class(
+           name="model",
+           tags={"fr", "transformer"},
+           namespace=NAMESPACE,
+           component="myproject.models.FR",
+       )
+       class TransformerFRConfig(GRUFRConfig):
+           backbone: RegistrationKey = Param(TRANSFORMER)
+
+    A configuration whose ``default`` does real work -- adding a condition,
+    say -- writes it as an ordinary classmethod; that is the one the
+    registration builds from, since it is the one the class has.
+
+    Args:
+        name: name of the registration key.
+        namespace: namespace of the registration key. Pass it as a keyword,
+            named by a literal or a module-level constant: ``Registry.build``
+            reads namespaces out of the source before importing anything, so a
+            namespace it cannot see statically leaves the directory looking as
+            though it registers nothing.
+        tags: tags of the registration key.
+        component: import path of the component the configuration describes.
+        run_method: name of the component method a runner invokes.
+
+    Returns:
+        The class, unchanged.
+    """
+
+    def register_wrapper(configuration):
+        _buffer(
+            BufferedClassRegistration(
+                configuration=configuration,
+                name=name,
+                tags=tags,
+                namespace=namespace,
+                component=component,
+                run_method=run_method,
+            )
+        )
+        return configuration
 
     return register_wrapper
 
@@ -725,7 +866,7 @@ class Registry:
     _MODULE_MAPPING: Dict[str, Path]
     _EXP_NAMESPACES: List[str]
 
-    REGISTRATION_METHODS: Dict[str, Callable | BufferedRegistration]
+    REGISTRATION_METHODS: Dict[str, Callable | Buffered]
     REGISTRATION_CONTEXT: RegistrationContext
 
     @classmethod
@@ -982,23 +1123,11 @@ class Registry:
 
                 for key in new_keys:
                     key_method = cls.REGISTRATION_METHODS[key]
-                    if isinstance(key_method, BufferedRegistration):
-                        qual_parts = key_method.func.__qualname__.split(".")
-                        method_name = qual_parts[-1]
-
-                        # The class is looked up in the globals of the function
-                        # that was decorated, not in the module being executed:
-                        # a configuration script that imports a sibling script
-                        # buffers that sibling's registrations too, and those
-                        # classes are defined over there. The qualified name is
-                        # then walked the rest of the way, so a configuration
-                        # nested inside another class is found as well.
-                        class_method = key_method.func.__globals__[qual_parts[0]]
-                        for attribute in qual_parts[1:-1]:
-                            class_method = getattr(class_method, attribute)
-
+                    if isinstance(
+                        key_method, (BufferedRegistration, BufferedClassRegistration)
+                    ):
                         Registry.register_configuration(
-                            config=getattr(class_method, method_name)(),
+                            config=key_method.config(),
                             name=key_method.name,
                             tags=key_method.tags,
                             namespace=key_method.namespace,

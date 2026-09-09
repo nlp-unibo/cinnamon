@@ -118,29 +118,28 @@ you **register** the configuration in the ``Registry`` and **bind** it to the co
 This is done via a ``RegistrationKey``: a compound identifier made up of a ``name``,
 an optional ``tags`` set, and a ``namespace``.
 
-The most concise way to register is the ``@register_method`` decorator on a
-``@classmethod`` of your ``Configuration``:
+The most concise way to register is the ``@register_class`` decorator on the
+``Configuration`` itself:
 
 .. code-block:: python
 
     from cinnamon.configuration import Configuration, Param
-    from cinnamon.registry import register_method
+    from cinnamon.registry import register_class
 
+    @register_class(
+        name='data_loader',
+        tags={'test'},
+        namespace='showcasing',
+        component='components.DataLoader'   # module path as a string
+    )
     class DataLoaderConfig(Configuration):
         df_path: Path = Param(
             'path/to/data',
             description='Path to the CSV file to load'
         )
 
-        @classmethod
-        @register_method(
-            name='data_loader',
-            tags={'test'},
-            namespace='showcasing',
-            component='components.DataLoader'   # module path as a string
-        )
-        def default(cls) -> 'DataLoaderConfig':
-            return super().default()
+When one ``Configuration`` class has to register under several keys, decorate the
+``@classmethod`` that builds each of them with ``@register_method`` instead.
 
 Alternatively, you can register programmatically using ``Registry.register_configuration()``
 inside a function decorated with ``@register``:

@@ -35,6 +35,10 @@ class NamespaceExtractor(ast.NodeVisitor):
     before it imports anything, so this reads the decorators and registration
     calls straight from the AST.
 
+    All three ways of registering are read: ``@register_method`` on a method,
+    ``@register_class`` on a configuration class, and a ``register_configuration``
+    call inside a ``@register`` function.
+
     A namespace is discovered when it is a literal, a module-level constant
     bound to one -- ``NAMESPACE = "myproject"`` at the top of the file is the
     common idiom -- or such a constant imported from another module, which is
@@ -50,6 +54,7 @@ class NamespaceExtractor(ast.NodeVisitor):
 
     REGISTER_DECORATOR = "register"
     REGISTER_METHOD_DECORATOR = "register_method"
+    REGISTER_CLASS_DECORATOR = "register_class"
     REGISTRATION_CALLS = frozenset({"register_configuration"})
 
     def __init__(self):
@@ -207,6 +212,23 @@ class NamespaceExtractor(ast.NodeVisitor):
         self.register_flag = previous_flag
 
     visit_AsyncFunctionDef = visit_FunctionDef
+
+    def visit_ClassDef(self, node):
+        # ``register_class`` puts the registration on the class rather than on
+        # a method of it, so the namespace is read here. Without this a
+        # directory whose configurations all use the class decorator scans as
+        # registering no namespace at all, and every key referring into it from
+        # another directory fails to resolve.
+        for decorator in node.decorator_list:
+            if self._called_name(decorator) == self.REGISTER_CLASS_DECORATOR and (
+                isinstance(decorator, ast.Call)
+            ):
+                namespace = self._literal_keyword(decorator, "namespace")
+                if namespace is not None:
+                    self.namespaces.append(namespace)
+                break
+
+        self.generic_visit(node)
 
     def visit_Call(self, node):
         # Only registration calls carry a namespace. Reading every call with

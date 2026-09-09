@@ -98,18 +98,14 @@ class DataLoader:
 
 ```python
 from cinnamon.configuration import Configuration, Param
-from cinnamon.registry import register_method
+from cinnamon.registry import register_class
 
+@register_class(name='loader', tags={'default'}, namespace='myproject',
+                component='components.DataLoader')
 class DataLoaderConfig(Configuration):
     folder_name: str = Param('data/', description='Root data directory')
     batch_size: int  = Param(32, ge=1,  description='Samples per batch',
                              variants=[16, 64])
-
-    @classmethod
-    @register_method(name='loader', tags={'default'}, namespace='myproject',
-                     component='components.DataLoader')
-    def default(cls) -> 'DataLoaderConfig':
-        return super().default()
 ```
 
 **3. Build the registry** — cinnamon scans your `configurations/` folder and resolves dependencies:
