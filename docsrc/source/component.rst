@@ -175,6 +175,31 @@ Both accept extra keyword arguments, merged into ``config.values`` at build time
     stored in the ``Registry`` is unchanged.
 
 =============================================
+What a built component remembers
+=============================================
+
+A built component carries the key it came from and the arguments it was
+overridden with:
+
+.. code-block:: python
+
+    loader = Registry.instantiate(name='data_loader', namespace='nlp', batch_size=64)
+
+    loader.registration_key    # RegistrationKey(name='data_loader', namespace='nlp')
+    loader.build_args          # {'batch_size': 64}
+
+This is what lets a component write down what it was built from — a run
+directory that records its own key and overrides can be rebuilt later, whereas
+one recording only its attribute values cannot, since nested components appear
+there as keys rather than as the values behind them.
+
+.. note::
+    A component that cannot hold new attributes — one with ``__slots__``, or a
+    restricted ``__setattr__`` — builds as it always did, without these two
+    attributes. Read them with ``getattr(component, 'registration_key', None)``
+    if you accept components you did not write.
+
+=============================================
 Runnable components
 =============================================
 
