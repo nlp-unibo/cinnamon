@@ -1322,7 +1322,10 @@ class Registry:
             build_args: additional custom component constructor args
 
         Returns:
-            The built component instance
+            The built component instance, carrying a ``registration_key``
+            attribute with the key that built it and a ``build_args`` attribute
+            with the overrides it was built with. Components that cannot hold
+            attributes are returned without them.
 
         Raises:
             ``InvalidConfigurationTypeException``: if there's a mismatch between
@@ -1362,6 +1365,25 @@ class Registry:
             )
 
         component = component_class(**component_args)
+
+        # A built component is otherwise anonymous: it holds the values its
+        # configuration carried, but nothing that says which key produced it or
+        # what the caller overrode. Both are needed to write down a run that can
+        # be repeated, and this is the only place that has the component and the
+        # key at the same time. Components that cannot hold attributes (``__slots__``,
+        # a restricted ``__setattr__``) are left as they are: failing to annotate
+        # a component is not a reason to fail building it. Both refusals reject
+        # the first assignment, so a component is annotated with both attributes
+        # or with neither.
+        #
+        # The copy is shallow on purpose: these are the objects the constructor
+        # was handed, and a deep copy would record something other than what was
+        # built -- when it could be copied at all.
+        try:
+            component.registration_key = registration_key
+            component.build_args = dict(build_args)
+        except AttributeError:
+            pass
 
         return component
 

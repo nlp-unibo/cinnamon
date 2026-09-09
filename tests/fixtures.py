@@ -19,6 +19,25 @@ class BaseComponent:
         self.y = y
 
 
+class SlottedComponent:
+    """A component that cannot hold attributes it was not declared with."""
+
+    __slots__ = ("x", "y")
+
+    def __init__(self, x: int, y: int):
+        self.x = x
+        self.y = y
+
+
+class SelfNamingComponent:
+    """A component that keeps an attribute under the name the registry uses."""
+
+    def __init__(self, x: int, y: int):
+        self.x = x
+        self.y = y
+        self.registration_key = "whatever this component decided to put here"
+
+
 class BaseConfig(Configuration):
     x: int = 5
     y: int = 10

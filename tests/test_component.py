@@ -11,6 +11,8 @@ from tests.fixtures import (
     ConfigWithChild,
     ConfigWithExternalDependency,
     EmptyComponent,
+    SelfNamingComponent,
+    SlottedComponent,
 )
 
 
@@ -170,3 +172,80 @@ def test_build_after_setup(reset_registry):
 
     component = Registry.instantiate(registration_key=key)
     assert isinstance(component.c1, RegistrationKey)
+
+
+def test_a_built_component_knows_the_key_that_built_it(reset_registry):
+    """
+    A component built from a key carries that key, so a caller holding only the
+    component can still say what it was built from.
+    """
+    key = Registry.register_configuration(
+        config=BaseConfig.default(),
+        component="tests.fixtures.BaseComponent",
+        name="component",
+        namespace="testing",
+    )
+    Registry.expanded = True
+
+    component = Registry.instantiate(registration_key=key)
+    assert component.registration_key == key
+    assert component.build_args == {}
+
+
+def test_a_built_component_knows_what_the_caller_overrode(reset_registry):
+    """
+    The key alone rebuilds the registered defaults. Recording the build args too
+    is what makes the record enough to repeat the build.
+    """
+    key = Registry.register_configuration(
+        config=BaseConfig.default(),
+        component="tests.fixtures.BaseComponent",
+        name="component",
+        namespace="testing",
+    )
+    Registry.expanded = True
+
+    component = Registry.instantiate(registration_key=key, y=99)
+    assert component.y == 99
+    assert component.build_args == {"y": 99}
+
+
+def test_a_component_that_cannot_hold_the_key_is_still_built(reset_registry):
+    """
+    Annotating a component is a convenience, not a requirement: a component with
+    ``__slots__`` builds exactly as it did before, without the annotation.
+    """
+    key = Registry.register_configuration(
+        config=BaseConfig.default(),
+        component="tests.fixtures.SlottedComponent",
+        name="slotted",
+        namespace="testing",
+    )
+    Registry.expanded = True
+
+    component = Registry.instantiate(registration_key=key)
+    assert isinstance(component, SlottedComponent)
+    assert component.x == 5
+    # Neither, not one: a refusal to hold attributes rejects the first
+    # assignment, so there is no half-annotated component to read.
+    assert not hasattr(component, "registration_key")
+    assert not hasattr(component, "build_args")
+
+
+def test_the_key_that_built_a_component_wins_over_one_it_set_itself(reset_registry):
+    """
+    A component that keeps its own ``registration_key`` has it replaced by the
+    key that actually built it. The registry's key is the true one; the
+    component's is whatever it was handed or made up.
+    """
+    key = Registry.register_configuration(
+        config=BaseConfig.default(),
+        component="tests.fixtures.SelfNamingComponent",
+        name="self_naming",
+        namespace="testing",
+    )
+    Registry.expanded = True
+
+    component = Registry.instantiate(registration_key=key)
+    assert isinstance(component, SelfNamingComponent)
+    assert component.registration_key == key
