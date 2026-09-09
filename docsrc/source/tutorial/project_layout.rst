@@ -31,6 +31,27 @@ in each file. ``Registry.build`` reads namespaces off the source before importin
 anything, and follows such an import on disk to find the literal behind it.
 
 ===============================================
+Building on another project's registrations
+===============================================
+
+A second project may register configurations that depend on the first one's --
+a package of published-experiment settings over a library of components, say.
+Point ``Registry.build`` at the project whose registrations you want run, and
+name the other under ``external_directories``:
+
+.. code-block:: python
+
+   Registry.build(
+       directory=Path(experiments.__file__).parent,
+       external_directories=[Path(library.__file__).parent],
+   )
+
+The distinction matters: ``directory`` is where registration scripts are
+executed, while ``external_directories`` are indexed so their namespaces can be
+*referenced*. A key from an external directory is loaded when something depends
+on it, not because the directory was listed.
+
+===============================================
 The registrations
 ===============================================
 

@@ -168,3 +168,4 @@ registrations/
 # from the workflow artifact; never served from the repository.
 docs/
 docsrc/build/
+uv.lock

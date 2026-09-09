@@ -649,14 +649,29 @@ def register(func: Callable) -> Callable:
 
 
 class RegistrationContext:
+    """Marks the window in which ``register_method`` buffers registrations.
+
+    Re-entrant, because ``load_registrations`` re-enters it: registering a
+    configuration whose dependency lives in another namespace loads that
+    namespace's directory, and the nested load runs inside the outer one. A
+    plain flag would be cleared on the way out of the nested load, and every
+    configuration script the outer loop had not reached yet would then execute
+    with registration switched off -- silently, since a script that registers
+    nothing raises nothing.
+    """
+
     def __init__(self):
-        self.is_registering: bool = False
+        self._depth: int = 0
+
+    @property
+    def is_registering(self) -> bool:
+        return self._depth > 0
 
     def __enter__(self):
-        self.is_registering = True
+        self._depth += 1
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self.is_registering = False
+        self._depth = max(0, self._depth - 1)
 
 
 @dataclass
