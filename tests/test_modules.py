@@ -3,6 +3,7 @@ from pathlib import Path
 import pytest
 
 from cinnamon.registry import (
+    RegistrationContext,
     RegistrationKey,
     Registry,
 )
@@ -407,6 +408,45 @@ def test_a_configuration_script_may_import_a_sibling(reset_registry):
 
     for name in ("base", "extra", "derived", "deep", "inner"):
         assert Registry.in_registry(RegistrationKey(name=name, namespace="sibling"))
+
+
+def test_every_script_registers_when_one_pulls_in_another_namespace(reset_registry):
+    """A nested load must not close the registration window it ran inside.
+
+    Registering a configuration whose dependency lives in another namespace
+    loads that namespace's directory, and that load happens in the middle of
+    the outer one. The context was a plain flag, so the nested load cleared it
+    on the way out and every script the outer loop had not reached yet ran
+    with registration switched off -- registering nothing, raising nothing,
+    and leaving which scripts survived down to directory order.
+    """
+    Registry.build(
+        directory=Path(".", "tests", "downstream_repo"),
+        external_directories=[Path(".", "tests", "ext_repo_dep")],
+    )
+
+    for tag in ("first", "second"):
+        assert Registry.in_registry(
+            RegistrationKey(name="config", tags={tag}, namespace="downstream")
+        )
+
+
+def test_the_registration_context_counts_its_depth():
+    """Leaving a nested block keeps the outer one open."""
+    context = RegistrationContext()
+    assert context.is_registering is False
+
+    with context:
+        with context:
+            assert context.is_registering is True
+        assert context.is_registering is True
+    assert context.is_registering is False
+
+    # An unbalanced exit cannot drive the depth negative, which would leave
+    # the next block closed on entry.
+    context.__exit__(None, None, None)
+    with context:
+        assert context.is_registering is True
 
 
 def test_extractor_follows_an_imported_constant(tmp_path):
