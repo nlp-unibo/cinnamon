@@ -260,15 +260,20 @@ def generate():
     directory, external_directories = _resolve_sources(args)
     run_directory = check_directory(directory_path=args.run_directory)
 
-    valid_keys, _ = Registry.build(
-        directory=directory, external_directories=external_directories
-    )
+    Registry.build(directory=directory, external_directories=external_directories)
+    # The same keys ``cmn-run`` offers. Offering every *valid* key let the
+    # script be generated for a key with no component bound to it, and the
+    # generated script then failed at ``Registry.from_key`` with
+    # ``NotBoundException`` -- or, for a bound key with no run method, passed
+    # ``None`` to ``hasattr`` and raised ``TypeError: attribute name must be
+    # string``. Neither is a message about the key that was picked.
+    keys = Registry.retrieve_runnable_keys()
 
-    if not len(valid_keys):
+    if not len(keys):
         logger.info("Could not find any registered runnable component. Aborting...")
         return
 
-    filtered_keys = _prompt_for_keys(valid_keys, filter_keys)
+    filtered_keys = _prompt_for_keys(keys, filter_keys)
     if not len(filtered_keys):
         return
     _log_selection(filtered_keys)
@@ -307,8 +312,19 @@ if __name__ == '__main__':
 
         component = Registry.from_key(registration_key=key)
 
-        if hasattr(component, config_info.run_method):
-            getattr(component, config_info.run_method)()
+        # Raised rather than skipped, and the same check cmn-run makes. The
+        # key was runnable when this script was generated; if it is not now,
+        # that is the thing worth reporting.
+        if config_info.run_method is None:
+            raise RuntimeError(f"{{key}} has no run method! Aborting...")
+
+        if not hasattr(component, config_info.run_method):
+            raise RuntimeError(
+                f"Component {{component}} has no method"
+                f" {{config_info.run_method}}! Aborting..."
+            )
+
+        getattr(component, config_info.run_method)()
     """
 
     script_path = run_directory.joinpath(f"{args.filename}.py")

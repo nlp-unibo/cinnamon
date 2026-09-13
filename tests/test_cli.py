@@ -7,6 +7,8 @@ InquirerPy objects so no terminal is ever touched.
 """
 
 import json
+import os
+import subprocess
 import sys
 from pathlib import Path
 
@@ -308,6 +310,7 @@ def test_cli_generate_writes_script(tmp_path, monkeypatch, reset_registry):
         "build",
         lambda directory, external_directories=None: ({key}, set()),
     )
+    monkeypatch.setattr(cli.Registry, "retrieve_runnable_keys", lambda: [key])
 
     cli.generate()
 
@@ -348,6 +351,7 @@ def test_cli_generate_template_is_valid_python(tmp_path, monkeypatch, reset_regi
         "build",
         lambda directory, external_directories=None: ({key}, set()),
     )
+    monkeypatch.setattr(cli.Registry, "retrieve_runnable_keys", lambda: [key])
 
     cli.generate()
 
@@ -422,6 +426,7 @@ def test_cli_generate_with_external_path(tmp_path, monkeypatch, reset_registry):
         "build",
         lambda directory, external_directories=None: ({key}, set()),
     )
+    monkeypatch.setattr(cli.Registry, "retrieve_runnable_keys", lambda: [key])
 
     cli.generate()
 
@@ -466,6 +471,7 @@ def test_cli_generate_confirm_false_aborts(tmp_path, monkeypatch, reset_registry
         "build",
         lambda directory, external_directories=None: ({key}, set()),
     )
+    monkeypatch.setattr(cli.Registry, "retrieve_runnable_keys", lambda: [key])
 
     cli.generate()
 
@@ -508,6 +514,7 @@ def test_cli_generate_overwrite_prompt(tmp_path, monkeypatch, reset_registry):
         "build",
         lambda directory, external_directories=None: ({key}, set()),
     )
+    monkeypatch.setattr(cli.Registry, "retrieve_runnable_keys", lambda: [key])
 
     cli.generate()
 
@@ -551,6 +558,7 @@ def test_cli_generate_overwrite_abort(tmp_path, monkeypatch, reset_registry):
         "build",
         lambda directory, external_directories=None: ({key}, set()),
     )
+    monkeypatch.setattr(cli.Registry, "retrieve_runnable_keys", lambda: [key])
 
     cli.generate()
 
@@ -632,6 +640,7 @@ def test_cli_generate_aborts_when_selection_cancelled(
         "build",
         lambda directory, external_directories=None: ({key}, set()),
     )
+    monkeypatch.setattr(cli.Registry, "retrieve_runnable_keys", lambda: [key])
 
     cli.generate()
 
@@ -653,6 +662,7 @@ def test_cli_build_reuses_existing_registrations_directory(
         "build",
         lambda directory, external_directories=None: ({key}, set()),
     )
+    monkeypatch.setattr(cli.Registry, "retrieve_runnable_keys", lambda: [key])
 
     cli.build()
 
@@ -881,3 +891,127 @@ def test_require_inquirer_returns_both_entry_points():
 
     assert hasattr(inquirer, "confirm")
     assert callable(filter_keys)
+
+
+# -- the generated script actually runs --------------------------------------
+
+
+RUNNABLE_PROJECT = """
+from cinnamon.configuration import Configuration
+from cinnamon.registry import Registry, register
+
+class ExperimentConfig(Configuration):
+    marker: str = "unset"
+
+@register
+def registrations():
+    Registry.register_configuration(
+        ExperimentConfig(marker="ran"),
+        name="experiment",
+        namespace="cli",
+        component="experiment.Experiment",
+        run_method="run",
+    )
+    # Bound, but with no run method: cmn-generate used to offer this key too,
+    # and the script it wrote called hasattr(component, None).
+    Registry.register_configuration(
+        ExperimentConfig(),
+        name="not-runnable",
+        namespace="cli",
+        component="experiment.Experiment",
+    )
+"""
+
+RUNNABLE_COMPONENT = """
+from pathlib import Path
+
+class Experiment:
+    def __init__(self, marker="unset"):
+        self.marker = marker
+
+    def run(self):
+        Path(__file__).parent.joinpath("ran.txt").write_text(self.marker)
+"""
+
+
+def _runnable_project(tmp_path):
+    project = _write_project(tmp_path, RUNNABLE_PROJECT)
+    (project / "experiment.py").write_text(RUNNABLE_COMPONENT)
+    return project
+
+
+def test_generate_offers_only_runnable_keys(tmp_path, monkeypatch, reset_registry):
+    """A key with no run method is not something a script can be written for."""
+    project = _runnable_project(tmp_path)
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    offered = []
+
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "cmn-generate",
+            "-dir",
+            str(project),
+            "-run-dir",
+            str(run_dir),
+            "-name",
+            "myexp",
+        ],
+    )
+    monkeypatch.setattr(
+        cli,
+        "_require_inquirer",
+        lambda: (_FakeInquirerCLI(), lambda keys: offered.extend(keys) or list(keys)),
+    )
+
+    cli.generate()
+
+    assert [key.name for key in offered] == ["experiment"]
+
+
+def test_the_generated_script_runs_the_component(tmp_path, monkeypatch, reset_registry):
+    """Compiling the template was never enough.
+
+    ``hasattr(component, None)`` raises ``TypeError: attribute name must be
+    string`` and compiles perfectly well, so the only check that would have
+    caught it is executing what was written.
+    """
+    project = _runnable_project(tmp_path)
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "cmn-generate",
+            "-dir",
+            str(project),
+            "-run-dir",
+            str(run_dir),
+            "-name",
+            "myexp",
+        ],
+    )
+    monkeypatch.setattr(
+        cli,
+        "_require_inquirer",
+        lambda: (_FakeInquirerCLI(), lambda keys: list(keys)),
+    )
+
+    cli.generate()
+
+    script = run_dir / "myexp.py"
+    environment = {
+        **os.environ,
+        "PYTHONPATH": os.pathsep.join([str(project), os.environ.get("PYTHONPATH", "")]),
+    }
+    finished = subprocess.run(
+        [sys.executable, str(script)],
+        capture_output=True,
+        text=True,
+        env=environment,
+    )
+
+    assert finished.returncode == 0, finished.stderr
+    assert (project / "ran.txt").read_text() == "ran"
