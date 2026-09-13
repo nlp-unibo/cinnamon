@@ -37,9 +37,9 @@ single `RegistrationKey`.
 - **Registry-based dependency injection** — register a `Configuration`, bind it to a component by import path, and let cinnamon build the dependency graph automatically. Your component stays a plain class: no base class, no decorator, no import of cinnamon.
 - **Variants** — declare alternative parameter values alongside their defaults and enumerate every valid combination.
 - **Conditions** — attach runtime invariants to configurations via `add_condition`, validated before any component is built.
-- **Dependencies** — compose configurations by pointing fields at `RegistrationKey` instances, singly or as a `list`/`dict` of them; the `Registry` resolves the graph children-first, so a child's variants propagate to its parents.
+- **Dependencies** — compose configurations by pointing fields at `RegistrationKey` instances, singly or as a `list`/`dict` of them; the `Registry` resolves the graph children-first. A **scalar** dependency's variants propagate to its parents; the members of a `list` or `dict` dependency deliberately do not, because the parent would otherwise gain the cross product of every member's variants.
 - **Community-ready** — pull components and `Configuration` classes from external projects via `external_directories` and build on top of them.
-- **CLI included** — `cmn-check` reports unresolved keys with suggestions and mismatched component signatures without importing your components; `cmn-build` resolves and writes the key list; `cmn-run` and `cmn-generate` run experiments and generate scripts without boilerplate.
+- **CLI included** — `cmn-check` reports unresolved keys with suggestions, without importing your components; add `--deep` and it imports each bound component to check its `__init__` against the configuration's fields. `cmn-build` resolves and writes the key list; `cmn-run` and `cmn-generate` run experiments and generate scripts without boilerplate.
 
 ---
 
