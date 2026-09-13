@@ -569,3 +569,80 @@ def test_a_container_variant_equal_to_the_default_is_rejected(reset_registry):
             losses: List[RegistrationKey] = Param([CE], variants=[[CE]])
 
         ModelConfig()
+
+
+# -- conditions -------------------------------------------------------------
+
+
+class FailingLeafConfig(Configuration):
+    weight: float = 1.0
+
+    @classmethod
+    def default(cls):
+        config = super().default()
+        config.add_condition(name="too_light", condition=lambda c: c.weight > 100)
+        return config
+
+
+def test_a_list_members_failing_condition_invalidates_the_parent(reset_registry):
+    """``validate_conditions`` recursed only into a *scalar* dependency.
+
+    A list's members were never validated, so the registry removed the invalid
+    child and kept the parent, which then pointed at a key that no longer
+    resolved.
+    """
+
+    class ModelConfig(Configuration):
+        losses: List[RegistrationKey] = [CE, SPARSITY]
+
+    Registry.register_configuration(
+        config=FailingLeafConfig.default(), name="ce", namespace=NAMESPACE
+    )
+    Registry.register_configuration(
+        config=LeafConfig(), name="sparsity", namespace=NAMESPACE
+    )
+    Registry.register_configuration(
+        config=ModelConfig(), name="model", namespace=NAMESPACE
+    )
+
+    valid, invalid = Registry.dag_resolution()
+
+    assert CE in invalid
+    assert PARENT in invalid, "the parent outlived the child it depends on"
+    assert PARENT not in valid
+
+
+def test_a_dict_members_failing_condition_invalidates_the_parent(reset_registry):
+    class ModelConfig(Configuration):
+        metrics: Dict[str, RegistrationKey] = {"acc": ACCURACY, "loss": CE}
+
+    Registry.register_configuration(
+        config=FailingLeafConfig.default(), name="accuracy", namespace=NAMESPACE
+    )
+    Registry.register_configuration(config=LeafConfig(), name="ce", namespace=NAMESPACE)
+    Registry.register_configuration(
+        config=ModelConfig(), name="model", namespace=NAMESPACE
+    )
+
+    valid, invalid = Registry.dag_resolution()
+
+    assert ACCURACY in invalid
+    assert PARENT in invalid
+    assert PARENT not in valid
+
+
+def test_a_container_whose_members_all_pass_stays_valid(reset_registry):
+    """The recursion has to find nothing wrong as readily as it finds something."""
+
+    class ModelConfig(Configuration):
+        losses: List[RegistrationKey] = [CE, SPARSITY]
+
+    _register_leaves()
+    Registry.register_configuration(
+        config=ModelConfig(), name="model", namespace=NAMESPACE
+    )
+
+    valid, invalid = Registry.dag_resolution()
+
+    assert PARENT in valid
+    assert invalid == set()
