@@ -115,6 +115,48 @@ class NotADAGException(Exception):
         return os.linesep.join(view)
 
 
+class VariantKeyCollisionException(Exception):
+    """Two variants of one configuration derive the same registration key.
+
+    A variant's key is its parent's key plus the tags the varied fields
+    contribute. Fields whose alternatives are ``RegistrationKey`` instances
+    contribute the *child's tags* and nothing else, so two children that differ
+    only by name -- ``loader-csv`` and ``loader-json``, both untagged -- derive
+    one key between them. The registry used to keep whichever arrived last,
+    silently, and when the derived key equalled the parent's own it also added
+    a self-loop to the dependency graph.
+
+    Tag the alternatives so they are distinguishable, or vary a field whose
+    values carry tags of their own.
+    """
+
+    def __init__(self, key, variant_key, values, previous=None):
+        if variant_key == key:
+            what = (
+                f"derives its own parent's key, {variant_key}, so the variant "
+                f"and the configuration it varies cannot be told apart"
+            )
+        else:
+            what = (
+                f"derives {variant_key}, which {self.describe(previous)} "
+                f"already derives"
+            )
+        super().__init__(
+            f"Variant {self.describe(values)} of {key} {what}.{os.linesep}"
+            f"Every alternative of a varied field has to contribute a "
+            f"distinguishing tag: alternatives given as registration keys "
+            f"contribute their own tags, and two untagged alternatives "
+            f"therefore contribute nothing to tell them apart."
+        )
+
+    @staticmethod
+    def describe(values) -> str:
+        if values is None:  # pragma: no cover - only the equal-to-parent case
+            return "<none>"
+        described = ", ".join(f"{name}={value}" for name, value in values.items())
+        return "{" + described + "}"
+
+
 class AlreadyExpandedException(Exception):
     def __init__(self):
         super().__init__(
