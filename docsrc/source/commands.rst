@@ -244,8 +244,10 @@ cmn-generate
 =============================================
 
 ``cmn-generate`` builds the registry, guides you through the same interactive
-key selection as ``cmn-run``, and writes a self-contained Python script that
-runs the selected components without requiring the CLI.
+key selection as ``cmn-run`` -- over the same keys, those with a ``run_method``
+-- and writes a self-contained Python script that runs the selected components
+without requiring the CLI. The script raises if a key it names has stopped
+being runnable since it was written.
 
 .. code-block:: bash
 
