@@ -52,7 +52,7 @@ def _require_inquirer():
     except ImportError:
         raise ImportError(
             "InquirerPy is required by cmn-run and cmn-generate. "
-            "Install it with: pip install 'cinnamon[cli]'"
+            "Install it with: pip install 'cinnamon-core[cli]'"
         ) from None
 
     return inquirer, filter_keys

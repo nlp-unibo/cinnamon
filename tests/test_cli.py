@@ -21,10 +21,16 @@ from cinnamon.registry import ConfigurationInfo, RegistrationKey
 # -- _require_inquirer --
 
 
-def test_require_inquirer_raises_import_error(monkeypatch):
+def test_require_inquirer_names_the_distribution_that_actually_installs(monkeypatch):
+    """``cinnamon`` on PyPI is an unrelated project, and the README says so.
+
+    The old assertion matched ``cinnamon[cli]``, so the message was tested and
+    still told the reader to install somebody else's package.
+    """
     monkeypatch.setitem(sys.modules, "InquirerPy", None)
-    with pytest.raises(ImportError, match="cinnamon\\[cli\\]"):
+    with pytest.raises(ImportError) as raised:
         cli._require_inquirer()
+    assert "pip install 'cinnamon-core[cli]'" in str(raised.value)
 
 
 # -- build --

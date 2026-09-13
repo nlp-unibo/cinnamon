@@ -33,6 +33,7 @@ class _ComponentSignature:
 
     params: frozenset
     required: frozenset
+    positional_only: frozenset
     accepts_var_args: bool
     accepts_var_kwargs: bool
 
@@ -62,6 +63,7 @@ def _get_component_signature(component_path: str) -> _ComponentSignature:
 
     params: set[str] = set()
     required: set[str] = set()
+    positional_only: set[str] = set()
     accepts_var_args = accepts_var_kwargs = False
 
     for name, param in init_sig.parameters.items():
@@ -73,6 +75,13 @@ def _get_component_signature(component_path: str) -> _ComponentSignature:
         if param.kind == inspect.Parameter.VAR_POSITIONAL:
             accepts_var_args = True
             continue
+        if param.kind == inspect.Parameter.POSITIONAL_ONLY:
+            # ``Registry.from_key`` builds a component with
+            # ``component_class(**component_args)``. A positional-only
+            # parameter cannot be filled that way whatever the configuration
+            # says, so it is a binding defect and not a field to match.
+            positional_only.add(name)
+            continue
         params.add(name)
         if param.default is inspect.Parameter.empty:
             required.add(name)
@@ -80,6 +89,7 @@ def _get_component_signature(component_path: str) -> _ComponentSignature:
     return _ComponentSignature(
         params=frozenset(params),
         required=frozenset(required),
+        positional_only=frozenset(positional_only),
         accepts_var_args=accepts_var_args,
         accepts_var_kwargs=accepts_var_kwargs,
     )
@@ -168,14 +178,31 @@ def _check_signature(component_path: str, config: Configuration) -> List[str]:
             f"'{config.__class__.__name__}'."
         )
 
-    if not (sig.accepts_var_args or sig.accepts_var_kwargs):
-        extra = config_fields - sig.params
+    # ``**kwargs`` and not ``*args``. A component is built with
+    # ``component_class(**component_args)``, so a variadic *positional*
+    # parameter can never receive a configuration field: accepting extra
+    # fields on the strength of ``*args`` passed the check here and raised
+    # ``TypeError: __init__() got an unexpected keyword argument`` at run time,
+    # which is the one thing this analyzer exists to find first.
+    if not sig.accepts_var_kwargs:
+        # Positional-only names are subtracted rather than reported here: the
+        # component does declare them, so "does not accept in __init__" names
+        # the wrong defect. They get their own message below.
+        extra = config_fields - sig.params - sig.positional_only
         if extra:
             problems.append(
                 f"Configuration '{config.__class__.__name__}' defines fields "
                 f"{sorted(extra)} that component '{component_path}' does not "
                 f"accept in __init__."
             )
+
+    unreachable = config_fields & sig.positional_only
+    if unreachable:
+        problems.append(
+            f"Component '{component_path}' takes {sorted(unreachable)} as "
+            f"positional-only parameters, which a keyword call cannot fill, so "
+            f"configuration '{config.__class__.__name__}' cannot bind to it."
+        )
 
     return problems
 
