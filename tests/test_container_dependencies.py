@@ -619,9 +619,7 @@ def test_a_dict_members_failing_condition_invalidates_the_parent(reset_registry)
     Registry.register_configuration(
         config=FailingLeafConfig.default(), name="accuracy", namespace=NAMESPACE
     )
-    Registry.register_configuration(
-        config=LeafConfig(), name="ce", namespace=NAMESPACE
-    )
+    Registry.register_configuration(config=LeafConfig(), name="ce", namespace=NAMESPACE)
     Registry.register_configuration(
         config=ModelConfig(), name="model", namespace=NAMESPACE
     )
