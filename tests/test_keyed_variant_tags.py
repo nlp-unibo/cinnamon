@@ -171,9 +171,7 @@ def test_a_variant_key_registered_by_hand_is_reused(reset_registry):
 
 def test_expansion_is_checked_for_topology_of_its_own(reset_registry):
     """The backstop fires even if something else adds a variant self-loop."""
-    Registry.register_configuration(
-        config=Child(), name="lonely", namespace=NAMESPACE
-    )
+    Registry.register_configuration(config=Child(), name="lonely", namespace=NAMESPACE)
     key = _key("lonely")
 
     original = Registry.expand_configuration

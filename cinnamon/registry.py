@@ -1395,9 +1395,7 @@ class Registry:
             # ``PYTHONHASHSEED``, so the variant *indexes* -- and therefore the
             # ``variant-1`` / ``variant-2`` tags derived from them -- differed
             # between two runs of the same project.
-            config.meta[dependency_name].variants = sorted(
-                dependency_variants, key=str
-            )
+            config.meta[dependency_name].variants = sorted(dependency_variants, key=str)
 
         # variants
         #
