@@ -5,11 +5,12 @@ A parent's variant tags are the *child key's tags*, prefixed by the field name.
 The child's ``name`` and ``namespace`` are discarded, so two alternatives that
 share a tag set -- or carry none -- collapse into one parent key.
 
-These tests pin the behaviour as it is, including the collapse. They are a memo,
-not an endorsement: see issue #31 for the analysis and the candidate fixes. If a
-future change makes the collapsing cases produce one key per alternative, these
-tests are *supposed* to fail, and the failure is the signal to update the
-warning in ``docsrc/source/dependencies.rst`` alongside them.
+The collapse used to be silent: the second registration was skipped, the second
+``add_edge`` was a no-op, and the project came out with fewer keys than it
+declared with nothing to say so. It is a ``VariantKeyCollisionException`` now.
+The derivation itself is unchanged -- a key format that carries the child's
+name is a 3.0 question -- so these tests pin *where the loss was* as much as
+what replaced it.
 """
 
 from typing import Set
@@ -19,6 +20,10 @@ import pytest
 
 from cinnamon.configuration import Configuration, Param
 from cinnamon.registry import RegistrationKey, Registry
+from cinnamon.utility.exceptions import (
+    NotADAGException,
+    VariantKeyCollisionException,
+)
 
 NAMESPACE = "keyed-variants"
 
@@ -31,8 +36,8 @@ def _key(name: str, tags: Set[str] | None = None) -> RegistrationKey:
     return RegistrationKey(name=name, tags=tags or set(), namespace=NAMESPACE)
 
 
-def _resolve(default: RegistrationKey, alternatives: list[RegistrationKey]):
-    """Register a parent varying one scalar dependency, and resolve."""
+def _register(default: RegistrationKey, alternatives: list[RegistrationKey]):
+    """Register a parent varying one scalar dependency."""
     declared = alternatives
 
     class Parent(Configuration):
@@ -44,6 +49,10 @@ def _resolve(default: RegistrationKey, alternatives: list[RegistrationKey]):
         )
     Registry.register_configuration(config=Parent(), name="parent", namespace=NAMESPACE)
 
+
+def _resolve(default: RegistrationKey, alternatives: list[RegistrationKey]):
+    """Register as above, resolve, and return the parent's keys."""
+    _register(default, alternatives)
     valid, _ = Registry.dag_resolution()
     return sorted((key for key in valid if key.name == "parent"), key=str)
 
@@ -90,53 +99,94 @@ def test_child_variants_propagate_as_prefixed_tags(reset_registry):
     }
 
 
-def test_alternatives_sharing_a_tag_set_collapse_into_one_key(reset_registry):
-    """Two alternatives, one parent key. One of them is dropped.
+def test_alternatives_sharing_a_tag_set_are_refused(reset_registry):
+    """Two alternatives, one derived key. One of them used to be dropped.
 
-    Which one survives is not deterministic across processes -- the declared
-    order is replaced by ``list(set(...))`` during expansion -- so this asserts
-    the collapse, not the winner.
+    Which one survived was not even deterministic across processes: the
+    declared order went through a set on the way to the variant indexes.
     """
-    parents = _resolve(
+    _register(
         _key("loader", {"base"}),
         [_key("loader-a", {"fast"}), _key("loader-b", {"fast"})],
     )
 
-    assert len(parents) == 2, "expected the two 'fast' alternatives to collapse"
-    varied = [key for key in parents if key.tags]
-    assert len(varied) == 1
-    assert varied[0].tags == {"dep.fast"}
-    assert _dep_of(varied[0]) in {"loader-a", "loader-b"}
+    with pytest.raises(VariantKeyCollisionException) as raised:
+        Registry.dag_resolution()
+
+    assert "dep.fast" in str(raised.value)
 
 
-def test_untagged_alternatives_collapse_into_the_parents_own_key(reset_registry):
-    """Alternatives distinguished only by name produce no parent variant at all.
+def test_untagged_alternatives_are_refused(reset_registry):
+    """Alternatives distinguished only by name contribute no tags at all.
 
-    The child contributes no tags, so the derived variant key equals the parent's
-    own key. Every alternative is lost, and the surviving key still resolves to
-    the default.
+    The derived key is then the parent's own, so the variant and the
+    configuration it varies could not be told apart.
     """
-    parents = _resolve(_key("loader-base"), [_key("loader-csv"), _key("loader-json")])
+    _register(_key("loader-base"), [_key("loader-csv"), _key("loader-json")])
 
-    assert len(parents) == 1, "expected both untagged alternatives to be lost"
-    assert parents[0].tags == set()
-    assert _dep_of(parents[0]) == "loader-base"
+    with pytest.raises(VariantKeyCollisionException) as raised:
+        Registry.dag_resolution()
+
+    assert "derives its own parent's key" in str(raised.value)
 
 
-def test_the_untagged_case_leaves_a_self_loop_in_the_graph(reset_registry):
-    """The collapse is also a graph defect, not only a missing key.
+def test_the_untagged_case_no_longer_leaves_a_self_loop(reset_registry):
+    """The collapse was a graph defect as well as a missing key.
 
-    ``add_edge(key, variant_key)`` with ``variant_key == key`` is a self-loop, so
-    the dependency graph stops being a DAG. ``check_registration_graph`` runs
-    before expansion, which is why nothing reports it.
+    ``add_edge(key, variant_key)`` with ``variant_key == key`` is a self-loop,
+    and ``check_registration_graph`` runs *before* expansion, so nothing saw
+    it. The edge is never added now, and ``check_graph_topology`` runs again
+    after expansion as a backstop.
     """
-    _resolve(_key("loader-base"), [_key("loader-csv")])
+    _register(_key("loader-base"), [_key("loader-csv")])
+
+    with pytest.raises(VariantKeyCollisionException):
+        Registry.dag_resolution()
 
     dag = Registry._DEPENDENCY_DAG
-    assert [str(node) for node, _ in nx.selfloop_edges(dag)] == [
-        f"name=parent--namespace={NAMESPACE}"
-    ]
-    assert not nx.is_directed_acyclic_graph(dag)
+    assert list(nx.selfloop_edges(dag)) == []
+
+
+def test_a_variant_key_registered_by_hand_is_reused(reset_registry):
+    """Deriving onto an existing key is deliberate, and is not a collision.
+
+    Registering the derived key yourself is how a single variant's
+    configuration gets overridden: expansion finds it in the graph and in the
+    registry and leaves both alone rather than registering over them.
+    """
+    Registry.register_configuration(
+        config=Child(value=99), name="parent", tags={"dep.json"}, namespace=NAMESPACE
+    )
+
+    parents = _resolve(_key("loader", {"csv"}), [_key("loader", {"json"})])
+
+    assert {frozenset(key.tags) for key in parents} == {
+        frozenset(),
+        frozenset({"dep.json"}),
+    }
+    varied = next(key for key in parents if key.tags)
+    kept = Registry.retrieve_configuration_info(registration_key=varied).config
+    assert kept.value == 99, "the hand-registered configuration was overwritten"
+
+
+def test_expansion_is_checked_for_topology_of_its_own(reset_registry):
+    """The backstop fires even if something else adds a variant self-loop."""
+    Registry.register_configuration(config=Child(), name="lonely", namespace=NAMESPACE)
+    key = _key("lonely")
+
+    original = Registry.expand_configuration
+
+    def sneak(**kwargs):
+        result = original(**kwargs)
+        Registry._DEPENDENCY_DAG.add_edge(key, key, type="variant")
+        return result
+
+    Registry.expand_configuration = staticmethod(sneak)
+    try:
+        with pytest.raises(NotADAGException):
+            Registry.dag_resolution()
+    finally:
+        Registry.expand_configuration = original
 
 
 @pytest.mark.parametrize("alternative_tags", [{"csv"}, {"json"}])

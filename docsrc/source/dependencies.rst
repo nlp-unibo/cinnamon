@@ -197,15 +197,17 @@ distinct parent keys — because each alternative carries a distinct tag.
 
 .. warning::
     **Alternatives declared this way must carry distinct, non-empty tags.**
-    Since only tags are inherited, two alternatives with the same tag set
-    produce the same parent key, and one of them is silently dropped.
-    Alternatives with *no* tags — distinguished only by ``name``, as in
-    ``loader-csv`` and ``loader-json`` — collapse into the parent's own key, and
-    every alternative is lost.
+    Only tags are inherited, so two alternatives with the same tag set derive
+    the same parent key, and alternatives with *no* tags — distinguished only
+    by ``name``, as in ``loader-csv`` and ``loader-json`` — derive the parent's
+    own key.
 
-    Nothing detects this yet, and ``cmn-check`` does not report it. See
-    `issue #31 <https://github.com/nlp-unibo/cinnamon/issues/31>`_ for the
-    analysis and the two candidate fixes.
+    Both raise ``VariantKeyCollisionException`` during resolution. They were
+    silent until 2.1.2: the second registration was skipped, the second graph
+    edge was a no-op, and the project came out with fewer keys than it declared
+    with nothing to say so. The untagged case also left a self-loop in the
+    dependency graph, which ``check_registration_graph`` could not see because
+    it ran before expansion.
 
     Tags are what makes a key addressable, so tagging alternatives is worth
     doing on its own merits: ``loader.parquet`` says what the run used, while a

@@ -752,13 +752,16 @@ def test_resolution_dependency_variant_keys(reset_registry):
     Registry.register_configuration(
         config=Configuration.default(),
         name="dep",
+        tags={"alternative"},
         namespace="testing",
     )
 
     config = ConfigWithChild.default()
+    # The key carries a tag: an untagged alternative contributes nothing to
+    # tell the derived variant from its parent, and is refused.
     config.meta["c1"].variants = [
         12345,
-        RegistrationKey(name="dep", namespace="testing"),
+        RegistrationKey(name="dep", tags={"alternative"}, namespace="testing"),
     ]
     Registry.register_configuration(config=config, name="parent", namespace="testing")
 
