@@ -28,7 +28,11 @@ from pydantic_core import PydanticUndefined
 from typing_extensions import Self
 
 import cinnamon.registry
-from cinnamon.utility.dependencies import DependencyShape, dependency_shape
+from cinnamon.utility.dependencies import (
+    DependencyShape,
+    dependency_members,
+    dependency_shape,
+)
 from cinnamon.utility.exceptions import (
     UnsupportedFieldTypeException,
     ValidationFailureException,
@@ -449,11 +453,19 @@ class Configuration(BaseModel, metaclass=ConfigurationMeta):
                  process failed
         """
 
-        for dependency_name, dependency in self.dependencies.items():
-            if isinstance(dependency, Configuration):
-                child_validation = dependency.validate_conditions(strict=strict)
-                if not child_validation.passed:
-                    return child_validation
+        # ``dependency_members`` and not ``isinstance(dependency, ...)``: it
+        # yields a scalar dependency as itself, a list's or dict's members one
+        # by one, and nothing at all for an unset optional one. Recursing only
+        # into scalars left every child of a list or dict dependency
+        # unvalidated, so the registry removed an invalid child while its
+        # parent stayed valid and went on pointing at a key that no longer
+        # resolved.
+        for dependency in self.dependencies.values():
+            for member in dependency_members(dependency):
+                if isinstance(member, Configuration):
+                    child_validation = member.validate_conditions(strict=strict)
+                    if not child_validation.passed:
+                        return child_validation
 
         for condition_name, condition_info in self._conditions.items():
             if not condition_info.condition(self):
