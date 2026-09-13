@@ -46,6 +46,7 @@ from cinnamon.utility.exceptions import (
     NotBoundException,
     NotExpandedException,
     NotRegisteredException,
+    VariantKeyCollisionException,
 )
 from cinnamon.utility.registration import (
     TAGGABLE_TYPES,
@@ -1239,6 +1240,23 @@ class Registry:
         if cls.expanded:
             raise AlreadyExpandedException()
 
+        cls.check_graph_topology()
+        return True
+
+    @classmethod
+    def check_graph_topology(cls) -> None:
+        """The two properties the graph has to hold, before *and* after expansion.
+
+        Expansion adds a node and an edge per variant, so a graph that was a
+        DAG on the way in is not necessarily one on the way out. Running these
+        only before expansion is what let a variant's self-loop through.
+
+        Raises:
+            NotADAGException: if the dependency DAG is not a DAG.
+            DisconnectedGraphException: if the dependency DAG contains
+                disconnected nodes.
+        """
+
         # check if DAG is DAG
         if not nx.is_directed_acyclic_graph(cls._DEPENDENCY_DAG):
             raise NotADAGException(edges=cls._DEPENDENCY_DAG.edges)
@@ -1247,8 +1265,6 @@ class Registry:
         isolated_nodes = list(nx.isolates(cls._DEPENDENCY_DAG))
         if len(isolated_nodes) > 0 and len(cls._DEPENDENCY_DAG.nodes) > 1:
             raise DisconnectedGraphException(nodes=isolated_nodes)
-
-        return True
 
     @classmethod
     @time_it
@@ -1296,6 +1312,7 @@ class Registry:
             )
 
         cls.expanded = True
+        cls.check_graph_topology()
 
         return valid_key_buffer, invalid_key_buffer
 
@@ -1374,14 +1391,37 @@ class Registry:
                 for member in iter_dependency_keys(key_variant):
                     dependency_variants |= expand(member)
 
-            config.meta[dependency_name].variants = list(dependency_variants)
+            # Sorted, not ``list(set(...))``. Set iteration order varies with
+            # ``PYTHONHASHSEED``, so the variant *indexes* -- and therefore the
+            # ``variant-1`` / ``variant-2`` tags derived from them -- differed
+            # between two runs of the same project.
+            config.meta[dependency_name].variants = sorted(
+                dependency_variants, key=str
+            )
 
         # variants
+        #
+        # Two combinations deriving one key is a silent loss: the second
+        # registration was skipped, the second ``add_edge`` was a no-op, and
+        # the project came out with fewer keys than it declared and no way to
+        # tell. When the derived key equals the parent's own it is also a
+        # self-loop, which ``check_registration_graph`` cannot see because it
+        # runs before expansion.
+        derived: Dict[RegistrationKey[Any], Dict[str, Any]] = {}
         for variant_info in config.variants:
             variant_key = key.from_variant(
                 variant_kwargs=variant_info["values"],
                 variant_indexes=variant_info["indexes"],
             )
+
+            if variant_key == key or variant_key in derived:
+                raise VariantKeyCollisionException(
+                    key=key,
+                    variant_key=variant_key,
+                    values=variant_info["values"],
+                    previous=derived.get(variant_key),
+                )
+            derived[variant_key] = variant_info["values"]
 
             if not cls.in_graph(variant_key):
                 cls._DEPENDENCY_DAG.add_node(variant_key)
