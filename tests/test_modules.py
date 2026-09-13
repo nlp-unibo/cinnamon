@@ -681,3 +681,106 @@ def registrations():
         )
         == []
     )
+
+
+def write_repo(root: Path, namespace: str, name: str = "config") -> None:
+    """A minimal registering directory: one namespace, one key."""
+    folder = root / "configurations"
+    folder.mkdir(parents=True, exist_ok=True)
+    (folder / "mock.py").write_text(
+        "from cinnamon.configuration import Configuration\n"
+        "from cinnamon.registry import Registry, register\n"
+        "\n"
+        "\n"
+        "@register\n"
+        "def register_configurations():\n"
+        "    Registry.register_configuration(\n"
+        "        config=Configuration.default(),\n"
+        f"        name={name!r},\n"
+        f"        namespace={namespace!r},\n"
+        '        component="tests.fixtures.EmptyComponent",\n'
+        "    )\n"
+    )
+
+
+@pytest.mark.parametrize(
+    "buried",
+    [
+        # An editable install, which leaves a second copy of every script.
+        Path("build", "lib"),
+        # An in-tree virtual environment, carrying a dependency's own
+        # registrations.
+        Path(".venv", "lib", "python3.11", "site-packages", "other"),
+        # A wheel staged beside the source.
+        Path("dist", "staged"),
+        Path("node_modules", "vendored"),
+        Path("__pycache__", "stale"),
+        Path("project.egg-info", "copied"),
+    ],
+)
+def test_a_copy_of_the_project_inside_its_own_tree_is_not_scanned(
+    tmp_path, reset_registry, buried
+):
+    """The trap that forces ``--no-project`` on every project in turn.
+
+    A project that installs itself into its own checkout ends up with a second
+    copy of every registration script. Walking it registers every key twice --
+    ``AlreadyRegisteredException`` on whichever one ``rglob`` reached first --
+    or maps a dependency's namespace onto the project scanning it. Neither
+    failure names the copy, which is why it costs an afternoon each time.
+    """
+    write_repo(tmp_path, namespace="project")
+    write_repo(tmp_path / buried, namespace="buried")
+
+    namespaces, mapping = Registry.parse_configuration_files(directories=[tmp_path])
+    assert namespaces == ["project"]
+    assert "buried" not in mapping
+
+    # And the import half agrees with the scan half: a namespace skipped by one
+    # and loaded by the other would register keys nothing mapped.
+    Registry.build(directory=tmp_path)
+    assert Registry.in_registry(RegistrationKey(name="config", namespace="project"))
+    assert not Registry.in_registry(RegistrationKey(name="config", namespace="buried"))
+
+
+def test_a_project_under_a_dotted_directory_is_still_scanned(tmp_path, reset_registry):
+    """The skip is judged below the root, never on the whole path.
+
+    A library installed under ``~/.cache/uv/...`` and a checkout inside a
+    dotted directory are both ordinary places to scan from. Testing the
+    absolute path would skip every one of them and register nothing at all.
+    """
+    root = tmp_path / ".cache" / "archive-v0" / "build" / "site-packages"
+    write_repo(root, namespace="installed")
+
+    namespaces, _ = Registry.parse_configuration_files(directories=[root])
+    assert namespaces == ["installed"]
+
+    Registry.build(directory=root)
+    assert Registry.in_registry(RegistrationKey(name="config", namespace="installed"))
+
+
+def test_a_checkpoint_inside_a_configurations_folder_is_not_scanned(
+    tmp_path, reset_registry
+):
+    """The folder is real source; something under it is not.
+
+    Jupyter writes ``.ipynb_checkpoints/<name>-checkpoint.py`` beside whatever
+    it saved, and a checkpoint of a registration script registers the same key
+    a second time. The folder itself passes the skip, so the scripts under it
+    have to be judged on their own.
+    """
+    write_repo(tmp_path, namespace="project")
+    checkpoint = tmp_path / "configurations" / ".ipynb_checkpoints"
+    checkpoint.mkdir()
+    (checkpoint / "mock-checkpoint.py").write_text(
+        (tmp_path / "configurations" / "mock.py").read_text()
+    )
+
+    namespaces, _ = Registry.parse_configuration_files(directories=[tmp_path])
+    assert namespaces == ["project"]
+
+    # Without the skip this raises `AlreadyRegisteredException`: the checkpoint
+    # registers the key its original already did.
+    Registry.build(directory=tmp_path)
+    assert Registry.in_registry(RegistrationKey(name="config", namespace="project"))
