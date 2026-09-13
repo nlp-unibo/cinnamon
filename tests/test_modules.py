@@ -725,6 +725,56 @@ def test_two_projects_do_not_share_one_configurations_package(tmp_path, reset_re
     assert not [entry for entry in sys.path if str(tmp_path) in entry]
 
 
+LIBRARY_REGISTRATIONS = """
+from cinnamon.configuration import Configuration
+from cinnamon.registry import Registry, register
+
+
+@register
+def registrations():
+    Registry.register_configuration(
+        Configuration.default(),
+        name="a",
+        namespace="mylib",
+        component="mylib.components.Widget",
+    )
+"""
+
+
+def test_a_module_the_caller_imported_survives_the_next_build(tmp_path, reset_registry):
+    """A build must not hand the caller a second copy of its own classes.
+
+    A library whose own tests scan its package is the ordinary arrangement --
+    the test module imports ``Widget``, then builds the registry pointed at the
+    package ``Widget`` lives in. Forgetting every module under the scanned root
+    dropped ``mylib.components`` too, so the next build re-executed it and the
+    registry resolved a *different* ``Widget``: ``issubclass`` then fails with a
+    message that names the same class on both sides.
+    """
+    package = tmp_path / "mylib"
+    (package / "configurations").mkdir(parents=True)
+    (package / "__init__.py").write_text("")
+    (package / "components.py").write_text("class Widget:\n    pass\n")
+    (package / "configurations" / "regs.py").write_text(LIBRARY_REGISTRATIONS)
+
+    sys.path.insert(0, str(tmp_path))
+    try:
+        from mylib.components import Widget  # noqa: PLC0415
+
+        Registry.build(directory=package)
+        Registry.build(directory=package)
+
+        # ``expected_type`` is the check that fails: the registry resolved a
+        # ``Widget`` re-imported after the purge, so ``issubclass`` said no
+        # against the caller's own class.
+        widget = Registry.instantiate(name="a", namespace="mylib", expected_type=Widget)
+        assert isinstance(widget, Widget)
+    finally:
+        sys.path.remove(str(tmp_path))
+        for name in [key for key in sys.modules if key.split(".")[0] == "mylib"]:
+            sys.modules.pop(name, None)
+
+
 def test_extractor_follows_a_re_exported_constant(tmp_path):
     """A constant imported through an intermediate module still resolves."""
     (tmp_path / "keys.py").write_text('NAMESPACE = "re-exported"\n')

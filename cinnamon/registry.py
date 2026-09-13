@@ -911,6 +911,11 @@ class Registry:
 
     _MODULES: List[Union[str, Path]]
     _EXP_MODULES: Set[Path]
+    #: Module names ``load_registrations`` put into ``sys.modules`` itself.
+    #: Only these are forgotten again: a module the caller imported before the
+    #: build is the caller's, and dropping it hands them a second copy of every
+    #: class in it.
+    _LOADED_MODULES: Set[str]
     _MODULE_MAPPING: Dict[str, Path]
     _EXP_NAMESPACES: List[str]
 
@@ -926,6 +931,7 @@ class Registry:
         cls.REGISTRATION_METHODS = {}
         cls.REGISTRATION_CONTEXT = RegistrationContext()
         cls._EXP_MODULES = set()
+        cls._LOADED_MODULES = set()
         cls._MODULE_MAPPING = {}
         cls._EXP_NAMESPACES = []
 
@@ -942,6 +948,7 @@ class Registry:
         "REGISTRATION_METHODS",
         "REGISTRATION_CONTEXT",
         "_EXP_MODULES",
+        "_LOADED_MODULES",
         "_MODULE_MAPPING",
         "_EXP_NAMESPACES",
         "expanded",
@@ -987,6 +994,13 @@ class Registry:
         found on. Two projects that both name a folder ``configurations`` is
         not an unusual arrangement; it is the only arrangement.
 
+        **Only what a load imported is forgotten.** Deciding by file location
+        alone drops modules the caller imported before the build, and a module
+        re-imported afterwards is a *second* class object: a component held
+        from before the reset then fails ``issubclass`` against its own class,
+        with a message naming one class twice. A library whose tests scan its
+        own package is exactly that arrangement.
+
         Registrations are re-executed on every ``load``, so nothing here is a
         cache being thrown away.
         """
@@ -1009,10 +1023,12 @@ class Registry:
                 pass
             return [str(where) for where in located if where is not None]
 
+        loaded: Set[str] = getattr(cls, "_LOADED_MODULES", set())
         doomed = [
             name
             for name, module in list(sys.modules.items())
-            if any(
+            if name in loaded
+            and any(
                 where.startswith(root) for where in where_from(module) for root in roots
             )
         ]
@@ -1257,6 +1273,13 @@ class Registry:
 
         cls._EXP_MODULES.add(directory)
 
+        # What ``sys.modules`` held before this project was executed. Anything
+        # that appears while the scripts run is this build's doing and is
+        # forgotten at the next reset; anything already here belongs to
+        # whoever imported it, and a library under its own scanned root --
+        # which is what a test suite scanning its package is -- must survive.
+        already_imported = set(sys.modules)
+
         with cls.REGISTRATION_CONTEXT:
             for python_script in directory.rglob("*.py"):
                 if cls._CONFIGURATION_FOLDER not in python_script.parts:
@@ -1323,6 +1346,8 @@ class Registry:
                         )
                     else:
                         key_method()
+
+        cls._LOADED_MODULES |= set(sys.modules) - already_imported
 
     @classmethod
     def in_registry(
