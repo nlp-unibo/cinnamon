@@ -920,6 +920,7 @@ class Registry:
     @classmethod
     def initialize(cls):
         """Reset registry to empty state."""
+        cls.forget_loaded_modules()
         cls._REGISTRY = {}
 
         cls.REGISTRATION_METHODS = {}
@@ -932,6 +933,52 @@ class Registry:
 
         cls._DEPENDENCY_DAG = nx.DiGraph()
         cls._DEPENDENCY_DAG.add_node(cls._ROOT_KEY)
+
+    @classmethod
+    def forget_loaded_modules(cls) -> None:
+        """Undo what ``load_registrations`` did to the interpreter.
+
+        Loading a project puts its root on ``sys.path`` and executing its
+        registration scripts leaves their packages in ``sys.modules``. Neither
+        was ever taken back out, so a second project's ``configurations``
+        resolved to the first one's -- the earlier ``sys.path`` entry wins, and
+        an already-imported namespace package keeps the ``__path__`` it was
+        found on. Two projects that both name a folder ``configurations`` is
+        not an unusual arrangement; it is the only arrangement.
+
+        Registrations are re-executed on every ``load``, so nothing here is a
+        cache being thrown away.
+        """
+
+        # ``initialize`` is also how the class sets itself up the first time,
+        # before there is anything to forget.
+        roots = {directory.as_posix() for directory in getattr(cls, "_EXP_MODULES", ())}
+        if not roots:
+            return
+
+        def where_from(module) -> List[str]:
+            located = [getattr(module, "__file__", None)]
+            # A namespace package's ``__path__`` recomputes itself from its
+            # parent's, so reading one whose parent is already gone raises
+            # ``KeyError``. Which is why the modules to drop are decided in one
+            # pass and dropped in another.
+            try:
+                located.extend(getattr(module, "__path__", None) or [])
+            except Exception:  # pragma: no cover - only a half-purged parent
+                pass
+            return [str(where) for where in located if where is not None]
+
+        doomed = [
+            name
+            for name, module in list(sys.modules.items())
+            if any(
+                where.startswith(root) for where in where_from(module) for root in roots
+            )
+        ]
+
+        sys.path[:] = [entry for entry in sys.path if entry not in roots]
+        for name in doomed:
+            sys.modules.pop(name, None)
 
     @classmethod
     @time_it
@@ -1170,8 +1217,24 @@ class Registry:
                 if cls.is_skipped(python_script, directory):
                     continue
 
+                # Package-qualified, and derived from the path below
+                # ``directory`` -- which is already on ``sys.path``, two lines
+                # up. The name used to be ``python_script.name``, extension
+                # and all, so ``configurations/regs.py`` executed as a
+                # top-level module called ``regs.py``: ``__package__`` came out
+                # as ``regs``, and a relative import the namespace scanner
+                # follows quite happily --
+                #
+                #     from .keys import NAMESPACE
+                #
+                # -- died with ``No module named 'regs'``. The scan found the
+                # namespace and the build could not execute the file that
+                # declared it.
+                module_name = ".".join(
+                    python_script.relative_to(directory).with_suffix("").parts
+                )
                 spec = importlib.util.spec_from_file_location(
-                    name=python_script.name, location=python_script
+                    name=module_name, location=python_script
                 )
 
                 # unreachable via rglob("*.py"); defensive guard kept for
