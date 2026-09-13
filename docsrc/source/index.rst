@@ -45,8 +45,9 @@ a child has variants, the parent gains one configuration per child variant —
 sweeps compose down the graph without anyone joining them up.
 
 **Mistakes caught before anything runs.** ``cmn-check`` reports unresolved keys with
-suggestions, and checks that components match the configurations bound to them —
-all without importing your components.
+suggestions, without importing your components. ``cmn-check --deep`` imports each
+bound component and checks its ``__init__`` against the configuration's fields,
+which is the one pass that pays for the import.
 
 **Nothing imported until it is needed.** A component is bound by its import path as
 a string, so building a registry never imports torch. On a project whose components
