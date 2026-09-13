@@ -1,3 +1,4 @@
+import sys
 from pathlib import Path
 
 import pytest
@@ -643,6 +644,85 @@ def registrations():
 """,
         name="importer.py",
     ) == ["relative"]
+
+
+RELATIVE_REGISTRATIONS = """
+from cinnamon.configuration import Configuration
+from cinnamon.registry import Registry, register
+
+from .keys import NAMESPACE
+
+
+@register
+def registrations():
+    Registry.register_configuration(
+        Configuration.default(), name="a", namespace=NAMESPACE
+    )
+"""
+
+
+def test_a_relative_import_is_executed_as_well_as_scanned(tmp_path, reset_registry):
+    """The scanner follows ``from .keys import NAMESPACE``; the build has to too.
+
+    Registration scripts used to execute under ``spec_from_file_location(
+    name=python_script.name)`` -- the file name, extension included -- so
+    ``configurations/regs.py`` ran as a top-level module called ``regs.py``,
+    ``__package__`` came out as ``regs``, and the relative import died with
+    ``No module named 'regs'``. The namespace scan found the namespace and the
+    build could not execute the file that declared it.
+    """
+    package = tmp_path / "configurations"
+    package.mkdir()
+    (package / "keys.py").write_text('NAMESPACE = "relative"\n')
+    (package / "regs.py").write_text(RELATIVE_REGISTRATIONS)
+
+    valid, invalid = Registry.build(directory=tmp_path)
+
+    assert [str(key) for key in valid] == ["name=a--namespace=relative"]
+    assert invalid == set()
+
+
+def test_a_relative_import_from_a_nested_configuration_folder(tmp_path, reset_registry):
+    """The module name is the whole path below the project, not just the file."""
+    package = tmp_path / "project" / "configurations"
+    package.mkdir(parents=True)
+    (package / "keys.py").write_text('NAMESPACE = "nested"\n')
+    (package / "regs.py").write_text(RELATIVE_REGISTRATIONS)
+
+    valid, _ = Registry.build(directory=tmp_path)
+
+    assert [str(key) for key in valid] == ["name=a--namespace=nested"]
+
+
+def test_two_projects_do_not_share_one_configurations_package(tmp_path, reset_registry):
+    """Building a second project must not resolve the first one's files.
+
+    ``load_registrations`` puts a project's root on ``sys.path`` and leaves its
+    packages in ``sys.modules``, and neither was taken back out. Two projects
+    both naming a folder ``configurations`` is not an unusual arrangement, it
+    is the only arrangement -- so the second project's relative import found
+    the first project's ``configurations`` package, whose ``__path__`` is the
+    first project's directory.
+    """
+    for name in ("first", "second"):
+        package = tmp_path / name / "configurations"
+        package.mkdir(parents=True)
+        (package / "keys.py").write_text(f'NAMESPACE = "{name}"\n')
+        (package / "regs.py").write_text(RELATIVE_REGISTRATIONS)
+
+    valid, _ = Registry.build(directory=tmp_path / "first")
+    assert [str(key) for key in valid] == ["name=a--namespace=first"]
+
+    valid, _ = Registry.build(directory=tmp_path / "second")
+    assert [str(key) for key in valid] == ["name=a--namespace=second"]
+
+    # The live project stays on ``sys.path`` -- ``Registry.from_key`` imports
+    # components long after the build -- and is taken off by the next reset.
+    assert [entry for entry in sys.path if str(tmp_path) in entry] == [
+        str(tmp_path / "second")
+    ]
+    Registry.initialize()
+    assert not [entry for entry in sys.path if str(tmp_path) in entry]
 
 
 def test_extractor_follows_a_re_exported_constant(tmp_path):
