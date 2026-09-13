@@ -934,6 +934,47 @@ class Registry:
         cls._DEPENDENCY_DAG = nx.DiGraph()
         cls._DEPENDENCY_DAG.add_node(cls._ROOT_KEY)
 
+    #: Every piece of class state ``initialize`` resets. Named once here so a
+    #: field added later cannot be left out of a rollback and quietly survive
+    #: one.
+    _RESETTABLE = (
+        "_REGISTRY",
+        "REGISTRATION_METHODS",
+        "REGISTRATION_CONTEXT",
+        "_EXP_MODULES",
+        "_MODULE_MAPPING",
+        "_EXP_NAMESPACES",
+        "expanded",
+        "_DEPENDENCY_DAG",
+        "_MODULES",
+    )
+
+    @classmethod
+    def snapshot(cls) -> Dict[str, Any]:
+        """The registry's whole state, shallow, plus the paths it put on ``sys.path``.
+
+        Shallow on purpose. The point is to restore the *objects* a failed
+        build replaced, not to defend against something mutating them: nothing
+        mutates a registry while a build of another directory is running, and
+        deep-copying a registration graph on every build would cost more than
+        the build.
+        """
+        state = {name: getattr(cls, name, None) for name in cls._RESETTABLE}
+        state["__sys_path__"] = [
+            directory.as_posix() for directory in getattr(cls, "_EXP_MODULES", ())
+        ]
+        return state
+
+    @classmethod
+    def restore(cls, state: Dict[str, Any]) -> None:
+        """Put back what ``snapshot`` took, ``sys.path`` included."""
+        for name, value in state.items():
+            if name != "__sys_path__":
+                setattr(cls, name, value)
+        # Unconditionally: ``initialize`` took these off on the way into the
+        # build that then failed, so none of them is there to duplicate.
+        sys.path[:0] = state["__sys_path__"]
+
     @classmethod
     def forget_loaded_modules(cls) -> None:
         """Undo what ``load_registrations`` did to the interpreter.
@@ -1059,8 +1100,18 @@ class Registry:
                 cinnamon APIs, only through manual edits to the graph.
         """
 
-        cls.load(directory=directory, external_directories=external_directories)
-        valid_keys, invalid_keys = cls.dag_resolution()
+        # A build starts by clearing everything, so a failure halfway through
+        # used to leave neither the old workspace nor a new one: a typo in one
+        # registration script of a second project destroyed the first, still
+        # valid, registry. The exception is re-raised either way; what changes
+        # is what the caller is holding when it arrives.
+        previous = cls.snapshot()
+        try:
+            cls.load(directory=directory, external_directories=external_directories)
+            valid_keys, invalid_keys = cls.dag_resolution()
+        except BaseException:
+            cls.restore(previous)
+            raise
 
         cls._REGISTRY = {
             key: value for key, value in cls._REGISTRY.items() if key in valid_keys

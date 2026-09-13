@@ -911,3 +911,46 @@ def test_a_checkpoint_inside_a_configurations_folder_is_not_scanned(
     # registers the key its original already did.
     Registry.build(directory=tmp_path)
     assert Registry.in_registry(RegistrationKey(name="config", namespace="project"))
+
+
+BROKEN_REGISTRATIONS = """
+this is not python
+"""
+
+
+def test_a_failed_build_leaves_the_previous_registry_in_place(tmp_path, reset_registry):
+    """A build clears everything before it parses anything.
+
+    So a failure halfway through used to leave neither the old workspace nor a
+    new one: a typo in one registration script of a second project destroyed
+    the first project's still-valid registry, and the caller was left with an
+    empty one and an exception about a different directory.
+    """
+    good = tmp_path / "good" / "configurations"
+    good.mkdir(parents=True)
+    (good / "keys.py").write_text('NAMESPACE = "good"\n')
+    (good / "regs.py").write_text(RELATIVE_REGISTRATIONS)
+
+    broken = tmp_path / "broken" / "configurations"
+    broken.mkdir(parents=True)
+    (broken / "regs.py").write_text(BROKEN_REGISTRATIONS)
+
+    valid, _ = Registry.build(directory=tmp_path / "good")
+    assert [str(key) for key in valid] == ["name=a--namespace=good"]
+
+    with pytest.raises(RuntimeError):
+        Registry.build(directory=tmp_path / "broken")
+
+    key = RegistrationKey(name="a", namespace="good")
+    assert Registry.in_registry(key), "the good project's registry was destroyed"
+    assert str(tmp_path / "good") in sys.path, "its path was taken off sys.path"
+    assert Registry.expanded is True
+
+
+def test_a_snapshot_covers_every_field_initialize_resets(reset_registry):
+    """The two lists have to agree, or a rollback quietly keeps new state."""
+    state = Registry.snapshot()
+    Registry.initialize()
+
+    for name in Registry._RESETTABLE:
+        assert name in state, f"{name} is reset but not snapshotted"
