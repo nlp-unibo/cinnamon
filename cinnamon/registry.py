@@ -854,6 +854,53 @@ class Registry:
 
     _CONFIGURATION_FOLDER = "configurations"
 
+    #: Directory names the scan refuses to walk into.
+    #:
+    #: A project that installs itself into its own tree ends up with a second
+    #: copy of every registration script -- an editable install leaves
+    #: ``build/lib/configurations/``, an in-tree virtual environment carries
+    #: its dependencies' own ``configurations`` folders under
+    #: ``site-packages``. Walking either of them registers every key twice, or
+    #: maps a dependency's namespace to the project scanning it, and the
+    #: symptom arrives far from the cause: ``AlreadyRegisteredException`` on
+    #: whichever key ``rglob`` reached first, or ``Found duplicate namespace``
+    #: for a library the project merely depends on.
+    #:
+    #: None of those directories is ever a place a person keeps source, so
+    #: skipping them costs nothing and removes a class of failure that
+    #: otherwise has to be worked around by every project in turn -- with
+    #: ``--no-project``, or by keeping the environment outside the checkout.
+    _SKIPPED_FOLDERS = frozenset(
+        {
+            "build",
+            "dist",
+            "site-packages",
+            "dist-packages",
+            "node_modules",
+            "__pycache__",
+        }
+    )
+
+    @classmethod
+    def is_skipped(cls, path: Path, root: Path) -> bool:
+        """Whether ``path`` lies inside a directory the scan does not walk.
+
+        Judged on the part of the path *below* ``root``, never on the whole of
+        it: a library installed under ``~/.cache/uv/...`` or a project inside a
+        dotted directory is a perfectly ordinary place to scan from, and
+        testing the absolute path would skip everything in it.
+        """
+        try:
+            relative = path.relative_to(root)
+        except ValueError:  # pragma: no cover - callers always pass a child
+            return False
+        return any(
+            part in cls._SKIPPED_FOLDERS
+            or (part.startswith(".") and part not in {".", ".."})
+            or part.endswith(".egg-info")
+            for part in relative.parts
+        )
+
     _REGISTRY: Dict[RegistrationKey[Any], ConfigurationInfo]
 
     _ROOT_KEY = RegistrationKey[Any](name="root", namespace="root")
@@ -1017,11 +1064,15 @@ class Registry:
         mapping: Dict[str, Path] = {}
         for directory in directories:
             for config_folder in directory.rglob(Registry._CONFIGURATION_FOLDER):
+                if cls.is_skipped(config_folder, directory):
+                    continue
                 # rglob, not glob: ``load_registrations`` executes every script
                 # under a configurations folder, nested ones included, so the
                 # namespace scan has to look just as deep or those namespaces
                 # are missing from the mapping.
                 for python_script in config_folder.rglob("*.py"):
+                    if cls.is_skipped(python_script, directory):
+                        continue
                     dir_namespaces = extractor.process(filename=python_script)
                     namespaces.extend(dir_namespaces)
                     mapping.update(
@@ -1095,6 +1146,12 @@ class Registry:
         with cls.REGISTRATION_CONTEXT:
             for python_script in directory.rglob("*.py"):
                 if cls._CONFIGURATION_FOLDER not in python_script.parts:
+                    continue
+
+                # The same directories the namespace scan refuses to walk.
+                # Skipping them there and importing them here would register
+                # keys whose namespace nothing mapped.
+                if cls.is_skipped(python_script, directory):
                     continue
 
                 spec = importlib.util.spec_from_file_location(
