@@ -144,6 +144,53 @@ def test_update_namespaces_duplicate_warns(reset_registry):
         )
 
 
+def test_two_external_directories_cannot_claim_one_namespace(tmp_path, reset_registry):
+    """``update_namespaces`` only ever saw what the scan returned.
+
+    The scan merged every directory into one mapping before that guard ran, so
+    the later external directory silently replaced the earlier one and the
+    guard had a single entry to look at. A build then resolved one project's
+    keys out of another project's directory.
+    """
+    first, second = tmp_path / "first", tmp_path / "second"
+    for root in (first, second):
+        folder = root / "configurations"
+        folder.mkdir(parents=True)
+        (folder / "registrations.py").write_text(
+            'NAMESPACE = "shared"\n'
+            "from cinnamon.registry import Registry, register\n\n"
+            "@register\n"
+            "def registrations():\n"
+            "    Registry.register_configuration("
+            'config=None, name="a", namespace=NAMESPACE)\n'
+        )
+
+    with pytest.raises(RuntimeWarning, match="Found duplicate namespace: shared"):
+        Registry.parse_configuration_files(directories=[first, second])
+
+
+def test_one_directory_claiming_its_own_namespace_twice_is_not_a_collision(
+    tmp_path, reset_registry
+):
+    """Two configuration folders under one root map to that one root."""
+    for name in ("alpha", "beta"):
+        folder = tmp_path / name / "configurations"
+        folder.mkdir(parents=True)
+        (folder / "registrations.py").write_text(
+            'NAMESPACE = "one"\n'
+            "from cinnamon.registry import Registry, register\n\n"
+            "@register\n"
+            "def registrations():\n"
+            "    Registry.register_configuration("
+            f'config=None, name="{name}", namespace=NAMESPACE)\n'
+        )
+
+    namespaces, mapping = Registry.parse_configuration_files(directories=[tmp_path])
+
+    assert namespaces == ["one"]
+    assert mapping == {"one": tmp_path}
+
+
 def test_load_registrations_module_exec_error(tmp_path, reset_registry):
     """
     A configuration script that fails to execute (e.g. SyntaxError) raises

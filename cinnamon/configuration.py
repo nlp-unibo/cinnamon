@@ -428,7 +428,7 @@ class Configuration(BaseModel, metaclass=ConfigurationMeta):
         """
         if name in self._conditions:
             warnings.warn(
-                "Condition with name {name} already exists! Overwriting...",
+                f"Condition with name {name} already exists! Overwriting...",
                 RuntimeWarning,
             )
 
