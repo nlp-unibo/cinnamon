@@ -1075,9 +1075,24 @@ class Registry:
                         continue
                     dir_namespaces = extractor.process(filename=python_script)
                     namespaces.extend(dir_namespaces)
-                    mapping.update(
-                        {namespace: directory for namespace in dir_namespaces}
-                    )
+                    for namespace in dir_namespaces:
+                        # ``update_namespaces`` refuses a namespace that is
+                        # already mapped, but it only ever sees what this loop
+                        # returns: two *external* directories claiming one
+                        # namespace were merged here first, the later one
+                        # overwriting the earlier, and the guard then had a
+                        # single entry to look at. Two folders inside one
+                        # directory map to that same directory and are not a
+                        # collision.
+                        claimed = mapping.get(namespace)
+                        if claimed is not None and claimed != directory:
+                            raise RuntimeWarning(
+                                f"Found duplicate namespace: {namespace}. It is "
+                                f"already mapped to {claimed}, so {directory} "
+                                f"cannot also claim it. Rename one of the two "
+                                f"namespaces."
+                            )
+                        mapping[namespace] = directory
 
         namespaces = list(set(namespaces))
         return namespaces, mapping

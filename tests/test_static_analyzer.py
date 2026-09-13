@@ -33,6 +33,14 @@ class VarArgsComponent:
         self.args = args
 
 
+class PositionalOnlyComponent:
+    """``mandatory`` can only ever be passed positionally."""
+
+    def __init__(self, mandatory, /, optional=None):
+        self.mandatory = mandatory
+        self.optional = optional
+
+
 class VarKwargsConfig(Configuration):
     mandatory: int = 1
     another: int = 2
@@ -69,6 +77,15 @@ def test_signature_var_args():
     assert sig.required == frozenset()
 
 
+def test_signature_separates_positional_only_parameters():
+    sig = _get_component_signature(__name__ + ".PositionalOnlyComponent")
+    assert sig.positional_only == frozenset({"mandatory"})
+    assert sig.params == frozenset({"optional"})
+    # Not required either: a keyword call cannot supply it, so reporting it as
+    # a missing field would name the wrong defect.
+    assert sig.required == frozenset()
+
+
 def test_signature_is_cached():
     sig = _get_component_signature("tests.fixtures.BaseComponent")
     assert _get_component_signature("tests.fixtures.BaseComponent") is sig
@@ -100,6 +117,42 @@ def test_signature_uninspectable_component_raises(monkeypatch):
 
 
 # `_check_signature`
+
+
+def test_var_args_does_not_absorb_extra_fields():
+    """``component_class(**component_args)`` is a keyword call.
+
+    ``*args`` cannot receive a configuration field however many of them there
+    are, so accepting the binding here left ``TypeError: __init__() got an
+    unexpected keyword argument`` for run time -- which is the failure this
+    analyzer exists to move earlier.
+    """
+    problems = _check_signature(
+        __name__ + ".VarArgsComponent", VarKwargsConfig.default()
+    )
+
+    assert len(problems) == 1
+    assert "mandatory" in problems[0] and "another" in problems[0]
+
+
+def test_var_kwargs_still_absorbs_extra_fields():
+    assert (
+        _check_signature(__name__ + ".VarKwargsComponent", VarKwargsConfig.default())
+        == []
+    )
+
+
+def test_a_positional_only_parameter_cannot_be_bound():
+    class PositionalOnlyConfig(Configuration):
+        mandatory: int = 1
+
+    problems = _check_signature(
+        __name__ + ".PositionalOnlyComponent", PositionalOnlyConfig.default()
+    )
+
+    assert len(problems) == 1
+    assert "positional-only" in problems[0]
+    assert "mandatory" in problems[0]
 
 
 def test_check_signature_matching_config():
