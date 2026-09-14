@@ -775,6 +775,72 @@ def test_a_module_the_caller_imported_survives_the_next_build(tmp_path, reset_re
             sys.modules.pop(name, None)
 
 
+def test_class_identity_survives_repeated_builds(tmp_path, reset_registry):
+    """The wall on one side: a build changes nothing the caller already held.
+
+    The sibling of the test above, and the one that pins the *rule* rather than
+    the case that was reported. A caller's reference has to mean the same class
+    after any number of builds, so this asserts identity directly -- ``is``, on
+    the class and on the module object -- rather than through
+    ``expected_type``, which only reports the failure once a component is being
+    built.
+
+    Three builds because the defect needed two: the first one imports, the
+    second one resolves what the reset in between left behind.
+    """
+    package = tmp_path / "mylib"
+    (package / "configurations").mkdir(parents=True)
+    (package / "__init__.py").write_text("")
+    (package / "components.py").write_text("class Widget:\n    pass\n")
+    (package / "configurations" / "regs.py").write_text(LIBRARY_REGISTRATIONS)
+
+    sys.path.insert(0, str(tmp_path))
+    try:
+        import mylib.components  # noqa: PLC0415
+
+        module, widget = mylib.components, mylib.components.Widget
+
+        for _ in range(3):
+            Registry.build(directory=package)
+            assert sys.modules["mylib.components"] is module
+            assert sys.modules["mylib.components"].Widget is widget
+    finally:
+        sys.path.remove(str(tmp_path))
+        for name in [key for key in sys.modules if key.split(".")[0] == "mylib"]:
+            sys.modules.pop(name, None)
+
+
+def test_what_a_build_imported_is_forgotten(tmp_path, reset_registry):
+    """The wall on the other side, and the reason the purge exists at all.
+
+    Narrowing what is forgotten is only safe while the registration scripts
+    themselves are still forgotten -- that is what stops a second project's
+    ``configurations`` resolving to the first one's. Asserted on
+    ``sys.modules`` directly, because
+    ``test_two_projects_do_not_share_one_configurations_package`` reads it
+    through a symptom, and a purge narrowed to nothing at all would be a
+    plausible way to fix the other wall.
+    """
+    package = tmp_path / "configurations"
+    package.mkdir()
+    (package / "keys.py").write_text('NAMESPACE = "forgotten"\n')
+    (package / "regs.py").write_text(RELATIVE_REGISTRATIONS)
+
+    Registry.build(directory=tmp_path)
+
+    # The package and the module the relative import pulled in. The script
+    # itself is executed from a spec and never lands in ``sys.modules``; its
+    # *package* does, and that is the one a second project would resolve
+    # against.
+    assert "configurations" in sys.modules
+    assert "configurations.keys" in sys.modules
+
+    Registry.initialize()
+
+    assert "configurations" not in sys.modules
+    assert "configurations.keys" not in sys.modules
+
+
 def test_extractor_follows_a_re_exported_constant(tmp_path):
     """A constant imported through an intermediate module still resolves."""
     (tmp_path / "keys.py").write_text('NAMESPACE = "re-exported"\n')

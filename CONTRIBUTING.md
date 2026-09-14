@@ -88,6 +88,17 @@ broken by a new release before.
 - **Then run the real thing.** The suite is not the last word — several bugs
   here survived a green suite and died the moment someone ran `cmn-check`
   against an actual project.
+- **Before tagging a release, run a downstream project's suite against the
+  branch.** 2.1.2 shipped on 557 passing tests at 100% branch coverage and
+  broke pyhighlights in 49 of them: it forgot the caller's own imports, so a
+  second build handed back a second copy of every class. Coverage measures
+  lines, not *arrangements*, and the arrangement that broke — a caller
+  importing from a directory it then scans — is not one this project builds for
+  itself. The check is two commands:
+
+  ```bash
+  uv pip install -e ../cinnamon && uv run pytest   # in the downstream checkout
+  ```
 
 ## Commit messages
 
