@@ -22,6 +22,10 @@ on:
     paths:
       - "cinnamon/**"
       - "pyproject.toml"
+      # And itself, so a change to this file is checked by running it. Without
+      # this line the workflow could not run on the pull request that added
+      # it, which is a check that has never executed.
+      - ".github/workflows/downstream.yml"
   workflow_dispatch:
 
 concurrency:
