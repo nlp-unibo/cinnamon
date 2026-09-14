@@ -22,6 +22,10 @@ on:
     paths:
       - "cinnamon/**"
       - "pyproject.toml"
+      # And itself, so a change to this file is checked by running it. Without
+      # this line the workflow could not run on the pull request that added
+      # it, which is a check that has never executed.
+      - ".github/workflows/downstream.yml"
   workflow_dispatch:
 
 concurrency:
@@ -33,10 +37,15 @@ jobs:
     name: pyhighlights' suite against this branch
     runs-on: ubuntu-latest
     steps:
+      # Not `cinnamon`: the checkout root has no `__init__.py`, so a directory
+      # of that name beside the job's working directory is importable as a
+      # namespace package and shadows the installed one. `cinnamon.__file__`
+      # then reads `None` and the suite runs against a package that is neither
+      # the branch nor the release.
       - name: Check out cinnamon
         uses: actions/checkout@v7
         with:
-          path: cinnamon
+          path: cinnamon-branch
       - name: Check out pyhighlights
         uses: actions/checkout@v7
         with:
@@ -53,15 +62,24 @@ jobs:
       - name: Install pyhighlights
         run: pip install -e "./pyhighlights[dev]"
       - name: Install cinnamon from this branch
-        run: pip install -e ./cinnamon
+        run: pip install -e ./cinnamon-branch
+      # `__path__` rather than `__file__`, which is `None` for a namespace
+      # package and so raises instead of reporting. And an equality against the
+      # checkout rather than a "not in site-packages" test, which passes for
+      # anything importable that is not the wheel.
       - name: Confirm the branch is what is installed
+        working-directory: pyhighlights
         run: |
           python - <<'PY'
-          import pathlib, sys, cinnamon
-          path = pathlib.Path(cinnamon.__file__).resolve()
-          print(path)
-          if "site-packages" in path.parts:
-              sys.exit("the released cinnamon is installed, not the branch")
+          import cinnamon, os, sys
+          from importlib.metadata import version
+          found = [os.path.realpath(entry) for entry in cinnamon.__path__]
+          want = os.path.realpath(
+              os.path.join(os.environ["GITHUB_WORKSPACE"], "cinnamon-branch", "cinnamon")
+          )
+          print(f"cinnamon-core {version('cinnamon-core')} at {found}")
+          if want not in found:
+              sys.exit(f"the branch at {want} is not what imports")
           PY
       # A failure here is a release that must not be tagged, whatever this
       # repository's own suite says. It is deliberately not in ci.yml's
