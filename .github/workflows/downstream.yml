@@ -67,6 +67,10 @@ jobs:
       # package and so raises instead of reporting. And an equality against the
       # checkout rather than a "not in site-packages" test, which passes for
       # anything importable that is not the wheel.
+      # `working-directory` is not what makes the paths resolve -- the script
+      # reads GITHUB_WORKSPACE -- but it keeps the step out of the workspace
+      # root, which is where the shadowing above came from. A checkout named
+      # after an import is the mistake this job already made once.
       - name: Confirm the branch is what is installed
         working-directory: pyhighlights
         run: |
