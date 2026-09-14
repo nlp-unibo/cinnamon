@@ -1,0 +1,72 @@
+# The check that 2.1.2 did not have.
+#
+# 2.1.2 shipped on 557 passing tests at 100% branch coverage and broke
+# pyhighlights in 49 of them: `forget_loaded_modules` dropped every module
+# below a scanned root, the caller's own imports included, so a second
+# `Registry.build` handed back a second copy of every class. Coverage measures
+# lines, not *arrangements*, and the arrangement that breaks -- a caller
+# importing from a directory it then scans -- is not one this project builds
+# for itself. No test here could have caught it.
+#
+# CONTRIBUTING.md asks for this run before a release is tagged. That rule was
+# written down only after it had already cost a release, and a rule someone
+# has to remember is not a check, so it runs on its own.
+name: Downstream
+
+on:
+  pull_request:
+    branches: ["main"]
+    # Source changes and version bumps. A docs-only or workflow-only PR cannot
+    # change what a build does to the interpreter, and installing torch to
+    # prove that spends several minutes per push.
+    paths:
+      - "cinnamon/**"
+      - "pyproject.toml"
+  workflow_dispatch:
+
+concurrency:
+  group: downstream-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pyhighlights:
+    name: pyhighlights' suite against this branch
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out cinnamon
+        uses: actions/checkout@v7
+        with:
+          path: cinnamon
+      - name: Check out pyhighlights
+        uses: actions/checkout@v7
+        with:
+          repository: nlp-unibo/pyhighlights
+          path: pyhighlights
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+      # pyhighlights first, which pulls the *released* cinnamon-core, and this
+      # branch second, over the top of it. The other order lets the sync put
+      # the release back and the job passes against the wrong library.
+      - name: Install pyhighlights
+        run: pip install -e "./pyhighlights[dev]"
+      - name: Install cinnamon from this branch
+        run: pip install -e ./cinnamon
+      - name: Confirm the branch is what is installed
+        run: |
+          python - <<'PY'
+          import pathlib, sys, cinnamon
+          path = pathlib.Path(cinnamon.__file__).resolve()
+          print(path)
+          if "site-packages" in path.parts:
+              sys.exit("the released cinnamon is installed, not the branch")
+          PY
+      # A failure here is a release that must not be tagged, whatever this
+      # repository's own suite says. It is deliberately not in ci.yml's
+      # `all-green`: that job treats a skipped dependency as a failure, and
+      # this one is skipped on every docs-only pull request.
+      - name: Run pyhighlights' suite
+        working-directory: pyhighlights
+        run: pytest -q -n auto
