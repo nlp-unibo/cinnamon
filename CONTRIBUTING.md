@@ -100,6 +100,13 @@ broken by a new release before.
   uv pip install -e ../cinnamon && uv run pytest   # in the downstream checkout
   ```
 
+  **CI runs this for you** on any pull request touching `cinnamon/` or
+  `pyproject.toml` — `.github/workflows/downstream.yml`, pyhighlights' suite
+  against the branch. It is not part of `all-green`, because that job counts a
+  skipped dependency as a failure and this one is skipped on a docs-only pull
+  request. Read it before tagging: a red `Downstream` is a release that must
+  not go out, whatever this repository's own matrix says.
+
 ## Commit messages
 
 A subject line that says what changed, and a body that says why — what the old
