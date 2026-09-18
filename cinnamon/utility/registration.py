@@ -289,8 +289,12 @@ def import_class_from_string(path: str) -> type:
         module_path = ".".join(segments[:split])
         try:
             target: Any = importlib.import_module(module_path)
-        except ImportError:
-            continue
+        except ModuleNotFoundError as error:
+            if error.name == module_path or (
+                error.name is not None and module_path.startswith(f"{error.name}.")
+            ):
+                continue
+            raise
         for attribute in segments[split:]:
             target = getattr(target, attribute)
         return target
@@ -321,8 +325,9 @@ def locate_module(module_path: str) -> Tuple[Optional[str], Optional[str]]:
     """
     search: Optional[List[str]] = None
     origin: Optional[str] = None
+    segments = module_path.split(".")
 
-    for index, segment in enumerate(module_path.split(".")):
+    for index, segment in enumerate(segments):
         try:
             spec = PathFinder.find_spec(segment, search)
         except (ImportError, ValueError):  # pragma: no cover - odd path entries
@@ -333,7 +338,11 @@ def locate_module(module_path: str) -> Tuple[Optional[str], Optional[str]]:
 
         origin = spec.origin
         if spec.submodule_search_locations is None:
-            # A plain module: nothing further can be nested inside it.
+            # A plain module: nothing further can be nested inside it. Passing
+            # ``None`` back to PathFinder would restart at sys.path and could
+            # mistake an unrelated top-level module for this module's child.
+            if index < len(segments) - 1:
+                return None, ".".join(segments[: index + 2])
             search = None
         else:
             search = list(spec.submodule_search_locations)

@@ -909,7 +909,6 @@ class Registry:
 
     expanded: bool = False
 
-    _MODULES: List[Union[str, Path]]
     _EXP_MODULES: Set[Path]
     #: Module names ``load_registrations`` put into ``sys.modules`` itself.
     #: Only these are forgotten again: a module the caller imported before the
@@ -953,7 +952,6 @@ class Registry:
         "_EXP_NAMESPACES",
         "expanded",
         "_DEPENDENCY_DAG",
-        "_MODULES",
     )
 
     @classmethod
@@ -1073,7 +1071,6 @@ class Registry:
             external_directories = cls.resolve_external_directories(
                 external_directories=external_directories
             )
-            cls._MODULES = external_directories
             ext_namespaces, ext_module_mapping = cls.parse_configuration_files(
                 directories=external_directories
             )
@@ -1122,10 +1119,17 @@ class Registry:
         # valid, registry. The exception is re-raised either way; what changes
         # is what the caller is holding when it arrives.
         previous = cls.snapshot()
+        modules_before = dict(sys.modules)
         try:
             cls.load(directory=directory, external_directories=external_directories)
             valid_keys, invalid_keys = cls.dag_resolution()
         except BaseException:
+            cls._LOADED_MODULES |= {
+                name
+                for name, module in sys.modules.items()
+                if modules_before.get(name) is not module
+            }
+            cls.forget_loaded_modules()
             cls.restore(previous)
             raise
 
@@ -1507,11 +1511,12 @@ class Registry:
         keys = set()
 
         # dependencies
+        dependencies = config.dependencies
         for dependency_name, field in config.fields.items():
-            if dependency_name not in config.dependencies:
+            if dependency_name not in dependencies:
                 continue
 
-            dependency = config.dependencies[dependency_name]
+            dependency = dependencies[dependency_name]
             shape = config.dependency_shape(field_name=dependency_name, field=field)
             declared_variants = config.meta[dependency_name].variants
 
@@ -2092,3 +2097,6 @@ class Registry:
     def retrieve_runnable_keys(cls) -> List[RegistrationKey[Any]]:
         """Return keys marked runnable (run_method set)."""
         return cls.retrieve_keys(special_tags={"__runnable"})
+
+
+Registry.initialize()
