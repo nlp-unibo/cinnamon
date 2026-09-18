@@ -116,6 +116,7 @@ whether to undo your change.
 
 ## Documentation
 
-Public API changes belong in `docsrc/`, built to `docs/` and published by the
-`docs.yml` workflow. Anything a user types — a CLI flag, a field type, an
+Public API changes belong in `docsrc/`. `nox -s docs` builds them into
+`docsrc/build/html` with warnings treated as errors, and the `docs.yml` workflow
+publishes that build to GitHub Pages. Anything a user types — a CLI flag, a field type, an
 exception they will see — should be documented in the same pull request.

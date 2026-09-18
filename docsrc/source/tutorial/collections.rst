@@ -33,7 +33,7 @@ What to notice
   ``RegistrationKey[Tokenizer]`` are both dependencies too.
 - A container varies through variants declared on the **whole field** — 
   ``Param([a, b], variants=[[a], [a, b, c]])`` — not by its members varying
-  individually. :doc:`../dependencies` explains why, and what the derived tag looks
+  individually. :doc:`../concepts/dependencies` explains why, and what the derived tag looks
   like.
 
 ===============================================

@@ -422,9 +422,9 @@ class Configuration(BaseModel, metaclass=ConfigurationMeta):
             description: a string description for readability purposes.
             tags: a set of string tags to mark the condition with metadata.
 
-        Raises:
-            ``AlreadyExistingParameterException``: if the provided `name`
-                already exists in the Configuration instance.
+        Warns:
+            ``RuntimeWarning``: if the provided `name` already exists in the
+                Configuration instance. The new condition replaces the old one.
         """
         if name in self._conditions:
             warnings.warn(

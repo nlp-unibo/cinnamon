@@ -90,7 +90,7 @@ Driving it from the command line
     cmn-run   -dir .          # pick a configuration interactively and run it
 
 ``cmn-check`` and ``cmn-build`` need only ``pip install cinnamon-core``. ``cmn-run``
-prompts, so it also wants ``pip install "cinnamon-core[cli]"``. :doc:`../commands`
+prompts, so it also wants ``pip install "cinnamon-core[cli]"``. :doc:`../reference/commands`
 covers all four commands in detail.
 
 Four registrations come out of two declarations, because the strategy declares a
@@ -114,7 +114,7 @@ After the tutorial
 - :doc:`../examples/index` — a full scikit-learn pipeline: loader, processors,
   model, benchmark. Needs ``pip install "cinnamon-core[examples]"`` and downloads the
   IMDB dataset on first run.
-- :doc:`../configuration`, :doc:`../component`, :doc:`../registration` and
-  :doc:`../dependencies` cover each concept in depth.
+- :doc:`../concepts/index` covers configuration, component, registration and
+  dependencies in depth.
 - `CONTRIBUTING.md <https://github.com/nlp-unibo/cinnamon/blob/main/CONTRIBUTING.md>`_
   — the design principle in more depth, and how to work on cinnamon itself.

@@ -1,0 +1,24 @@
+/* The default content column is narrow enough that a long code block or an
+   aligned table scrolls sideways on a laptop. These two widths are the whole
+   change. */
+.bd-page-width {
+    max-width: 100rem;
+}
+
+.bd-article-container {
+    max-width: 70rem;
+}
+
+/* Mermaid renders at its natural size and then gets scaled by the theme, which
+   on a wide diagram leaves text too small to read. Capping the height instead
+   keeps the labels legible. */
+.mermaid svg {
+    height: auto !important;
+    max-height: 620px;
+}
+
+/* A wide table stays inside the column rather than pushing the page sideways. */
+table.docutils {
+    display: block;
+    overflow-x: auto;
+}

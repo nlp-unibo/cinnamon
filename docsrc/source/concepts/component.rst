@@ -138,6 +138,17 @@ library typically costs more than building an entire registry.
 Building a component
 =============================================
 
+.. mermaid::
+
+    flowchart LR
+        K["RegistrationKey"]
+        I["ConfigurationInfo<br/>config, component path"]
+        C["config.values<br/>plus build_args"]
+        M["import the component<br/>first time it is needed"]
+        O["ComponentClass(**values)"]
+        K --> I --> C --> O
+        I --> M --> O
+
 Once :meth:`~cinnamon.registry.Registry.build` has run:
 
 .. code-block:: python
@@ -215,9 +226,3 @@ offers you and what ``cmn-generate`` writes scripts for:
         component='mypackage.components.Benchmark',
         run_method='run',
     )
-
-.. toctree::
-   :maxdepth: 4
-   :hidden:
-   :caption: Contents:
-   :titlesonly:

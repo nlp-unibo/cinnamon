@@ -40,5 +40,4 @@ Benchmark
 ``name='benchmark', tags={'svc'}, namespace='examples'``
     The full pipeline: loads IMDB data, applies tf-idf and label processing,
     trains and evaluates the SVC. Bound to ``SVCBenchmark``. ``run_method='run'``.
-    ``resolve_automatically=False`` — dependency keys are kept as ``RegistrationKey``
-    objects and resolved lazily inside ``SVCBenchmark.run()``.
+    Its four dependency keys are built lazily inside ``SVCBenchmark.run()``.

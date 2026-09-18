@@ -14,6 +14,7 @@ documentation uses, and whether its code is even syntactically Python.
 
 import ast
 import importlib
+import inspect
 import re
 import subprocess
 import sys
@@ -131,6 +132,89 @@ def _dedent(block: str) -> str:
         return ""
     indent = min(len(line) - len(line.lstrip()) for line in lines)
     return "\n".join(line[indent:] for line in block.splitlines())
+
+
+#: Registry APIs the documentation calls with keyword arguments. A keyword is the
+#: half of an API the name checks above cannot see: ``Registry.register_configuration``
+#: exists whatever you pass it, so an argument that has been removed reads as
+#: perfectly good prose.
+KEYWORD_CHECKED = [
+    "register_class",
+    "register_method",
+    "setup",
+    "Registry.register_configuration",
+    "Registry.register_configuration_from_key",
+    "Registry.build",
+    "Registry.instantiate",
+    "Registry.from_key",
+    "Registry.retrieve_keys",
+    "Registry.retrieve_configuration",
+    "Registry.retrieve_configuration_info",
+    "Registry.dag_resolution",
+]
+
+
+def _signatures() -> dict:
+    import cinnamon.registry as registry_module
+
+    signatures = {}
+    for name in KEYWORD_CHECKED:
+        owner = registry_module
+        attribute = name
+        if "." in name:
+            owner_name, attribute = name.split(".", 1)
+            owner = getattr(registry_module, owner_name)
+        signatures[name] = inspect.signature(getattr(owner, attribute))
+    return signatures
+
+
+def _called_name(node: ast.Call) -> str | None:
+    func = node.func
+    if isinstance(func, ast.Name):
+        return func.id
+    if isinstance(func, ast.Attribute) and isinstance(func.value, ast.Name):
+        return f"{func.value.id}.{func.attr}"
+    return None
+
+
+@pytest.mark.parametrize("path", RST_FILES, ids=lambda p: p.name)
+def test_documented_keyword_arguments_exist(path):
+    """Every keyword the docs pass to a registry API is in its signature.
+
+    This is the check that would have caught ``resolve_automatically=False``,
+    which three pages documented for months after the parameter was removed --
+    one of them as the explanation of how the shipped example works. Nothing saw
+    it: the function is real, the attribute names are real, the block parses, and
+    the prose around it is fluent.
+    """
+    signatures = _signatures()
+
+    unknown = []
+    for block in CODE_BLOCK.findall(path.read_text()):
+        source = _dedent(block)
+        try:
+            tree = ast.parse(source)
+        except SyntaxError:  # reported by test_python_code_blocks_parse
+            continue
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call):
+                continue
+            signature = signatures.get(_called_name(node) or "")
+            if signature is None:
+                continue
+            if any(
+                parameter.kind is parameter.VAR_KEYWORD
+                for parameter in signature.parameters.values()
+            ):
+                continue
+            for keyword in node.keywords:
+                if keyword.arg and keyword.arg not in signature.parameters:
+                    unknown.append(f"{_called_name(node)}({keyword.arg}=...)")
+
+    assert not unknown, (
+        f"{path.name} passes keyword arguments that do not exist: "
+        f"{sorted(set(unknown))}"
+    )
 
 
 def test_no_page_documents_the_removed_component_base_class():

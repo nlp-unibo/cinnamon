@@ -113,6 +113,15 @@ Registration
 In practice, cinnamon encourages a **register, bind, and build** workflow rather
 than directly instantiating configurations and components.
 
+.. mermaid::
+
+    flowchart LR
+        A["register<br/>store the configuration under a key"]
+        B["bind<br/>name the component by import path"]
+        C["build<br/>Registry.build() resolves everything"]
+        D["from_key(key)<br/>a ready component"]
+        A --> B --> C --> D
+
 Once you have defined a ``Configuration`` and its corresponding component,
 you **register** the configuration in the ``Registry`` and **bind** it to the component.
 This is done via a ``RegistrationKey``: a compound identifier made up of a ``name``,
@@ -220,11 +229,10 @@ The :doc:`tutorial <tutorial/index>` is the natural next step: seven runnable fi
 that introduce each of these one at a time, ending with a worked project laid out
 the way a real one is.
 
-For reference depth, :doc:`configuration` covers parameters, conditions, variants
-and nesting; :doc:`registration` covers how to structure registration code and the
-``Registry`` APIs; :doc:`dependencies` covers keys, containers, and how variants
-propagate through the graph; and :doc:`commands` covers the four ``cmn-*``
-commands.
+For reference depth, :doc:`concepts/index` covers each idea in turn: parameters,
+conditions and variants; how to structure registration code and the ``Registry``
+APIs; and how keys, containers and variants propagate through the dependency
+graph. :doc:`reference/commands` covers the four ``cmn-*`` commands.
 
 =============================================
 Before you run anything

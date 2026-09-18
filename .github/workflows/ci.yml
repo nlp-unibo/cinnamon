@@ -128,8 +128,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -e .[cli]
-          pip install sphinx sphinx_autodoc_typehints sphinx_rtd_theme
+          pip install -e ".[cli,docs]"
       # Runs the same script docs.yml publishes with, rather than its own
       # sphinx-build invocation. Calling sphinx directly here meant the script
       # itself was never exercised until deploy time, which is where a

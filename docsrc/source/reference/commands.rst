@@ -6,6 +6,21 @@ Cinnamon entry points
 Cinnamon ships four console scripts for working with configurations and components
 without writing boilerplate code.
 
+.. mermaid::
+
+    flowchart LR
+        P["your project<br/>configurations/ and components"]
+        C["cmn-check<br/>what is broken, without importing anything"]
+        B["cmn-build<br/>write the resolved key list"]
+        R["cmn-run<br/>pick keys and run them"]
+        G["cmn-generate<br/>write a script that runs them"]
+        P --> C --> B
+        B --> R
+        B --> G
+
+``cmn-check`` is the one to reach for first: it answers "does this project
+resolve?" and costs nothing, because it never imports a component.
+
 =============================================
 Installation
 =============================================
@@ -51,7 +66,7 @@ All four commands accept the same two optional arguments:
     offending entry. Whether each path exists is checked separately, when the
     directories are resolved.
 
-    See :doc:`dependencies` for details on external directories.
+    See :doc:`dependencies <../concepts/dependencies>` for details on external directories.
 
 =============================================
 cmn-check
@@ -274,12 +289,5 @@ If a script with the given filename already exists in the target directory,
 ``cmn-generate`` will prompt you before overwriting it.
 
 .. note::
-    The generated script itself only requires the
-    base ``cinnamon`` install.
-
-
-.. toctree::
-   :maxdepth: 4
-   :hidden:
-   :caption: Contents:
-   :titlesonly:
+    The generated script itself only requires the base ``cinnamon-core``
+    install, without the ``cli`` extra.
