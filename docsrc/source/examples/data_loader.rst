@@ -89,8 +89,8 @@ The key methods are:
             return super().default()
 
 Each field maps directly to a parameter of ``IMDBLoader.__init__``.
-The ``run_method='load_data'`` binding means ``cmn-run`` and ``cmn-ui``
-will call ``loader.load_data()`` when this key is selected for execution.
+The ``run_method='load_data'`` binding means ``cmn-run`` will call
+``loader.load_data()`` when this key is selected for execution.
 
 =============================================
 Demo script

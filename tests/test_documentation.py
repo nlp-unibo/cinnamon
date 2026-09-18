@@ -154,6 +154,12 @@ def test_no_page_documents_the_removed_component_base_class():
     )
 
 
+def test_no_page_documents_removed_commands():
+    offenders = [path.name for path in RST_FILES if "cmn-ui" in path.read_text()]
+
+    assert not offenders, f"pages still describe removed commands: {offenders}"
+
+
 def test_every_tutorial_step_has_a_documentation_page():
     """The tutorial section covers every step that exists in the repository.
 

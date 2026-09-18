@@ -1063,6 +1063,38 @@ def test_a_failed_build_leaves_the_previous_registry_in_place(tmp_path, reset_re
     assert Registry.expanded is True
 
 
+def test_a_failed_build_leaves_no_import_residue(tmp_path, reset_registry):
+    """Rollback includes interpreter state created before registration failed."""
+    package = tmp_path / "configurations"
+    package.mkdir()
+    (package / "__init__.py").write_text("")
+    (package / "helper.py").write_text("VALUE = 1\n")
+    (package / "regs.py").write_text(
+        "from . import helper\n"
+        "from cinnamon.registry import register\n"
+        "\n"
+        "@register\n"
+        "def registrations():\n"
+        "    raise RuntimeError('boom')\n"
+    )
+
+    try:
+        with pytest.raises(RuntimeError, match="boom"):
+            Registry.build(directory=tmp_path)
+
+        assert str(tmp_path) not in sys.path
+        assert "configurations" not in sys.modules
+        assert "configurations.helper" not in sys.modules
+    finally:
+        sys.path[:] = [entry for entry in sys.path if entry != str(tmp_path)]
+        for name in [
+            key
+            for key in sys.modules
+            if key == "configurations" or key.startswith("configurations.")
+        ]:
+            sys.modules.pop(name, None)
+
+
 def test_a_snapshot_covers_every_field_initialize_resets(reset_registry):
     """The two lists have to agree, or a rollback quietly keeps new state."""
     state = Registry.snapshot()

@@ -61,6 +61,17 @@ def test_locate_module_stops_descending_into_a_plain_module():
     assert locate_module("json.encoder.deeper")[1] == "json.encoder.deeper"
 
 
+def test_plain_module_does_not_resolve_a_same_named_top_level_module(
+    tmp_path, monkeypatch
+):
+    """After a plain module, lookup must not restart from ``sys.path``."""
+    (tmp_path / "leaf.py").write_text("")
+    (tmp_path / "deeper.py").write_text("")
+    monkeypatch.syspath_prepend(tmp_path)
+
+    assert locate_module("leaf.deeper")[1] == "leaf.deeper"
+
+
 # -- importing, including nested classes ------------------------------------
 
 
@@ -81,6 +92,19 @@ def test_import_class_from_string_still_raises_for_a_missing_module():
 def test_import_class_from_string_still_raises_for_a_missing_attribute():
     with pytest.raises(AttributeError):
         import_class_from_string(f"{__name__}.NoSuchClass")
+
+
+def test_import_class_from_string_preserves_an_internal_import_error(
+    tmp_path, monkeypatch
+):
+    package = tmp_path / "broken_component"
+    package.mkdir()
+    (package / "__init__.py").write_text("")
+    (package / "model.py").write_text("import missing_component_dependency\n")
+    monkeypatch.syspath_prepend(tmp_path)
+
+    with pytest.raises(ModuleNotFoundError, match="missing_component_dependency"):
+        import_class_from_string("broken_component.model.Component")
 
 
 # -- the shallow path check -------------------------------------------------
