@@ -48,8 +48,16 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx.ext.autodoc",
     "sphinx.ext.githubpages",
+    "sphinx.ext.viewcode",
+    "sphinx.ext.intersphinx",
     "sphinx_autodoc_typehints",
+    "sphinxcontrib.mermaid",
 ]
+
+intersphinx_mapping = {
+    "python": ("https://docs.python.org/3", None),
+    "pydantic": ("https://docs.pydantic.dev/latest", None),
+}
 
 # ``InquirerPy`` is an optional dependency: it ships with the ``cli`` extra, and
 # cinnamon.cli / cinnamon.utility.inquirer import it at module level. Autodoc has
@@ -91,10 +99,36 @@ exclude_patterns = []
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
 html_title = "Cinnamon"
-html_theme = "sphinx_rtd_theme"
-# html_theme_path = [sphinx_pdj_theme.get_html_theme_path()]
-# No custom assets yet; an entry for a missing directory only warns.
-html_static_path = []
+html_theme = "pydata_sphinx_theme"
+html_static_path = ["_static"]
+html_css_files = ["custom.css"]
+
+# The navigation bar names the five sections rather than every page, and each
+# section has a landing page of its own. A flat list of every page fills the bar
+# and leaves the left sidebar with a heading and nothing under it.
+html_theme_options = {
+    "github_url": "https://github.com/nlp-unibo/cinnamon",
+    "show_prev_next": True,
+    "navbar_align": "left",
+    "show_toc_level": 2,
+    "secondary_sidebar_items": ["page-toc"],
+    "icon_links": [
+        {
+            "name": "PyPI",
+            "url": "https://pypi.org/project/cinnamon-core/",
+            "icon": "fa-brands fa-python",
+        },
+    ],
+}
+
+html_context = {"default_mode": "auto"}
+
+# Pages with no sections worth listing. Without this the left sidebar renders as
+# the words "Section Navigation" over an empty list.
+html_sidebars = {
+    "index": [],
+    "project/contributing": [],
+}
 
 # Files copied verbatim into the build root, on top of the generated pages.
 #

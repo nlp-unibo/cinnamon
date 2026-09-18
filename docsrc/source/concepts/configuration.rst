@@ -212,6 +212,20 @@ Adding conditions
 Beyond Pydantic's built-in field validation, ``Configuration`` supports runtime
 **conditions**: arbitrary callables that check invariants across one or more fields.
 
+A configuration is checked in two places, and the difference matters:
+
+.. mermaid::
+
+    flowchart LR
+        A["MyConfig(...)"] --> B["Pydantic<br/>types, ge/le, Literal, @model_validator"]
+        B --> C["a Configuration instance"]
+        C --> D["validate_conditions()<br/>the callables added with add_condition"]
+        D --> E["valid, or ValidationFailureException"]
+
+Pydantic runs at construction and cannot be escaped. Conditions run when
+something asks for them, which is what lets a sweep register a combination and
+then discard it as invalid rather than crashing on it.
+
 .. code-block:: python
 
     class MyConfig(Configuration):
@@ -225,8 +239,8 @@ Beyond Pydantic's built-in field validation, ``Configuration`` supports runtime
         description='x and y must be equal'
     )
 
-The condition name must be unique. Registering a second condition with the same name
-raises a ``RuntimeWarning``.
+The condition name must be unique. Registering a second condition under a name
+already taken warns with a ``RuntimeWarning`` and replaces the first one.
 
 Conditions accept an optional ``tags`` set for grouping:
 
@@ -381,6 +395,15 @@ cinnamon supports **variants**: alternative values declared alongside a field's 
 The default value must **not** appear in ``variants`` — cinnamon enforces this at
 instantiation and raises a ``ValidationError`` if a duplicate is detected.
 
+.. mermaid::
+
+    flowchart LR
+        X["x: Param(5, variants=[20, 42])<br/>three values"]
+        Y["y: Param(False, variants=[True])<br/>two values"]
+        X --> P["every combination<br/>3 x 2 = 6"]
+        Y --> P
+        P --> K["five variant keys<br/>plus the configuration itself"]
+
 The ``variants`` property returns all unique combinations of variant values, excluding
 the all-default combination (which is the configuration itself):
 
@@ -446,10 +469,3 @@ or a nested ``Configuration`` instance:
     In cinnamon, nested configurations are called **dependencies**.
     See :doc:`dependencies`
     for how the ``Registry`` resolves and builds them automatically.
-
-
-.. toctree::
-   :maxdepth: 4
-   :hidden:
-   :caption: Contents:
-   :titlesonly:

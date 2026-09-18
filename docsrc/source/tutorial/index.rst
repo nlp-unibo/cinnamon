@@ -44,6 +44,13 @@ Page                                  Introduces
 :doc:`project_layout`                 the real directory layout and the CLI
 ====================================  ==================================================
 
+.. mermaid::
+
+    flowchart LR
+        A["1. Configuration"] --> B["2. Registration"] --> C["3. Variants"]
+        C --> D["4. Dependencies"] --> E["5. Collections"] --> F["6. Conditions"]
+        F --> G["7. A real project"]
+
 Steps 1–6 register everything by hand in a single file, so each concept stays
 readable in one screen. That is a teaching device: real projects use the directory
 layout in step 7 and never call ``Registry.register_configuration`` directly.

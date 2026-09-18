@@ -57,8 +57,8 @@ Notice that ``SVCBenchmark.__init__`` receives ``RegistrationKey`` objects, not 
 component instances. Each dependency is built lazily inside ``run()`` via
 ``Registry.from_key(key)``.
 
-This is a deliberate design choice enabled by ``resolve_automatically=False`` in the
-benchmark's registration (see below). It means:
+That is how every component receives its dependencies, and it is what makes the
+laziness possible. It means:
 
 - The ``Registry`` validates that each ``RegistrationKey`` exists and is resolvable,
   but does not build the nested components eagerly.
@@ -97,15 +97,13 @@ benchmark's registration (see below). It means:
             namespace='examples',
             component='examples.components.benchmark.SVCBenchmark',
             run_method='run',
-            resolve_automatically=False      # keep RegistrationKey fields unresolved
         )
         def default(cls) -> 'SVCBenchmarkConfig':
             return super().default()
 
-The four ``RegistrationKey`` fields point to the other registered components.
-``resolve_automatically=False`` tells the ``Registry`` not to replace those keys with
-``Configuration`` instances during ``dag_resolution()`` — they are passed as-is to
-``SVCBenchmark.__init__``, which then resolves them lazily inside ``run()``.
+The four ``RegistrationKey`` fields point to the other registered components. The
+``Registry`` checks that each one resolves, and then hands the keys themselves to
+``SVCBenchmark.__init__``, which builds them lazily inside ``run()``.
 
 The default keys can be swapped by overriding individual fields via ``model_copy()``:
 

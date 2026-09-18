@@ -15,6 +15,14 @@ parameter variants — all without the caller knowing which concrete classes are
 RegistrationKey
 =============================================
 
+.. mermaid::
+
+    flowchart LR
+        N["name<br/>'model'"] --> K
+        T["tags<br/>{'bert', 'large'}"] --> K
+        NS["namespace<br/>'nlp'"] --> K
+        K["RegistrationKey"] --> S["name=model--tags=['bert', 'large']--namespace=nlp"]
+
 A ``RegistrationKey`` is a compound identifier made up of three fields:
 
 - ``name``: a general identifier for the registered ``Configuration``.
@@ -111,7 +119,20 @@ optionally binding it to a ``Component`` class so that component instances can b
 from it later.
 
 There are three ways to register: via a decorator on the ``Configuration`` class,
-via a decorated ``@classmethod``, or via an ad-hoc function.
+via a decorated ``@classmethod``, or via an ad-hoc function. All three end in the
+same place, a ``ConfigurationInfo`` entry stored under a key:
+
+.. mermaid::
+
+    flowchart LR
+        A["@register_class<br/>one key per class"] --> I
+        B["@register_method<br/>several keys per class"] --> I
+        C["@register<br/>an ad-hoc function"] --> I
+        I["ConfigurationInfo<br/>config, component path, run method"]
+        I --> R["Registry, under the key"]
+
+Pick the first form that fits. ``@register_class`` covers the common case, a
+configuration that describes one component under one key.
 
 ---------------------------------------------
 Class registration
@@ -325,7 +346,7 @@ calling it rebuilds the registry first.
     That is the same discipline, not a new one.
 
 ``directory`` defaults to the working directory, matching the ``-dir`` flag of
-the :doc:`commands`. ``logging_level`` defaults to ``logging.INFO``; pass
+the :doc:`commands <../reference/commands>`. ``logging_level`` defaults to ``logging.INFO``; pass
 ``None`` for a script that configures its own logging:
 
 .. code-block:: python
@@ -419,31 +440,28 @@ details of how component construction works, including nested configurations and
 ``build_args`` overrides.
 
 =============================================
-Deferred dependency resolution
+Dependencies reach the component as keys
 =============================================
 
-By default, the ``Registry`` resolves all ``RegistrationKey`` dependencies in a
-configuration — replacing them with the corresponding ``Configuration`` instances.
-
-If you need to keep dependencies as ``RegistrationKey`` objects after resolution
-(for example, to build the component lazily at runtime), pass
-``resolve_automatically=False`` at registration time:
+Resolution replaces a dependency key with the child's ``Configuration`` inside
+the parent configuration, so conditions can be validated across the whole graph.
+**What the component receives is still the key.**
 
 .. code-block:: python
 
-    Registry.register_configuration(
-        config=MyConfig.default(),
-        name='model',
-        namespace='testing',
-        resolve_automatically=False
-    )
+    class Pipeline:
 
-    # After Registry.dag_resolution():
-    config = MyConfig.retrieve(name='model', namespace='testing')
-    isinstance(config.child, RegistrationKey)   # True — not resolved to a Configuration
+        def __init__(self, processor: RegistrationKey):
+            self.processor = Registry.from_key(processor)   # built when it wants to
 
-The ``Registry`` still validates the key's existence and checks conditions, but the
-dependency field is left as a ``RegistrationKey`` for the caller to resolve manually.
+That is deliberate, and it is the only behaviour: a component decides when, and
+whether, each child is built. A child needed on one code path costs nothing on
+the others.
+
+.. note::
+    Earlier releases had a ``resolve_automatically=False`` registration flag for
+    exactly this. It is gone, because handing components keys is now what always
+    happens, and a flag with one possible meaning is not a choice.
 
 =============================================
 Tl;dr
@@ -469,10 +487,3 @@ automatically while keeping things readable.
 See :doc:`dependencies` for the
 recommended project layout and a full walkthrough of how ``Registry.build()`` discovers
 and executes registrations.
-
-
-.. toctree::
-   :maxdepth: 4
-   :hidden:
-   :caption: Contents:
-   :titlesonly:

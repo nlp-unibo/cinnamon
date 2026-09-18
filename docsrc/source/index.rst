@@ -92,6 +92,31 @@ From source:
     pip install ./cinnamon
 
 ===============================================
+The shape of a project
+===============================================
+
+Configurations live under a ``configurations`` directory, components live
+wherever you keep your code, and the ``Registry`` is what joins them at build
+time.
+
+.. mermaid::
+
+    flowchart LR
+        SRC["configurations/*.py<br/>register(...) calls"]
+        COMP["your components<br/>plain classes, bound by import path"]
+        B["Registry.build()"]
+        KEYS["resolved keys<br/>one per variant combination"]
+        OBJ["built component<br/>parameters and children passed in"]
+
+        SRC --> B
+        B --> KEYS
+        KEYS --> OBJ
+        COMP -. "imported only when something is built" .-> OBJ
+
+Nothing under ``configurations`` imports your components, which is why a build
+stays in the millisecond range no matter how heavy they are.
+
+===============================================
 Where to start
 ===============================================
 
@@ -99,13 +124,13 @@ Where to start
 in a few minutes. It is the shortest path from here to running code.
 
 The :doc:`tutorial <tutorial/index>` is seven runnable files that build the library
-up one idea at a time — configuration, registration, variants, dependencies,
+up one idea at a time: configuration, registration, variants, dependencies,
 collections, conditions, and a worked project with the real directory layout.
 Every one of them is executed by the test suite, so what you read is what runs.
 
-Then :doc:`configuration`, :doc:`component`, :doc:`registration` and
-:doc:`dependencies` cover each concept properly, :doc:`commands` covers the command
-line, and :doc:`examples/index` works through a complete scikit-learn pipeline.
+Then :doc:`concepts/index` covers each idea properly, :doc:`reference/index`
+covers the command line and the generated API documentation, and
+:doc:`examples/index` works through a complete scikit-learn pipeline.
 
 ===============================================
 Contact
@@ -118,46 +143,13 @@ Don't hesitate to contact:
 for questions/doubts/issues!
 
 .. toctree::
-   :maxdepth: 4
-   :hidden:
-   :caption: Getting started:
-   :titlesonly:
-
-   Quickstart <quickstart.rst>
-
-.. toctree::
    :maxdepth: 2
    :hidden:
-   :caption: Tutorial:
    :titlesonly:
 
-   Tutorial <tutorial/index.rst>
-
-.. toctree::
-   :maxdepth: 4
-   :hidden:
-   :caption: Concepts:
-   :titlesonly:
-
-   Configuration <configuration.rst>
-   Component <component.rst>
-   Registration <registration.rst>
-   Dependencies <dependencies.rst>
-
-.. toctree::
-   :maxdepth: 4
-   :hidden:
-   :caption: Reference:
-   :titlesonly:
-
-   Commands <commands.rst>
-   Performance <performance.rst>
-   Code Documentation <modules.rst>
-
-.. toctree::
-   :maxdepth: 1
-   :hidden:
-   :caption: Examples:
-   :titlesonly:
-
-   Worked pipeline <examples/index.rst>
+   Quickstart <quickstart>
+   Tutorial <tutorial/index>
+   Concepts <concepts/index>
+   Examples <examples/index>
+   Reference <reference/index>
+   Contributing <project/contributing>

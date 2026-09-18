@@ -91,7 +91,7 @@ def examples(session: nox.Session) -> None:
 def docs(session: nox.Session) -> None:
     """Build the documentation with warnings treated as errors.
 
-    The package is installed with the ``cli`` extra because autodoc imports each
+    The package is installed with the ``cli`` and ``docs`` extras. Autodoc imports each
     module to document it, and ``cinnamon.utility.inquirer`` needs InquirerPy.
     (``cinnamon.cli`` no longer does; ``conf.py`` mocks the dependency anyway so
     the build does not silently depend on the extra being present.) A deleted
@@ -102,7 +102,6 @@ def docs(session: nox.Session) -> None:
     so all three exercise one code path and cannot quietly disagree about flags
     or output location.
     """
-    session.install("-e", ".[cli]")
-    session.install("sphinx", "sphinx_autodoc_typehints", "sphinx_rtd_theme")
+    session.install("-e", ".[cli,docs]")
     session.chdir("docsrc")
     session.run("bash", "build_docs.sh", external=True)

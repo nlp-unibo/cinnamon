@@ -134,6 +134,33 @@ This is possible because the ``Registry`` builds a directed acyclic graph (DAG) 
 dependencies and resolves them bottom-up — children before parents — regardless of
 the order they were registered.
 
+.. mermaid::
+
+    flowchart TD
+        P["parent<br/>child: RegistrationKey"]
+        C["child<br/>x: int = Param(42)"]
+        P -- "declares a key" --> C
+        C == "resolved first, then handed to the parent" ==> P
+
+A field holding a key points *down* the graph, and resolution walks *up* it: the
+child becomes a ``Configuration`` instance before the parent that names it is
+built, so the parent never sees an unresolved key.
+
+``Registry.build()`` is the one call that does all of it:
+
+.. mermaid::
+
+    flowchart LR
+        S["scan<br/>every configurations/ folder"]
+        E["execute<br/>@register and @register_method"]
+        G["graph<br/>one edge per key-valued field"]
+        V["expand<br/>one key per variant combination"]
+        R["resolve<br/>children before parents"]
+        S --> E --> G --> V --> R
+
+Nothing in this sequence imports a component: the binding is a string, and it is
+imported only when something is actually built.
+
 To trigger registration and resolution, call ``Registry.build()``:
 
 .. code-block:: python
@@ -173,6 +200,16 @@ that declares ``Param(1, variants=[2])`` resolves to a variant key tagged
     name=strategy--tags=['sentences=2', 'truncate']
     name=summariser--namespace=tutorial/summarisation
     name=summariser--tags=['strategy.sentences=2', 'strategy.truncate']
+
+.. mermaid::
+
+    flowchart LR
+        C1["child<br/>tags=['truncate']"]
+        C2["child variant<br/>tags=['sentences=2', 'truncate']"]
+        P1["parent<br/>tags=['strategy.truncate']"]
+        P2["parent variant<br/>tags=['strategy.sentences=2', 'strategy.truncate']"]
+        C1 -- "prefixed by the field name" --> P1
+        C2 -- "prefixed by the field name" --> P2
 
 ``strategy.sentences=2`` reads as "the ``strategy`` field pointing at the child
 tagged ``sentences=2``". Every child variant carries a distinct ``param=value``
@@ -361,10 +398,3 @@ to ``Registry.build()``:
 The ``Registry`` will scan the external project's ``configurations`` folder,
 register its keys, and make them available for dependency resolution alongside
 your own.
-
-
-.. toctree::
-   :maxdepth: 4
-   :hidden:
-   :caption: Contents:
-   :titlesonly:

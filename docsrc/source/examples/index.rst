@@ -10,6 +10,23 @@ It performs binary sentiment analysis on the `IMDB dataset
 Each stage — data loading, preprocessing, modelling, and evaluation — is a separate
 component and configuration, wired together by the ``Registry``.
 
+.. mermaid::
+
+    flowchart LR
+        L["IMDBLoader<br/>data_loader[imdb]"]
+        T["TfIdfProcessor<br/>processor[tf-idf]"]
+        E["LabelProcessor<br/>processor[label]"]
+        M["SVCModel<br/>model[svc]"]
+        B["SVCBenchmark<br/>benchmark[svc]"]
+        B --> L
+        B --> T
+        B --> E
+        B --> M
+
+The benchmark holds the four keys and builds each child when ``run()`` needs it.
+Every arrow is a dependency field, so ``cmn-check`` reports a typo in any of them
+before anything is loaded.
+
 .. code-block:: bash
 
     pip install -e ".[examples]"
@@ -24,6 +41,7 @@ nothing beyond cinnamon itself. This section assumes them.
 
 .. toctree::
    :maxdepth: 1
+   :hidden:
 
    Overview <overview.rst>
    Data Loader <data_loader.rst>

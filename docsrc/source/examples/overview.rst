@@ -4,7 +4,7 @@ Overview
 =============================================
 
 The examples folder contains a complete machine-learning pipeline built with cinnamon.
-It is a good starting point to see how ``Component`` and ``Configuration`` work together
+It is a good starting point to see how components and configurations work together
 in a real project.
 
 The pipeline covers:
@@ -52,19 +52,24 @@ Install cinnamon and the example dependencies:
 Running the demos
 =============================================
 
-Run the full benchmark pipeline:
+Run the full benchmark pipeline, from the repository root:
 
 .. code-block:: bash
 
-    cd examples
-    python demos/demo_benchmark.py
+    python -m examples.demos.demo_benchmark
 
 Run only the data loader:
 
 .. code-block:: bash
 
-    cd examples
-    python demos/demo_data_loader.py
+    python -m examples.demos.demo_data_loader
+
+Run them as modules, from the root rather than from inside ``examples``. The
+components are bound by their full import path, ``examples.components.benchmark.SVCBenchmark``,
+so the directory that has to be importable is the one holding ``examples``.
+Running ``python demos/demo_benchmark.py`` from inside ``examples`` fails with
+``ModuleNotFoundError: No module named 'examples'`` at the moment the first
+component is built.
 
 Both scripts call ``Registry.build()`` to discover and register all configurations
 under the ``configurations/`` folder before building the components.
