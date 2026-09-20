@@ -121,3 +121,22 @@ def test_instantiate_unregistered_raises(reset_registry):
 
     with pytest.raises(NotRegisteredException):
         Registry.instantiate(name="does_not_exist", namespace="testing")
+
+
+def test_every_exception_is_exported():
+    """
+    Every exception class defined in the module is listed in ``__all__``.
+
+    Callers import these by name and ``from ... import *`` is the documented
+    entry point, so a class that is raised but not exported is unreachable
+    through the public interface.
+    """
+    import cinnamon.utility.exceptions as exceptions
+
+    defined = {
+        name
+        for name, value in vars(exceptions).items()
+        if isinstance(value, type) and value.__module__ == exceptions.__name__
+    }
+
+    assert defined == set(exceptions.__all__)

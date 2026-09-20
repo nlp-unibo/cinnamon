@@ -35,6 +35,8 @@ __all__ = [
     "ValidationResult",
     "ValidationFailureException",
     "UnsupportedFieldTypeException",
+    "UnserializableRuntimeException",
+    "VariantKeyCollisionException",
 ]
 
 
