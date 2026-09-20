@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, List, Optional, Union
+from typing import TYPE_CHECKING, Any, List, Optional, Union
 
 if TYPE_CHECKING:
     from cinnamon.registry import RegistrationKey
@@ -171,6 +171,24 @@ class NotExpandedException(Exception):
             "The registration graph has yet to be expanded!"
             " Configuration retrieval is not allowed."
         )
+
+
+class UnserializableRuntimeException(Exception):
+    """A registered value that cannot travel to another process.
+
+    Raised by ``Registry.freeze_runtime`` rather than by the worker that would
+    have failed to unpickle it, so the offending key and field are named while
+    there is still a stack that says which registration they came from.
+    """
+
+    def __init__(self, registration_key: Any, field: str, reason: Exception):
+        super().__init__(
+            f"Cannot freeze the runtime: '{registration_key}' holds a value in"
+            f" field '{field}' that cannot be serialized. {os.linesep}"
+            f"Reason: {reason}"
+        )
+        self.registration_key = registration_key
+        self.field = field
 
 
 class InvalidDirectoryException(Exception):

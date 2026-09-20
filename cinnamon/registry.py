@@ -5,6 +5,7 @@ import functools
 import importlib.util
 import itertools
 import logging
+import pickle
 import re
 import sys
 from collections.abc import ItemsView, Mapping
@@ -21,6 +22,7 @@ from typing import (
     Tuple,
     TypeVar,
     Union,
+    cast,
 )
 
 import networkx as nx
@@ -46,6 +48,7 @@ from cinnamon.utility.exceptions import (
     NotBoundException,
     NotExpandedException,
     NotRegisteredException,
+    UnserializableRuntimeException,
     VariantKeyCollisionException,
 )
 from cinnamon.utility.registration import (
@@ -835,6 +838,24 @@ class ConfigurationInfo:
     run_method: str | None = None
 
 
+@dataclass
+class RuntimeValues:
+    """A configuration reduced to what building a component needs.
+
+    :meth:`Registry.instantiate` reads ``config.values`` and nothing else, so a
+    registry that only has to *build* needs neither the ``Configuration``
+    classes nor the graph that resolved them -- which is what makes it small
+    enough, and portable enough, to hand to another process.
+    """
+
+    values: Dict[str, Any]
+
+    #: Everything else a ``Configuration`` offers -- its fields, its
+    #: validation, its analyzers -- belongs to the build that produced this
+    #: and is not carried. A process that installed a runtime can build
+    #: components and nothing else, which is all a worker does.
+
+
 class Registry:
     """
     The registration registry.
@@ -969,6 +990,85 @@ class Registry:
             directory.as_posix() for directory in getattr(cls, "_EXP_MODULES", ())
         ]
         return state
+
+    @classmethod
+    def freeze_runtime(cls) -> Dict[RegistrationKey, Dict[str, Any]]:
+        """The registry reduced to what another process needs in order to build.
+
+        A built registry is two things at once: the machinery that produced it
+        -- the dependency graph, the registration decorators, the record of
+        which modules were imported -- and the answer that machinery arrived
+        at. Only the answer is needed to build a component, and only the
+        answer is portable. This returns it: per key, the component's import
+        path, the values its configuration resolved to, and the method that
+        runs it.
+
+        The component is kept as a path and not as a class, deliberately. A
+        worker importing that path gets the class its own interpreter defines,
+        so an ``expected_type`` check compares classes that are genuinely the
+        same -- where a pickled class would arrive as a second object that
+        ``issubclass`` rejects. It is also what lets this work whatever the
+        registration modules were loaded as: nothing here refers to them.
+
+        Every value is pickled here, and one that cannot be raises
+        :class:`UnserializableRuntimeException` naming the key and the field.
+        A lambda in a configuration is the usual cause. Failing here is the
+        point: the alternative is a worker failing to unpickle something, in a
+        stack that says nothing about which registration it came from.
+
+        Nothing is mutated: the registry this is read from is left as it was.
+        """
+        if not cls.expanded:
+            raise NotExpandedException()
+
+        runtime: Dict[RegistrationKey, Dict[str, Any]] = {}
+        for key, info in cls._REGISTRY.items():
+            values = dict(info.config.values)
+            for field, value in values.items():
+                try:
+                    pickle.dumps(value)
+                except Exception as error:
+                    raise UnserializableRuntimeException(
+                        registration_key=key, field=field, reason=error
+                    ) from error
+            runtime[key] = {
+                "component": info.component,
+                "run_method": info.run_method,
+                "values": values,
+            }
+        return runtime
+
+    @classmethod
+    def install_runtime(cls, runtime: Dict[RegistrationKey, Dict[str, Any]]) -> None:
+        """Make this process able to build from a frozen runtime.
+
+        For a worker, which has to resolve keys and has no reason to scan
+        anything: nothing is imported, no directory is walked, no
+        configuration is registered a second time, and the dependency graph is
+        neither rebuilt nor needed, having been resolved by whoever froze this.
+
+        :meth:`from_key` then behaves as it does after a build, nested
+        dependencies included -- those are keys held in the values, and they
+        resolve through the same registry.
+        """
+        cls.initialize()
+        cls._REGISTRY = {
+            key: ConfigurationInfo(
+                # Cast rather than widen the field: `instantiate` reads
+                # `config.values` and nothing else, but every other caller of
+                # `ConfigurationInfo.config` is entitled to a real
+                # `Configuration`, and saying otherwise in the type would push
+                # this compromise into thirteen call sites that do not make it.
+                config=cast(
+                    cinnamon.configuration.Configuration,
+                    RuntimeValues(values=dict(entry["values"])),
+                ),
+                component=entry["component"],
+                run_method=entry["run_method"],
+            )
+            for key, entry in runtime.items()
+        }
+        cls.expanded = True
 
     @classmethod
     def restore(cls, state: Dict[str, Any]) -> None:
