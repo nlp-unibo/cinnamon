@@ -932,9 +932,9 @@ class Registry:
 
     _EXP_MODULES: Set[Path]
     #: Module names ``load_registrations`` put into ``sys.modules`` itself.
-    #: Only these are forgotten again: a module the caller imported before the
-    #: build is the caller's, and dropping it hands them a second copy of every
-    #: class in it.
+    #: Only the configuration modules among these are forgotten again: a module
+    #: the caller imported, before or after the build, is the caller's, and
+    #: dropping it hands them a second copy of every class in it.
     _LOADED_MODULES: Set[str]
     _MODULE_MAPPING: Dict[str, Path]
     _EXP_NAMESPACES: List[str]
@@ -1099,6 +1099,13 @@ class Registry:
         with a message naming one class twice. A library whose tests scan its
         own package is exactly that arrangement.
 
+        **And only configuration modules.** A registration script that imports
+        its library puts that library's modules in ``sys.modules`` during the
+        load. A caller that imports a class after the build holds that module's
+        class, so forgetting the module hands the next build a second copy.
+        Only modules inside a ``configurations`` folder collide between
+        projects, so those are the only ones forgotten.
+
         Registrations are re-executed on every ``load``, so nothing here is a
         cache being thrown away.
         """
@@ -1121,14 +1128,23 @@ class Registry:
                 pass
             return [str(where) for where in located if where is not None]
 
+        def configuration(where: str) -> bool:
+            """Whether ``where`` lies in a ``configurations`` folder of a root."""
+            for root in roots:
+                try:
+                    relative = Path(where).relative_to(root)
+                except ValueError:
+                    continue
+                if cls._CONFIGURATION_FOLDER in relative.parts:
+                    return True
+            return False
+
         loaded: Set[str] = getattr(cls, "_LOADED_MODULES", set())
         doomed = [
             name
             for name, module in list(sys.modules.items())
             if name in loaded
-            and any(
-                where.startswith(root) for where in where_from(module) for root in roots
-            )
+            and any(configuration(where) for where in where_from(module))
         ]
 
         sys.path[:] = [entry for entry in sys.path if entry not in roots]
