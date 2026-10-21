@@ -3,9 +3,11 @@
 API
 *********************************************
 
-The three modules a project imports. Everything here is re-exported from
+The three modules a project imports. Everything public in
+``cinnamon.configuration`` and ``cinnamon.registry`` is re-exported from
 ``cinnamon`` itself, so ``from cinnamon import Configuration`` and ``from
 cinnamon.configuration import Configuration`` name the same class.
+``cinnamon.cli`` holds the commands and is not re-exported.
 
 =============================================
 cinnamon.configuration
@@ -39,6 +41,5 @@ cinnamon
 =============================================
 
 .. automodule:: cinnamon
-    :members:
-    :undoc-members:
-    :show-inheritance:
+
+The package re-exports the two modules above and documents nothing of its own.

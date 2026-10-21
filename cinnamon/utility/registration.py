@@ -42,9 +42,12 @@ class NamespaceExtractor(ast.NodeVisitor):
     A namespace is discovered when it is a literal, a module-level constant
     bound to one -- ``NAMESPACE = "myproject"`` at the top of the file is the
     common idiom -- or such a constant imported from another module, which is
-    how a project keeps one namespace for many configuration files. Imports are
-    followed on the filesystem, by parsing the module they name; nothing is
-    executed, and nothing needs to be importable yet.
+    how a project keeps one namespace for many configuration files. A
+    ``Namespace("myproject")`` constant reads as its literal. A ``key=``
+    argument is followed to its binding, ``FR = NAMESPACE.key(...)`` or
+    ``FR = RegistrationKey(..., namespace=...)``, and the namespace is read
+    from there. Imports are followed on the filesystem, by parsing the module
+    they name; nothing is executed, and nothing needs to be importable yet.
 
     Anything computed at runtime cannot be read without executing the module,
     and is skipped rather than guessed at: the previous implementation took the
@@ -56,11 +59,15 @@ class NamespaceExtractor(ast.NodeVisitor):
     REGISTER_METHOD_DECORATOR = "register_method"
     REGISTER_CLASS_DECORATOR = "register_class"
     REGISTRATION_CALLS = frozenset({"register_configuration"})
+    NAMESPACE_CLASS = "Namespace"
+    KEY_METHOD = "key"
+    KEY_CLASS = "RegistrationKey"
 
     def __init__(self):
         self.namespaces: List[str] = []
         self.register_flag = False
         self._constants: dict = {}
+        self._calls: dict = {}
         self._imports: dict = {}
         self._filename: Path = Path()
 
@@ -74,17 +81,23 @@ class NamespaceExtractor(ast.NodeVisitor):
         with filename.open("r") as f:
             tree = ast.parse(f.read(), filename)
 
-        self._constants, self._imports = self._bindings(tree)
+        self._constants, self._calls, self._imports = self._bindings(tree)
         self.visit(tree)
 
         namespaces = list(self.namespaces)
         self.namespaces.clear()
         return namespaces
 
-    @staticmethod
-    def _bindings(tree: ast.Module) -> Tuple[dict, dict]:
-        """Module-level ``NAME = "literal"`` and ``from x import NAME`` bindings."""
+    @classmethod
+    def _bindings(cls, tree: ast.Module) -> Tuple[dict, dict, dict]:
+        """Module-level string constants, call bindings and ``from`` imports.
+
+        ``NAME = "literal"`` and ``NAME = Namespace("literal")`` bind a
+        string. Any other ``NAME = call(...)`` is kept as its call node, which
+        is how a key declared with ``NAMESPACE.key(...)`` is found again.
+        """
         constants: dict = {}
+        calls: dict = {}
         imports: dict = {}
         for node in tree.body:
             if isinstance(node, ast.ImportFrom):
@@ -103,13 +116,21 @@ class NamespaceExtractor(ast.NodeVisitor):
                 targets = [node.target]
 
             value = getattr(node, "value", None)
-            if not isinstance(value, ast.Constant) or not isinstance(value.value, str):
-                continue
+            if (
+                isinstance(value, ast.Call)
+                and cls._called_name(value) == cls.NAMESPACE_CLASS
+                and value.args
+            ):
+                value = value.args[0]
             for target in targets:
-                if isinstance(target, ast.Name):
+                if not isinstance(target, ast.Name):
+                    continue
+                if isinstance(value, ast.Constant) and isinstance(value.value, str):
                     constants[target.id] = value.value
+                elif isinstance(value, ast.Call):
+                    calls[target.id] = value
 
-        return constants, imports
+        return constants, calls, imports
 
     @staticmethod
     def _import_source(
@@ -137,17 +158,27 @@ class NamespaceExtractor(ast.NodeVisitor):
                     return path
         return None
 
-    def _imported_constant(self, name: str) -> Optional[str]:
+    def _lookup(
+        self, name: str, filename: Path, bindings: Tuple[dict, dict, dict]
+    ) -> Optional[Tuple[Any, Path, Tuple[dict, dict, dict]]]:
         """
-        Follow ``from x import NAME`` across files until a literal is found.
+        Follow ``NAME`` through ``from x import NAME`` until it is bound.
 
-        Each hop reads one more file, and a file already read ends the walk, so
-        a re-export chain terminates and an import cycle does too.
+        Returns the string or call node it is bound to, with the file and the
+        bindings it was found in, so a call node can be read in its own
+        module. Each hop reads one more file, and a file already read ends the
+        walk, so a re-export chain terminates and an import cycle does too.
         """
-        filename, imports = self._filename, self._imports
         seen: set = set()
+        while True:
+            constants, calls, imports = bindings
+            if name in constants:
+                return constants[name], filename, bindings
+            if name in calls:
+                return calls[name], filename, bindings
+            if name not in imports:
+                return None
 
-        while name in imports:
             module, level, name = imports[name]
             source = self._import_source(filename, module, level)
             if source is None or source in seen:
@@ -156,11 +187,67 @@ class NamespaceExtractor(ast.NodeVisitor):
 
             filename = source
             with source.open("r") as f:
-                constants, imports = self._bindings(ast.parse(f.read(), source))
-            if name in constants:
-                return constants[name]
+                bindings = self._bindings(ast.parse(f.read(), source))
 
+    def _namespace(
+        self, value: ast.AST, filename: Path, bindings: Tuple[dict, dict, dict]
+    ) -> Optional[str]:
+        """A namespace expression's value, if it is a string we can read statically."""
+        if isinstance(value, ast.Constant):
+            return value.value if isinstance(value.value, str) else None
+        if isinstance(value, ast.Name):
+            found = self._lookup(value.id, filename, bindings)
+            if found is not None and isinstance(found[0], str):
+                return found[0]
         return None
+
+    def _key_namespace(
+        self, value: ast.AST, filename: Path, bindings: Tuple[dict, dict, dict]
+    ) -> Optional[str]:
+        """The namespace of a key expression, if we can read it statically.
+
+        The key is a ``NAMESPACE.key(...)`` or ``RegistrationKey(...)`` call,
+        either written in place or bound to a name that is followed first.
+        """
+        if isinstance(value, ast.Name):
+            found = self._lookup(value.id, filename, bindings)
+            if found is None:
+                return None
+            value, filename, bindings = found
+        if not isinstance(value, ast.Call):
+            return None
+
+        function = value.func
+        if (
+            isinstance(function, ast.Attribute)
+            and function.attr == self.KEY_METHOD
+            and isinstance(function.value, ast.Name)
+        ):
+            return self._namespace(function.value, filename, bindings)
+        if self._called_name(value) == self.KEY_CLASS:
+            for keyword in value.keywords:
+                if keyword.arg == "namespace":
+                    return self._namespace(keyword.value, filename, bindings)
+        return None
+
+    def _keyword(self, node: ast.Call, name: str) -> Optional[ast.AST]:
+        for keyword in node.keywords:
+            if keyword.arg == name:
+                return keyword.value
+        return None
+
+    def _registered_namespace(self, node: ast.Call) -> None:
+        """Record what a registration names, through ``namespace=`` or ``key=``."""
+        bindings = (self._constants, self._calls, self._imports)
+        namespace = self._keyword(node, "namespace")
+        key = self._keyword(node, "key")
+        found = None
+        if namespace is not None:
+            found = self._namespace(namespace, self._filename, bindings)
+        elif key is not None:
+            found = self._key_namespace(key, self._filename, bindings)
+        if found is not None:
+            self.namespaces.append(found)
 
     @staticmethod
     def _called_name(node: ast.AST) -> Optional[str]:
@@ -170,21 +257,6 @@ class NamespaceExtractor(ast.NodeVisitor):
             return target.id
         if isinstance(target, ast.Attribute):
             return target.attr
-        return None
-
-    def _literal_keyword(self, node: ast.Call, name: str) -> Optional[str]:
-        """A keyword argument's value, if it is a string we can read statically."""
-        for keyword in node.keywords:
-            if keyword.arg != name:
-                continue
-            if isinstance(keyword.value, ast.Constant):
-                value = keyword.value.value
-                return value if isinstance(value, str) else None
-            if isinstance(keyword.value, ast.Name):
-                name_id = keyword.value.id
-                if name_id in self._constants:
-                    return self._constants[name_id]
-                return self._imported_constant(name_id)
         return None
 
     def visit_FunctionDef(self, node):
@@ -199,9 +271,7 @@ class NamespaceExtractor(ast.NodeVisitor):
             if name == self.REGISTER_METHOD_DECORATOR and isinstance(
                 decorator, ast.Call
             ):
-                namespace = self._literal_keyword(decorator, "namespace")
-                if namespace is not None:
-                    self.namespaces.append(namespace)
+                self._registered_namespace(decorator)
                 break
 
             if name == self.REGISTER_DECORATOR:
@@ -223,9 +293,7 @@ class NamespaceExtractor(ast.NodeVisitor):
             if self._called_name(decorator) == self.REGISTER_CLASS_DECORATOR and (
                 isinstance(decorator, ast.Call)
             ):
-                namespace = self._literal_keyword(decorator, "namespace")
-                if namespace is not None:
-                    self.namespaces.append(namespace)
+                self._registered_namespace(decorator)
                 break
 
         self.generic_visit(node)
@@ -235,9 +303,7 @@ class NamespaceExtractor(ast.NodeVisitor):
         # keywords meant a Param(description=...) inside a @register function
         # raised IndexError on the missing namespace.
         if self.register_flag and self._called_name(node) in self.REGISTRATION_CALLS:
-            namespace = self._literal_keyword(node, "namespace")
-            if namespace is not None:
-                self.namespaces.append(namespace)
+            self._registered_namespace(node)
         self.generic_visit(node)
 
 

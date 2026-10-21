@@ -568,3 +568,14 @@ def test_pypi_references_name_the_right_distribution():
     assert not wrong, (
         f"these point at a distribution that is not cinnamon-core: {sorted(set(wrong))}"
     )
+
+
+def test_the_package_reexports_what_the_api_page_says():
+    """``from cinnamon import X`` names the same object as the module's ``X``."""
+    import cinnamon
+    from cinnamon import configuration, registry
+
+    for module in (configuration, registry):
+        for name in module.__all__:
+            assert getattr(cinnamon, name) is getattr(module, name), name
+    assert "cli" not in cinnamon.__all__
