@@ -88,24 +88,25 @@ broken by a new release before.
 - **Then run the real thing.** The suite is not the last word — several bugs
   here survived a green suite and died the moment someone ran `cmn-check`
   against an actual project.
-- **Before tagging a release, run a downstream project's suite against the
-  branch.** 2.1.2 shipped on 557 passing tests at 100% branch coverage and
-  broke pyhighlights in 49 of them: it forgot the caller's own imports, so a
-  second build handed back a second copy of every class. Coverage measures
-  lines, not *arrangements*, and the arrangement that broke — a caller
-  importing from a directory it then scans — is not one this project builds for
-  itself. The check is two commands:
+- **Keep the downstream example passing.** 2.1.2 shipped on 557 passing tests
+  at 100% branch coverage and broke pyhighlights in 49 of them: it forgot the
+  caller's own imports, so a second build handed back a second copy of every
+  class. Coverage measures lines, not *arrangements*, and that arrangement was
+  not one this project built for itself. `examples/downstream` now builds it: a
+  library, a study that subclasses the library's configurations, and a test
+  module, `tests/test_downstream.py`, that imports the library first and then
+  builds again and again. CI runs it with the rest of the suite and depends on
+  no other repository.
+- **Bring downstream failures home.** Before tagging a release, running a real
+  downstream project's suite against the branch is still worth the two
+  commands, run in the downstream checkout:
 
   ```bash
-  uv pip install -e ../cinnamon && uv run pytest   # in the downstream checkout
+  uv pip install -e ../cinnamon && uv run pytest
   ```
 
-  **CI runs this for you** on any pull request touching `cinnamon/` or
-  `pyproject.toml` — `.github/workflows/downstream.yml`, pyhighlights' suite
-  against the branch. It is not part of `all-green`, because that job counts a
-  skipped dependency as a failure and this one is skipped on a docs-only pull
-  request. Read it before tagging: a red `Downstream` is a release that must
-  not go out, whatever this repository's own matrix says.
+  A failure found that way becomes one more case in `examples/downstream` and
+  `tests/test_downstream.py`, so the next release is checked for it here.
 
 ## Commit messages
 
