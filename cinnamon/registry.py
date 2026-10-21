@@ -69,6 +69,7 @@ Constructor = Callable[[], "cinnamon.configuration.Configuration"]
 T = TypeVar("T")
 
 __all__ = [
+    "Namespace",
     "RegistrationKey",
     "register",
     "register_method",
@@ -498,6 +499,29 @@ class RegistrationKey(Generic[T]):
         )
 
 
+class Namespace(str):
+    """
+    A namespace that builds the keys registered into it.
+
+    A project declares one, ``NAMESPACE = Namespace("myproject")``, and writes
+    each key once, ``FR = NAMESPACE.key("model", "fr")``. ``register_class``
+    and ``register_method`` then take that key, so the name, the tags and the
+    namespace are never restated next to the configuration.
+
+    ``Registry.build`` reads namespaces before importing anything, so the
+    constructor must receive a string literal, bound to a module-level name.
+    A ``Namespace`` is a ``str``, so it also fits the ``namespace=`` argument
+    of every registration.
+    """
+
+    def key(
+        self, name: str, *tags: str, description: str | None = None
+    ) -> RegistrationKey[Any]:
+        return RegistrationKey(
+            name=name, tags=set(tags), namespace=str(self), description=description
+        )
+
+
 def json_default(value: Any) -> Any:
     """
     ``default=`` hook that teaches :mod:`json` about registration keys.
@@ -524,16 +548,12 @@ class BufferedRegistration:
     def __init__(
         self,
         func: Callable,
-        name: str,
-        namespace: str,
-        tags: Tags = None,
+        key: RegistrationKey[Any],
         component: str | None = None,
         run_method: str | None = None,
     ):
         self.func = func
-        self.name = name
-        self.namespace = namespace
-        self.tags = tags
+        self.key = key
         self.component = component
         self.run_method = run_method
 
@@ -567,16 +587,12 @@ class BufferedClassRegistration:
     def __init__(
         self,
         configuration: type[cinnamon.configuration.Configuration],
-        name: str,
-        namespace: str,
-        tags: Tags = None,
+        key: RegistrationKey[Any],
         component: str | None = None,
         run_method: str | None = None,
     ):
         self.configuration = configuration
-        self.name = name
-        self.namespace = namespace
-        self.tags = tags
+        self.key = key
         self.component = component
         self.run_method = run_method
 
@@ -590,13 +606,7 @@ Buffered = Union[BufferedRegistration, BufferedClassRegistration]
 
 def _buffer(registration: Buffered) -> None:
     """Hold a registration until ``Registry.build`` reaches its key."""
-    key = str(
-        RegistrationKey[Any](
-            name=registration.name,
-            tags=registration.tags,
-            namespace=registration.namespace,
-        )
-    )
+    key = str(registration.key)
     if (
         hasattr(Registry, "REGISTRATION_CONTEXT")
         and Registry.REGISTRATION_CONTEXT.is_registering
@@ -611,20 +621,59 @@ def _buffer(registration: Buffered) -> None:
 Registration = Union[RegistrationKey, str]
 
 
+def _registration_key(
+    key: RegistrationKey[Any] | None,
+    name: str | None,
+    namespace: str | None,
+    tags: Tags,
+) -> RegistrationKey[Any]:
+    """The key a registration names, given once.
+
+    A key passed in is copied with its ``description`` and ``special_tags``,
+    because registration marks a runnable key in ``special_tags``, and the
+    caller's key is typically a module-level constant other code reads.
+    """
+    if key is None:
+        if name is None or namespace is None:
+            raise TypeError("a registration needs a key, or a name and a namespace")
+        return RegistrationKey[Any](name=name, tags=tags, namespace=namespace)
+    if name is not None or namespace is not None or tags is not None:
+        raise TypeError(
+            f"{key} is registered by its key, so name, namespace and tags "
+            f"cannot be passed as well"
+        )
+    return RegistrationKey[Any](
+        name=key.name,
+        tags=key.tags,
+        namespace=key.namespace,
+        description=key.description,
+        special_tags=key.special_tags,
+    )
+
+
 def register_method(
-    name: str,
-    namespace: str,
+    name: str | None = None,
+    namespace: str | None = None,
     tags: Tags = None,
     component: str | None = None,
     run_method: str | None = None,
+    key: RegistrationKey[Any] | None = None,
 ) -> Callable:
+    """
+    Register the configuration a ``default`` classmethod builds.
+
+    Takes either ``key`` or ``name``, ``namespace`` and ``tags``, as
+    :func:`register_class` does.
+    """
+    registration_key = _registration_key(
+        key=key, name=name, namespace=namespace, tags=tags
+    )
+
     def register_wrapper(func):
         _buffer(
             BufferedRegistration(
                 func=func,
-                name=name,
-                tags=tags,
-                namespace=namespace,
+                key=registration_key,
                 component=component,
                 run_method=run_method,
             )
@@ -635,11 +684,12 @@ def register_method(
 
 
 def register_class(
-    name: str,
-    namespace: str,
+    name: str | None = None,
+    namespace: str | None = None,
     tags: Tags = None,
     component: str | None = None,
     run_method: str | None = None,
+    key: RegistrationKey[Any] | None = None,
 ) -> Callable:
     """
     Register a ``Configuration`` subclass, as a decorator on the class itself.
@@ -680,6 +730,20 @@ def register_class(
     say -- writes it as an ordinary classmethod; that is the one the
     registration builds from, since it is the one the class has.
 
+    A project that keeps its keys in one module passes the key instead, so
+    its name, tags and namespace are written only where the key is declared:
+
+    .. code-block:: python
+
+       # keys.py
+       NAMESPACE = Namespace("myproject")
+       TRANSFORMER_FR = NAMESPACE.key("model", "fr", "transformer")
+
+       # models.py
+       @register_class(key=TRANSFORMER_FR, component="myproject.models.FR")
+       class TransformerFRConfig(GRUFRConfig):
+           backbone: RegistrationKey = Param(TRANSFORMER)
+
     Args:
         name: name of the registration key.
         namespace: namespace of the registration key. Pass it as a keyword,
@@ -690,18 +754,28 @@ def register_class(
         tags: tags of the registration key.
         component: import path of the component the configuration describes.
         run_method: name of the component method a runner invokes.
+        key: the registration key, in place of ``name``, ``namespace`` and
+            ``tags``. Pass it as a keyword, named by a module-level constant
+            built with :meth:`Namespace.key`, so ``Registry.build`` can follow
+            it back to its namespace statically.
 
     Returns:
         The class, unchanged.
+
+    Raises:
+        ``TypeError``: if ``key`` is passed together with ``name``,
+            ``namespace`` or ``tags``, or if neither ``key`` nor both ``name``
+            and ``namespace`` are passed.
     """
+    registration_key = _registration_key(
+        key=key, name=name, namespace=namespace, tags=tags
+    )
 
     def register_wrapper(configuration):
         _buffer(
             BufferedClassRegistration(
                 configuration=configuration,
-                name=name,
-                tags=tags,
-                namespace=namespace,
+                key=registration_key,
                 component=component,
                 run_method=run_method,
             )
@@ -1456,11 +1530,9 @@ class Registry:
                     if isinstance(
                         key_method, (BufferedRegistration, BufferedClassRegistration)
                     ):
-                        Registry.register_configuration(
+                        Registry.register_configuration_from_key(
                             config=key_method.config(),
-                            name=key_method.name,
-                            tags=key_method.tags,
-                            namespace=key_method.namespace,
+                            registration_key=key_method.key,
                             component=key_method.component,
                             run_method=key_method.run_method,
                         )
@@ -1892,15 +1964,20 @@ class Registry:
     def register_configuration(
         cls,
         config: cinnamon.configuration.Configuration,
-        name: str,
-        namespace: str,
+        name: str | None = None,
+        namespace: str | None = None,
         tags: Tags = None,
         component: str | None = None,
         run_method: str | None = None,
+        key: RegistrationKey[Any] | None = None,
     ):
         """
         Registers a ``Configuration`` in the registry.
         In particular, a ``ConfigurationInfo`` wrapper is stored in the ``Registry``.
+
+        Takes either ``key`` or ``name``, ``namespace`` and ``tags``, as
+        :func:`register_class` does. A key passed in is copied, so
+        registration never changes the caller's key.
 
         Args:
             config: `Configuration`` instance
@@ -1910,6 +1987,8 @@ class Registry:
             component: ``Component`` module path as string
             run_method: ``Component`` method to run when instantiating
                 the ``Component`` as runnable
+            key: the registration key, in place of ``name``, ``namespace`` and
+                ``tags``.
 
         Returns:
             The built ``RegistrationKey`` instance that can be used to retrieve
@@ -1922,11 +2001,15 @@ class Registry:
 
             ``NamespaceNotFoundException``: if one of the dependencies of
                 ``RegistrationKey`` belongs to a namespace not covered.
+
+            ``TypeError``: if ``key`` is passed together with ``name``,
+                ``namespace`` or ``tags``, or if neither ``key`` nor both
+                ``name`` and ``namespace`` are passed.
         """
         return cls.register_configuration_from_key(
             config=config,
-            registration_key=RegistrationKey[Any](
-                name=name, tags=tags, namespace=namespace
+            registration_key=_registration_key(
+                key=key, name=name, namespace=namespace, tags=tags
             ),
             component=component,
             run_method=run_method,
@@ -1948,6 +2031,9 @@ class Registry:
         Resolution is the other case: ``expand_configuration`` derives a variant
         key with ``key.from_variant(...)`` and then had to take it apart into
         three fields for a callee that put them straight back together.
+
+        Registering a key a project declared goes through
+        ``register_configuration(key=...)`` instead, which copies it.
 
         The key is used **as given**, not copied. It therefore keeps whatever
         ``description`` and ``special_tags`` it arrived with, where the

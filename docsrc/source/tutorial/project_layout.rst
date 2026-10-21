@@ -19,8 +19,8 @@ whole thing from the command line.
         └── summariser.py       # the registrations
 
 ``Registry.build`` finds every ``configurations/`` package beneath the directory it
-is given, imports the modules inside, and runs whatever the ``@register`` and
-``@register_method`` decorators buffered. ``components/`` is a convention, not a
+is given, imports the modules inside, and runs whatever the ``@register``,
+``@register_class`` and ``@register_method`` decorators buffered. ``components/`` is a convention, not a
 requirement — a component is found by the import path its registration names.
 
 Those modules are ordinary Python. They may sit in subfolders of
@@ -29,6 +29,11 @@ from a sibling module is the usual reason — and the namespace they register in
 may be a constant imported from a shared module rather than repeated as a literal
 in each file. ``Registry.build`` reads namespaces off the source before importing
 anything, and follows such an import on disk to find the literal behind it.
+
+A project whose configurations refer to each other often goes one step further
+and declares every key in that shared module, with a ``Namespace``. Each
+registration then passes ``key=`` instead of its name, tags and namespace, as
+:ref:`registration_by_key` describes.
 
 ===============================================
 Building on another project's registrations

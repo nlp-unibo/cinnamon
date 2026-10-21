@@ -59,8 +59,10 @@ jobs:
       # pyhighlights first, which pulls the *released* cinnamon-core, and this
       # branch second, over the top of it. The other order lets the sync put
       # the release back and the job passes against the wrong library.
+      # The extras pyhighlights' own test job installs: its suite needs
+      # scikit-learn from `analysis`.
       - name: Install pyhighlights
-        run: pip install -e "./pyhighlights[dev]"
+        run: pip install -e "./pyhighlights[dev,analysis]"
       - name: Install cinnamon from this branch
         run: pip install -e ./cinnamon-branch
       # `__path__` rather than `__file__`, which is `None` for a namespace

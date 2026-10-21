@@ -178,6 +178,61 @@ builds from.
    the directory looking as though it registers nothing -- which only shows up
    once a key from another directory has to resolve into it.
 
+.. _registration_by_key:
+
+---------------------------------------------
+Registration by key
+---------------------------------------------
+
+A large project refers to its keys from many places: one configuration names
+another as a dependency, and an entry point names the one it runs. Such a
+project declares every key once, in one module, with a ``Namespace``:
+
+.. code-block:: python
+
+    # configurations/keys.py
+    from cinnamon.registry import Namespace
+
+    NAMESPACE = Namespace('testing')
+
+    DEFAULT = NAMESPACE.key('test', 'default')
+    LARGE = NAMESPACE.key('test', 'large')
+
+Each registration then passes the key instead of its name, tags and namespace:
+
+.. code-block:: python
+
+    # configurations/models.py
+    from configurations.keys import DEFAULT, LARGE
+
+    @register_class(key=DEFAULT, component='components.CustomComponent')
+    class CustomConfig(Configuration):
+        x: int = Param(5)
+
+    @register_class(key=LARGE, component='components.CustomComponent')
+    class LargeConfig(CustomConfig):
+        x: int = Param(100)
+
+The key is written in one place, so a registration and the keys that refer to
+it cannot disagree. ``@register_method`` and ``Registry.register_configuration``
+take ``key`` as well.
+
+``NAMESPACE.key`` also takes a ``description``, and the registered key keeps
+it. The registry stores a copy of the key, so registration never changes the
+constant a project declared.
+
+A registration takes either ``key`` or ``name``, ``tags`` and ``namespace``.
+Passing both raises ``TypeError``, so no registration states its key twice. The
+explicit form remains the default, and a project may mix the two forms.
+
+.. note::
+
+   ``Registry.build`` follows ``key=`` back to the ``Namespace`` the key was
+   built from, across imports, without importing anything. Bind the namespace
+   with ``Namespace('literal')`` and each key with ``NAMESPACE.key(...)``, both
+   at module level. A key computed any other way is not followed, and the scan
+   skips the registration as it skips a computed namespace.
+
 ---------------------------------------------
 Class method registration
 ---------------------------------------------
@@ -259,22 +314,23 @@ This is equivalent to ``@register_method`` but keeps the registration logic sepa
 from the ``Configuration`` class — useful when re-using an existing configuration
 without modification.
 
-If you already hold a ``RegistrationKey``, ``register_configuration_from_key()``
-takes it directly rather than making you split it into three arguments:
+If you already hold a ``RegistrationKey``, pass it as ``key`` rather than
+splitting it into three arguments:
 
 .. code-block:: python
 
     key = RegistrationKey(name='test', tags={'default'}, namespace='testing')
 
-    Registry.register_configuration_from_key(
+    Registry.register_configuration(
         config=CustomConfig.default(),
-        registration_key=key,
+        key=key,
         component='components.CustomComponent'
     )
 
-The key is used as given, so it keeps its ``description`` and any special tags.
-``register_configuration()`` is the same method with the key assembled for you,
-and resolution uses this form for the variant keys it derives.
+The registry stores a copy of the key, with its ``description`` and special
+tags, so registration never changes the key you hold.
+``register_configuration_from_key()`` stores a key as given instead. Resolution
+uses it for the variant keys it derives, which nothing else holds.
 
 ---------------------------------------------
 Runnable components
