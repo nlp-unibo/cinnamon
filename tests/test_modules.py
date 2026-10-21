@@ -775,6 +775,42 @@ def test_a_module_the_caller_imported_survives_the_next_build(tmp_path, reset_re
             sys.modules.pop(name, None)
 
 
+def test_a_module_imported_between_two_builds_survives_the_second(
+    tmp_path, reset_registry
+):
+    """A library module a registration script imports is not the build's to forget.
+
+    The script imports ``mylib.components``, so the first build is what puts it
+    in ``sys.modules``. The caller imports ``Widget`` after that build, and the
+    second build used to forget ``mylib.components`` as its own and import it
+    again: the registry then resolved a different ``Widget`` from the one the
+    caller held. Only configuration modules collide between projects, so only
+    they are forgotten.
+    """
+    package = tmp_path / "mylib"
+    (package / "configurations").mkdir(parents=True)
+    (package / "__init__.py").write_text("")
+    (package / "components.py").write_text("class Widget:\n    pass\n")
+    (package / "configurations" / "regs.py").write_text(
+        "import mylib.components  # noqa: F401\n" + LIBRARY_REGISTRATIONS
+    )
+
+    sys.path.insert(0, str(tmp_path))
+    try:
+        Registry.build(directory=package)
+        from mylib.components import Widget  # noqa: PLC0415
+
+        Registry.build(directory=package)
+
+        assert sys.modules["mylib.components"].Widget is Widget
+        widget = Registry.instantiate(name="a", namespace="mylib", expected_type=Widget)
+        assert isinstance(widget, Widget)
+    finally:
+        sys.path.remove(str(tmp_path))
+        for name in [key for key in sys.modules if key.split(".")[0] == "mylib"]:
+            sys.modules.pop(name, None)
+
+
 def test_class_identity_survives_repeated_builds(tmp_path, reset_registry):
     """The wall on one side: a build changes nothing the caller already held.
 
