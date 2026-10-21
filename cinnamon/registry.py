@@ -1180,6 +1180,12 @@ class Registry:
         Only modules inside a ``configurations`` folder collide between
         projects, so those are the only ones forgotten.
 
+        **Of every scanned directory.** A registration script may import an
+        external directory's configuration module, to subclass a configuration
+        in it, without the build ever loading that directory. The import runs
+        that module's registrations. Kept in ``sys.modules``, it would not run
+        them again, and the next build would lack keys the first one had.
+
         Registrations are re-executed on every ``load``, so nothing here is a
         cache being thrown away.
         """
@@ -1202,9 +1208,14 @@ class Registry:
                 pass
             return [str(where) for where in located if where is not None]
 
+        scanned = roots | {
+            Path(directory).as_posix()
+            for directory in getattr(cls, "_MODULE_MAPPING", {}).values()
+        }
+
         def configuration(where: str) -> bool:
-            """Whether ``where`` lies in a ``configurations`` folder of a root."""
-            for root in roots:
+            """Whether ``where`` lies in a scanned root's ``configurations`` folder."""
+            for root in scanned:
                 try:
                     relative = Path(where).relative_to(root)
                 except ValueError:
@@ -1431,7 +1442,9 @@ class Registry:
             directory = Path(directory)
             if not directory.exists() or not directory.is_dir():
                 raise InvalidDirectoryException(directory=directory)
-            resolved_directories.append(directory)
+            # Absolute, as ``load`` makes the main directory: module files are
+            # absolute, and a relative root never contains one.
+            resolved_directories.append(directory.resolve())
 
         return resolved_directories
 

@@ -14,6 +14,7 @@ here, as one more case over the same two packages.
 """
 
 import multiprocessing
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -25,10 +26,12 @@ from cinnamon import Registry
 DOWNSTREAM = Path(__file__).resolve().parent.parent / "examples" / "downstream"
 LIBRARY = DOWNSTREAM / "library"
 STUDY = DOWNSTREAM / "study"
+ABLATION = DOWNSTREAM / "ablation"
 
 # A downstream suite imports its library before any build, as installed code.
 sys.path.insert(0, str(DOWNSTREAM.parent))
 import downstream.library.components  # noqa: E402
+from downstream.ablation.configurations import keys as ablation_keys  # noqa: E402
 from downstream.library.components import Encoder, Model, build_in_worker  # noqa: E402
 from downstream.library.configurations import keys as library_keys  # noqa: E402
 from downstream.study.configurations import keys as study_keys  # noqa: E402
@@ -110,6 +113,35 @@ def test_each_project_sees_its_own_configurations(reset_registry):
     build_library()
     assert not Registry.in_registry(study_keys.TASK)
     assert Registry.from_key(library_keys.TASK).run()["sizes"] == [4]
+
+
+@pytest.mark.parametrize("relative", [False, True], ids=["absolute", "relative"])
+def test_a_study_without_library_keys_builds_the_same_every_time(
+    relative, reset_registry
+):
+    """Registrations an import pulled in come back on every build.
+
+    The ablation imports the library's configuration module to subclass it,
+    which runs the library's registrations, but names no library key. That
+    module stayed in ``sys.modules`` after the first build, so the second
+    import was a no-op and the library's keys were missing from every later
+    build in the process.
+    """
+    # A relative external directory has to name the same root as the absolute
+    # module files under it.
+    library = Path(os.path.relpath(LIBRARY)) if relative else LIBRARY
+    builds = []
+    for _ in range(3):
+        valid, invalid = Registry.build(
+            directory=ABLATION, external_directories=[library]
+        )
+        assert not invalid
+        builds.append({str(key) for key in valid})
+
+    assert builds[0] == builds[1] == builds[2]
+    assert Registry.in_registry(library_keys.MODEL)
+    model = Registry.from_key(ablation_keys.MODEL, expected_type=Model)
+    assert model.encoder.size == 1
 
 
 def test_a_spawned_worker_builds_from_the_frozen_runtime(reset_registry):

@@ -43,14 +43,18 @@ def test_parse_configuration_file_with_register_method():
 
 def test_resolve_external_directories_with_dir():
     """
-    Resolve external directories provided as path
+    Resolve external directories provided as path, to absolute paths.
+
+    The main directory is resolved by ``load``. An external one left relative
+    never contains a module's absolute file, so its configuration modules were
+    not recognised as its own.
     """
 
     external_directories = [Path(".", "tests", "external_test_repo")]
     resolved = Registry.resolve_external_directories(
         external_directories=external_directories
     )
-    assert resolved == external_directories
+    assert resolved == [directory.resolve() for directory in external_directories]
 
 
 def test_resolve_external_directories_exception():
