@@ -42,6 +42,7 @@ from cinnamon.utility.exceptions import (
     AlreadyExpandedException,
     AlreadyRegisteredException,
     DisconnectedGraphException,
+    DuplicateNamespaceException,
     InvalidDirectoryException,
     NamespaceNotFoundException,
     NotADAGException,
@@ -1304,7 +1305,8 @@ class Registry:
             invalid_keys: a ``ResolutionInfo` containing invalid ``RegistrationKey``
 
         Raises:
-            RuntimeWarning: if duplicate namespaces are found.
+            DuplicateNamespaceException: if two directories claim one
+                namespace.
             InvalidDirectoryException: if one of the provided directories does
                 not exist or is not a directory.
             AlreadyExpandedException: if the dependency DAG has been expanded.
@@ -1347,16 +1349,17 @@ class Registry:
         Merge namespaces into registry mappings.
 
         Raises:
-            ``RuntimeWarning``: if a namespace is already mapped to a directory.
+            ``DuplicateNamespaceException``: if a namespace is already mapped
+                to a directory.
                 Two directories claiming one namespace makes resolution ambiguous,
              so the merge is refused rather than silently resolved.
         """
         for key in module_mapping:
             if key in cls._MODULE_MAPPING:
-                raise RuntimeWarning(
-                    f"Found duplicate namespace: {key}. It is already mapped to "
-                    f"{cls._MODULE_MAPPING[key]}, so {module_mapping[key]} cannot "
-                    f"also claim it. Rename one of the two namespaces."
+                raise DuplicateNamespaceException(
+                    namespace=key,
+                    claimed=cls._MODULE_MAPPING[key],
+                    directory=module_mapping[key],
                 )
 
         cls._EXP_NAMESPACES.extend(namespaces)
@@ -1406,11 +1409,10 @@ class Registry:
                         # collision.
                         claimed = mapping.get(namespace)
                         if claimed is not None and claimed != directory:
-                            raise RuntimeWarning(
-                                f"Found duplicate namespace: {namespace}. It is "
-                                f"already mapped to {claimed}, so {directory} "
-                                f"cannot also claim it. Rename one of the two "
-                                f"namespaces."
+                            raise DuplicateNamespaceException(
+                                namespace=namespace,
+                                claimed=claimed,
+                                directory=directory,
                             )
                         mapping[namespace] = directory
 
