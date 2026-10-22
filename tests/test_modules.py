@@ -9,6 +9,7 @@ from cinnamon.registry import (
     Registry,
 )
 from cinnamon.utility.exceptions import (
+    DuplicateNamespaceException,
     InvalidDirectoryException,
     NamespaceNotFoundException,
 )
@@ -136,11 +137,25 @@ def test_load_registrations_idempotent(reset_registry):
     assert len(Registry._REGISTRY) == 2
 
 
-def test_update_namespaces_duplicate_warns(reset_registry):
-    """
-    Duplicate namespace across directories raises RuntimeWarning. This is
-     currently raised (not warned) inside update_namespaces, so test the raise.
-    """
+def test_update_namespaces_refuses_a_duplicate(reset_registry):
+    """A namespace already mapped to a directory cannot be claimed by another."""
+    Registry.update_namespaces(namespaces=["ns1"], module_mapping={"ns1": Path(".")})
+
+    with pytest.raises(DuplicateNamespaceException) as raised:
+        Registry.update_namespaces(
+            namespaces=["ns1"], module_mapping={"ns1": Path(".", "tests")}
+        )
+
+    error = raised.value
+    assert (error.namespace, error.claimed, error.directory) == (
+        "ns1",
+        Path("."),
+        Path(".", "tests"),
+    )
+
+
+def test_a_duplicate_namespace_is_still_a_runtime_warning(reset_registry):
+    """Code written against the old type keeps catching the collision."""
     Registry.update_namespaces(namespaces=["ns1"], module_mapping={"ns1": Path(".")})
 
     with pytest.raises(RuntimeWarning):
@@ -170,8 +185,17 @@ def test_two_external_directories_cannot_claim_one_namespace(tmp_path, reset_reg
             'config=None, name="a", namespace=NAMESPACE)\n'
         )
 
-    with pytest.raises(RuntimeWarning, match="Found duplicate namespace: shared"):
+    with pytest.raises(
+        DuplicateNamespaceException, match="Found duplicate namespace: shared"
+    ) as raised:
         Registry.parse_configuration_files(directories=[first, second])
+
+    error = raised.value
+    assert (error.namespace, error.claimed, error.directory) == (
+        "shared",
+        first,
+        second,
+    )
 
 
 def test_one_directory_claiming_its_own_namespace_twice_is_not_a_collision(

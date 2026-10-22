@@ -32,6 +32,7 @@ __all__ = [
     "AlreadyExpandedException",
     "NotExpandedException",
     "InvalidDirectoryException",
+    "DuplicateNamespaceException",
     "ValidationResult",
     "ValidationFailureException",
     "UnsupportedFieldTypeException",
@@ -199,6 +200,27 @@ class InvalidDirectoryException(Exception):
             f"The directory path does not exist or is not a directory. {os.linesep}"
             f"Path: {directory}"
         )
+
+
+class DuplicateNamespaceException(RuntimeWarning):
+    """Two directories claim one namespace, so the build stops.
+
+    A ``RuntimeWarning`` subclass only so that ``except RuntimeWarning``,
+    which caught this collision before it had a type of its own, still
+    catches it. It is always raised, never emitted as a warning.
+    """
+
+    def __init__(
+        self, namespace: str, claimed: Union[str, Path], directory: Union[str, Path]
+    ):
+        super().__init__(
+            f"Found duplicate namespace: {namespace}. It is already mapped to "
+            f"{claimed}, so {directory} cannot also claim it. Rename one of the "
+            f"two namespaces."
+        )
+        self.namespace = namespace
+        self.claimed = claimed
+        self.directory = directory
 
 
 @dataclass

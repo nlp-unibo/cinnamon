@@ -56,6 +56,10 @@ executed, while ``external_directories`` are indexed so their namespaces can be
 *referenced*. A key from an external directory is loaded when something depends
 on it, not because the directory was listed.
 
+Each namespace belongs to one directory. When two directories claim the same
+namespace, ``Registry.build`` raises ``DuplicateNamespaceException``, which
+names the namespace and both directories.
+
 ===============================================
 The registrations
 ===============================================
