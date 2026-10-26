@@ -1,4 +1,4 @@
-__version__ = "2.2.1"
+__version__ = "2.3.0"
 
 # Re-exported so ``from cinnamon import Configuration, Registry`` works. Each
 # module's ``__all__`` decides what is public, so this list cannot drift.
