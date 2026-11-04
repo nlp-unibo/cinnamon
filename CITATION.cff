@@ -1,0 +1,22 @@
+# The version is left out on purpose: cinnamon.__version__ is the single source of
+# truth, and the publish workflow checks the tag against it. Add preferred-citation
+# here once the software paper is published.
+cff-version: 1.2.0
+message: "If you use cinnamon in your research, please cite it as below."
+type: software
+title: "cinnamon"
+abstract: "A lightweight Python framework for decoupling configuration from code logic."
+authors:
+  - family-names: Ruggeri
+    given-names: Federico
+    email: federico.ruggeri6@unibo.it
+    affiliation: University of Bologna
+license: MIT
+repository-code: "https://github.com/nlp-unibo/cinnamon"
+url: "https://nlp-unibo.github.io/cinnamon/"
+keywords:
+  - configuration
+  - dependency-injection
+  - registry
+  - reproducibility
+  - research
