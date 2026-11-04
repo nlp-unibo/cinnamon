@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Federico Ruggeri
+# SPDX-License-Identifier: MIT
 """
 Ranked "did you mean ...?" suggestions for registration keys.
 

@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Federico Ruggeri
+# SPDX-License-Identifier: MIT
 __version__ = "2.3.0"
 
 # Re-exported so ``from cinnamon import Configuration, Registry`` works. Each

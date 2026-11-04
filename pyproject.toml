@@ -104,7 +104,10 @@ target-version = "py310"
 # Prose is hand-formatted; keep the formatter out of Markdown code blocks.
 extend-exclude = ["*.md", "docs"]
 line-length = 88
-lint.select = ["E", "F", "I", "W"] # Basic styles, Pyflakes, and Import sorting
+lint.select = ["E", "F", "I", "W", "CPY"] # Basic styles, Pyflakes, Import sorting, copyright
+# JMLR MLOSS asks for the license in each source file of the package.
+lint.per-file-ignores = { "!cinnamon/**" = ["CPY001"] }
+lint.flake8-copyright.notice-rgx = "(?i)Copyright \\(c\\) \\d{4}(-\\d{4})?"
 
 [tool.pytest.ini_options]
 addopts = "--cov=cinnamon --cov-branch"
