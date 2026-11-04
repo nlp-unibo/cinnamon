@@ -475,10 +475,8 @@ def test_hierarchy_with_conflicting_parameters_and_custom_constructor(reset_regi
     assert len(valid_keys) == 8
 
     parent = ParentWithVariantsAndChild.retrieve(name="parent", namespace="testing")
-    parent.child = IntermediateWithChild.retrieve(
-        name="intermediate", namespace="testing"
-    )
-    assert parent.child.canarin == 10
+    child = IntermediateWithChild.retrieve(registration_key=parent.child)
+    assert child.canarin == 10
 
 
 def test_retrieve_keys(reset_registry):

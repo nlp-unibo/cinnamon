@@ -228,7 +228,9 @@ class Configuration(BaseModel, metaclass=ConfigurationMeta):
 
     meta: ClassVar[MetaDescriptor] = MetaDescriptor()
 
-    model_config = ConfigDict(validate_default=True)
+    model_config = ConfigDict(
+        validate_default=True, validate_assignment=True, extra="forbid"
+    )
 
     def model_post_init(self, __context: Any) -> None:
         """Runs automatically right after Pydantic instantiates an object."""
