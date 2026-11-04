@@ -13,15 +13,17 @@ components are plain Python classes referenced by a fully-qualified string path
 
 from __future__ import annotations
 
+import ast
 import inspect
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
-from typing import Dict, List, Tuple, Union
+from typing import Dict, Iterator, List, Optional, Set, Tuple, Union
 
 from cinnamon.configuration import Configuration
 from cinnamon.registry import Registry
 from cinnamon.utility.registration import import_class_from_string, locate_module
+from cinnamon.utility.suggestions import closest_string
 
 Key = Tuple[str, str, frozenset]
 Analysis = Dict[Key, Tuple[bool, List[str], List[str]]]
@@ -112,9 +114,14 @@ def _check_component_path(component_path: str) -> Tuple[List[str], List[str]]:
     no amount of filesystem inspection can tell those apart, so it is a
     warning rather than an error.
 
-    Whether the *class* exists inside the module is not checkable either:
-    re-export is the norm, and ``sklearn/svm/__init__.py`` -- to pick the case
-    that killed the idea -- defines no classes of its own at all.
+    When the whole module path resolves, the module's source is parsed (never
+    executed) for a top-level binding of the class name. A class, a function, an
+    assignment and an import all count, so a re-export such as
+    ``sklearn/svm/__init__.py``, which defines no classes of its own, still
+    passes. A name absent from that source is an error. A module that can bind
+    names at run time (``from x import *``, a module-level ``__getattr__``,
+    ``globals()``, ``setattr``, ``sys.modules``) and a module without Python
+    source are not judged at all.
     """
     segments = component_path.split(".")
     if len(segments) < 2:
@@ -127,14 +134,16 @@ def _check_component_path(component_path: str) -> Tuple[List[str], List[str]]:
         )
 
     resolved = 0
+    module_origin: Optional[str] = None
     for split in range(1, len(segments)):
         # Presence is reported by `missing`, not by `origin`: a namespace
         # package (a directory with no __init__.py) resolves perfectly well and
         # still has no file of its own to point at.
-        _, missing = locate_module(".".join(segments[:split]))
+        origin, missing = locate_module(".".join(segments[:split]))
         if missing is not None:
             break
         resolved = split
+        module_origin = origin
 
     if resolved == 0:
         return (
@@ -157,7 +166,89 @@ def _check_component_path(component_path: str) -> Tuple[List[str], List[str]]:
             ],
         )
 
+    names = _top_level_names(module_origin) if module_origin else None
+    class_name = segments[-1]
+    if names is not None and class_name not in names:
+        module_path = ".".join(segments[:-1])
+        suggestion = closest_string(class_name, names)
+        hint = f" Did you mean '{module_path}.{suggestion}'?" if suggestion else ""
+        return (
+            [
+                f"Component '{component_path}' cannot be found: module "
+                f"'{module_path}' defines no '{class_name}'.{hint}"
+            ],
+            [],
+        )
+
     return [], []
+
+
+_DYNAMIC_CALLS = frozenset({"globals", "setattr", "vars", "exec"})
+
+
+def _statements(body: List[ast.stmt]) -> Iterator[ast.stmt]:
+    """Every statement executed at module level, without entering defs."""
+    for node in body:
+        yield node
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            continue
+        for block in ("body", "orelse", "finalbody"):
+            yield from _statements(getattr(node, block, []))
+        for handler in getattr(node, "handlers", []):
+            yield from _statements(handler.body)
+        for case in getattr(node, "cases", []):
+            yield from _statements(case.body)
+
+
+def _top_level_names(origin: str) -> Optional[Set[str]]:
+    """
+    Names a module binds at its top level, read from source without running it.
+
+    ``None`` means the answer cannot be known statically. Over-collecting is
+    safe -- it only hides an error -- so compound statements contribute every
+    name they store anywhere inside them.
+    """
+    if not origin.endswith(".py"):
+        return None
+    try:
+        tree = ast.parse(Path(origin).read_text(encoding="utf-8"))
+    except (OSError, SyntaxError, UnicodeDecodeError, ValueError):
+        return None
+
+    names: Set[str] = set()
+    for node in _statements(tree.body):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            if node.name == "__getattr__":
+                return None
+            names.add(node.name)
+        elif isinstance(node, (ast.Import, ast.ImportFrom)):
+            for alias in node.names:
+                if alias.name == "*":
+                    return None
+                names.add(alias.asname or alias.name.split(".")[0])
+        else:
+            for child in ast.walk(node):
+                if isinstance(child, ast.Name) and isinstance(child.ctx, ast.Store):
+                    names.add(child.id)
+                elif isinstance(child, ast.ExceptHandler) and child.name:
+                    names.add(child.name)
+                elif (
+                    isinstance(child, ast.Call)
+                    and isinstance(child.func, ast.Name)
+                    and child.func.id in _DYNAMIC_CALLS
+                ):
+                    return None
+                elif isinstance(child, ast.Attribute) and (
+                    # Enum._convert_ (e.g. ssl.Options) binds into the module.
+                    child.attr == "_convert_"
+                    or (
+                        child.attr == "modules"
+                        and isinstance(child.value, ast.Name)
+                        and child.value.id == "sys"
+                    )
+                ):
+                    return None
+    return names
 
 
 def _check_signature(component_path: str, config: Configuration) -> List[str]:

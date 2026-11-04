@@ -2156,7 +2156,10 @@ class Registry:
         for dependency_name, dependency in config.dependencies.items():
             resolved = map_dependency_keys(dependency, resolve)
             if resolved is not dependency:
-                setattr(config, dependency_name, resolved)
+                # A resolved field holds configurations where its annotation says
+                # keys, so assignment validation would reject it. The copy is
+                # internal and never reaches a component.
+                object.__setattr__(config, dependency_name, resolved)
 
             config.meta[dependency_name].variants = [
                 map_dependency_keys(variant_value, resolve)

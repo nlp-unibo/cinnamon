@@ -112,6 +112,19 @@ For **discrete allowed values**, use ``Literal``:
     MyConfig(mode='train')  # ✓
     MyConfig(mode='other')  # ✗ ValidationError
 
+The same checks apply to **unknown names** and to **assignment**. A misspelled
+parameter is an error rather than a silent fall-back to the default, and a value
+set after construction is validated like one passed to the constructor:
+
+.. code-block:: python
+
+    class MyConfig(Configuration):
+        x: int = Param(5, ge=1, le=10)
+
+    MyConfig(y=5)        # ✗ ValidationError: extra inputs are not permitted
+    config = MyConfig()
+    config.x = 0         # ✗ ValidationError
+
 For **cross-field constraints**, use ``@model_validator``:
 
 .. code-block:: python

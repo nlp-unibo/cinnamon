@@ -457,3 +457,29 @@ def test_has_at_least_two_variants_skips_plain_fields():
 
     assert OneVariantAmongPlainFields().has_at_least_two_variants is False
     assert ConfigWithMultipleVariants().has_at_least_two_variants is True
+
+
+def test_misspelled_parameter_is_rejected():
+    """A misspelled keyword must not silently fall back to the default."""
+
+    class ModelConfig(Configuration):
+        hidden_size: int = Param(64, ge=1)
+
+    with pytest.raises(pydantic.ValidationError, match="hiden_size"):
+        ModelConfig(hiden_size=128)
+
+
+def test_assignment_is_validated():
+    """Setting a value after construction goes through the same checks."""
+
+    class ModelConfig(Configuration):
+        hidden_size: int = Param(64, ge=1)
+        dropout: float = Param(0.1, ge=0, lt=1)
+
+    config = ModelConfig()
+    with pytest.raises(pydantic.ValidationError):
+        config.hidden_size = "sixteen"
+    with pytest.raises(pydantic.ValidationError):
+        config.dropout = 1.5
+    config.dropout = 0.5
+    assert config.dropout == 0.5

@@ -125,9 +125,12 @@ of that import.
 .. note::
     The shallow pass is deliberately modest. A missing top-level package is an
     error; a middle segment that is not a module is only a warning, because a wrong
-    module path and a nested class are indistinguishable on disk. Whether the class
-    exists inside the module is not checked at all — re-export is the norm, and many
-    packages define no classes in the ``__init__.py`` you would be looking at.
+    module path and a nested class are indistinguishable on disk. When the module
+    path resolves, its source is parsed, never executed, and a class name that the
+    module does not bind is an error with a suggestion. Imports count as bindings,
+    so re-exports pass. A module that binds names at run time (``import *``, a
+    module-level ``__getattr__``, ``globals()``, ``setattr``, ``sys.modules``) or
+    has no Python source is not judged.
 
 =============================================
 cmn-build

@@ -125,8 +125,8 @@ def test_build_component_with_child_variants(reset_registry):
             {"c1": child_key.from_variant({"y": True})}
         )
     )
-    variant_parent_config.c1 = Registry.from_key(variant_parent_config.c1)
-    assert variant_parent_config.c1.y is True
+    # A configuration field holds a key; the built child lives outside it.
+    assert Registry.from_key(variant_parent_config.c1).y is True
 
 
 def test_build_external_component(reset_registry):

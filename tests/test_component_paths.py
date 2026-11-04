@@ -13,6 +13,7 @@ from pydantic import ConfigDict
 
 from cinnamon.configuration import Configuration
 from cinnamon.registry import Registry
+from cinnamon.utility import static_analyzer
 from cinnamon.utility.exceptions import UnsupportedFieldTypeException
 from cinnamon.utility.registration import import_class_from_string, locate_module
 from cinnamon.utility.static_analyzer import _check_component_path, analyze_registry
@@ -309,3 +310,77 @@ def test_namespace_packages_resolve(tmp_path, monkeypatch):
     assert (origin, missing) == (None, None)  # found, no file
 
     assert _check_component_path("nspkg.inner.mod.Thing") == ([], [])
+
+
+# -- the class name inside a resolved module --------------------------------
+
+
+def _module(tmp_path, monkeypatch, source):
+    package = tmp_path / "pkg_names"
+    package.mkdir()
+    (package / "__init__.py").write_text("")
+    (package / "mod.py").write_text(source)
+    monkeypatch.syspath_prepend(tmp_path)
+
+
+def test_shallow_check_errors_on_a_misspelled_class_and_suggests(tmp_path, monkeypatch):
+    _module(tmp_path, monkeypatch, "class Transformer:\n    pass\n")
+
+    errors, warnings = _check_component_path("pkg_names.mod.Transformr")
+
+    assert warnings == []
+    assert "defines no 'Transformr'" in errors[0]
+    assert "pkg_names.mod.Transformer" in errors[0]
+    assert "pkg_names.mod" not in sys.modules
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        "from os import path as Thing\n",
+        "import Thing\n",
+        "Thing = int\n",
+        "try:\n    from x import Thing\nexcept ImportError:\n    Thing = None\n",
+        "if True:\n    class Thing:\n        pass\n",
+        "def Thing():\n    pass\n",
+        "for Thing in ():\n    pass\n",
+        "try:\n    pass\nexcept Exception as Thing:\n    pass\n",
+        "match 1:\n    case _:\n        class Thing:\n            pass\n",
+    ],
+)
+def test_shallow_check_accepts_any_top_level_binding(tmp_path, monkeypatch, source):
+    _module(tmp_path, monkeypatch, source)
+
+    assert _check_component_path("pkg_names.mod.Thing") == ([], [])
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        "from os import *\n",
+        "def __getattr__(name):\n    return name\n",
+        "globals()['Thing'] = int\n",
+        "import sys\nsetattr(sys.modules[__name__], 'Thing', int)\n",
+        "import enum\nenum.IntEnum._convert_('Thing', __name__, lambda n: False)\n",
+        "import sys\nsys.modules[__name__].Thing = int\n",
+    ],
+)
+def test_shallow_check_does_not_judge_dynamic_modules(tmp_path, monkeypatch, source):
+    _module(tmp_path, monkeypatch, source)
+
+    assert _check_component_path("pkg_names.mod.Thing") == ([], [])
+
+
+def test_shallow_check_does_not_judge_unparsable_source(tmp_path, monkeypatch):
+    _module(tmp_path, monkeypatch, "def broken(:\n")
+
+    assert _check_component_path("pkg_names.mod.Thing") == ([], [])
+
+
+def test_shallow_check_does_not_judge_a_module_without_source(monkeypatch):
+    """A compiled extension module has no .py file to read."""
+    monkeypatch.setattr(
+        static_analyzer, "locate_module", lambda path: ("/lib/ext.so", None)
+    )
+
+    assert _check_component_path("ext.NoSuchThing") == ([], [])
