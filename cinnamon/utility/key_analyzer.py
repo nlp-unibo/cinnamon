@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Federico Ruggeri
+# SPDX-License-Identifier: MIT
 """
 Static analysis of registration keys.
 
