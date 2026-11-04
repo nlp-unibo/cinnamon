@@ -118,7 +118,8 @@ def _check_component_path(component_path: str) -> Tuple[List[str], List[str]]:
     executed) for a top-level binding of the class name. A class, a function, an
     assignment and an import all count, so a re-export such as
     ``sklearn/svm/__init__.py``, which defines no classes of its own, still
-    passes. A name absent from that source is an error. A module that can bind
+    passes. A name absent from that source is a warning, since another module
+    may still inject it at run time; only ``--deep`` can tell. A module that can bind
     names at run time (``from x import *``, a module-level ``__getattr__``,
     ``globals()``, ``setattr``, ``sys.modules``) and a module without Python
     source are not judged at all.
@@ -172,12 +173,17 @@ def _check_component_path(component_path: str) -> Tuple[List[str], List[str]]:
         module_path = ".".join(segments[:-1])
         suggestion = closest_string(class_name, names)
         hint = f" Did you mean '{module_path}.{suggestion}'?" if suggestion else ""
+        # A warning, not an error: another module can still inject the name at
+        # run time (lightning's _graveyard does exactly that), and only an import
+        # can tell. `cmn-check --strict` turns it into a failure.
         return (
-            [
-                f"Component '{component_path}' cannot be found: module "
-                f"'{module_path}' defines no '{class_name}'.{hint}"
-            ],
             [],
+            [
+                f"Component '{component_path}': module '{module_path}' does not "
+                f"bind '{class_name}' in its source.{hint} A name injected by "
+                f"another module at run time looks the same -- run with deep "
+                f"analysis to be sure."
+            ],
         )
 
     return [], []

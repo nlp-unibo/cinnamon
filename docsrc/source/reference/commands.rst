@@ -127,8 +127,9 @@ of that import.
     error; a middle segment that is not a module is only a warning, because a wrong
     module path and a nested class are indistinguishable on disk. When the module
     path resolves, its source is parsed, never executed, and a class name that the
-    module does not bind is an error with a suggestion. Imports count as bindings,
-    so re-exports pass. A module that binds names at run time (``import *``, a
+    module does not bind is a warning with a suggestion; ``--strict`` makes it fail.
+    It stays a warning because another module can inject the name at run time.
+    Imports count as bindings, so re-exports pass. A module that binds names at run time (``import *``, a
     module-level ``__getattr__``, ``globals()``, ``setattr``, ``sys.modules``) or
     has no Python source is not judged.
 

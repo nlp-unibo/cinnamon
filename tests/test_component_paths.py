@@ -323,14 +323,15 @@ def _module(tmp_path, monkeypatch, source):
     monkeypatch.syspath_prepend(tmp_path)
 
 
-def test_shallow_check_errors_on_a_misspelled_class_and_suggests(tmp_path, monkeypatch):
+def test_shallow_check_warns_on_a_misspelled_class_and_suggests(tmp_path, monkeypatch):
+    """A warning, since another module may inject the name at run time."""
     _module(tmp_path, monkeypatch, "class Transformer:\n    pass\n")
 
     errors, warnings = _check_component_path("pkg_names.mod.Transformr")
 
-    assert warnings == []
-    assert "defines no 'Transformr'" in errors[0]
-    assert "pkg_names.mod.Transformer" in errors[0]
+    assert errors == []
+    assert "does not bind 'Transformr'" in warnings[0]
+    assert "pkg_names.mod.Transformer" in warnings[0]
     assert "pkg_names.mod" not in sys.modules
 
 
