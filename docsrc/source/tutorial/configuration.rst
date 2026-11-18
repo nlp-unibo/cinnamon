@@ -15,6 +15,9 @@ Fields are declared as annotated class attributes wrapped in ``Param``, which is
 pydantic ``Field`` with a little extra: a description that stays attached, and the
 ``variants`` that step 3 uses.
 
+A subclass that overrides a field without a description keeps the description
+of the nearest base class that declares the field.
+
 .. literalinclude:: ../../../examples/tutorial/01_configuration.py
    :language: python
    :pyobject: TokenizerConfig

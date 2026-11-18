@@ -286,9 +286,26 @@ class Configuration(BaseModel, metaclass=ConfigurationMeta):
     def __pydantic_init_subclass__(cls, **kwargs: Any) -> None:
         super().__pydantic_init_subclass__(**kwargs)
 
+        inherited = False
         for field_name, field_info in cls.model_fields.items():
             if field_info.json_schema_extra is None:
                 field_info.json_schema_extra = ParamMeta(tags=set(), variants=[])
+            # An override that only changes the default keeps the description
+            # of the nearest base declaring the field.
+            if field_info.description is None:
+                field_info.description = next(
+                    (
+                        base.model_fields[field_name].description
+                        for base in cls.__mro__[1:]
+                        if issubclass(base, BaseModel)
+                        and field_name in base.model_fields
+                    ),
+                    None,
+                )
+                inherited |= field_info.description is not None
+        if inherited:
+            # The schema was generated before this hook ran.
+            cls.model_rebuild(force=True, raise_errors=False)
 
     @model_validator(mode="after")
     def validate_variants(self) -> Self:

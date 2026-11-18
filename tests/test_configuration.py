@@ -483,3 +483,26 @@ def test_assignment_is_validated():
         config.dropout = 1.5
     config.dropout = 0.5
     assert config.dropout == 0.5
+
+
+def test_override_inherits_description():
+    """A subclass that only changes a default keeps the parent's description."""
+
+    class ModelConfig(Configuration):
+        hidden_size: int = Param(64, ge=1, description="Width of each layer.")
+        name: str = Param(description="Model identifier.")
+
+    class SmallConfig(ModelConfig):
+        hidden_size: int = Param(16, ge=1)
+        name: str = Param("small", description="Small model identifier.")
+
+    class TinyConfig(SmallConfig):
+        hidden_size: int = Param(4, ge=1)
+
+    assert TinyConfig.model_fields["hidden_size"].description == "Width of each layer."
+    assert TinyConfig.model_fields["name"].description == "Small model identifier."
+    assert (
+        TinyConfig.model_json_schema()["properties"]["hidden_size"]["description"]
+        == "Width of each layer."
+    )
+    assert TinyConfig().hidden_size == 4
