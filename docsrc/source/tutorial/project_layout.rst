@@ -60,6 +60,22 @@ Each namespace belongs to one directory. When two directories claim the same
 namespace, ``Registry.build`` raises ``DuplicateNamespaceException``, which
 names the namespace and both directories.
 
+The main directory goes first on ``sys.path``, so component paths written
+relative to it, such as ``components.loaders.Loader``, import from the project.
+An external directory that is a Python package, one holding an ``__init__.py``,
+is not put on ``sys.path``. Its registration scripts run under their fully
+qualified names, such as ``library.configurations.models``, so a package inside
+it never shadows a top-level package of the project with the same name. When the
+package cannot be imported, the directory holding it is appended to
+``sys.path``.
+
+Inside such a package, registration scripts must import their siblings
+relatively or by their fully qualified name: ``from .keys import NAMESPACE`` or
+``from library.configurations.keys import NAMESPACE``. A top-level name such as
+``configurations.keys`` resolves to the project's own ``configurations``. An
+external directory that is not a package has no qualified name, so it still goes
+first on ``sys.path`` and can shadow the project's packages.
+
 ===============================================
 The registrations
 ===============================================
