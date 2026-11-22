@@ -19,6 +19,7 @@ __all__ = [
     "match_tags",
     "import_class_from_string",
     "locate_module",
+    "qualified_package",
 ]
 
 
@@ -416,3 +417,25 @@ def locate_module(module_path: str) -> Tuple[Optional[str], Optional[str]]:
             search = list(spec.submodule_search_locations)
 
     return origin, None
+
+
+def qualified_package(directory: Path) -> Optional[Tuple[str, Path]]:
+    """
+    The dotted name ``directory`` is imported under, and the directory that
+    holds its top-level package.
+
+    ``directory`` is a package when it holds an ``__init__.py``, and its name
+    runs up through every parent that holds one too. ``None`` when
+    ``directory`` is not a package, or when a part of its name is not a valid
+    identifier and so could not be imported.
+    """
+    if not (directory / "__init__.py").is_file():
+        return None
+    parts = [directory.name]
+    parent = directory.parent
+    while (parent / "__init__.py").is_file():
+        parts.insert(0, parent.name)
+        parent = parent.parent
+    if not all(part.isidentifier() for part in parts):
+        return None
+    return ".".join(parts), parent

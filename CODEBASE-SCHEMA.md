@@ -10,6 +10,10 @@ The module depends on `cinnamon.configuration`, `cinnamon.utility.registration`,
 Both decorators then call `_buffer` with a `BufferedRegistration` or a `BufferedClassRegistration`, each holding that key.
 `Registry.build` calls `parse_configuration_files`, which runs `NamespaceExtractor.process` on every configuration script.
 `Registry.load_registrations` executes those scripts, and each buffered registration reaches `Registry.register_configuration_from_key`.
+For an external directory, `Registry.load_registrations` calls `qualified_package` and, when the package cannot be imported, `locate_module`.
+`Registry.load_registrations` adds `sys.path` entries only through `Registry.add_to_sys_path`, which records them in `_SYS_PATH_ENTRIES`.
+`Registry.snapshot`, `Registry.restore`, and `Registry.forget_loaded_modules` read `_SYS_PATH_ENTRIES` to put entries back or take them off.
+`Registry.register_configuration_from_key` loads a dependency's external directory with `Registry.load_registrations(external=True)`.
 `Registry.register_configuration` passes the key it builds or copies to `Registry.register_configuration_from_key`, which stores a key as given.
 
 ## cinnamon/utility/registration.py

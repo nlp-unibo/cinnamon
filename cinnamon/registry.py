@@ -59,9 +59,11 @@ from cinnamon.utility.registration import (
     NamespaceExtractor,
     Tags,
     import_class_from_string,
+    locate_module,
     match_name,
     match_namespace,
     match_tags,
+    qualified_package,
 )
 from cinnamon.utility.sanity import check_directory, time_it
 from cinnamon.utility.suggestions import suggest_keys
@@ -1008,6 +1010,10 @@ class Registry:
     expanded: bool = False
 
     _EXP_MODULES: Set[Path]
+    #: The entries ``load_registrations`` added to ``sys.path``, with whether
+    #: each was appended rather than prepended. An external directory that is
+    #: a package adds nothing, so these are not the same as ``_EXP_MODULES``.
+    _SYS_PATH_ENTRIES: List[Tuple[str, bool]]
     #: Module names ``load_registrations`` put into ``sys.modules`` itself.
     #: Only the configuration modules among these are forgotten again: a module
     #: the caller imported, before or after the build, is the caller's, and
@@ -1028,6 +1034,7 @@ class Registry:
         cls.REGISTRATION_METHODS = {}
         cls.REGISTRATION_CONTEXT = RegistrationContext()
         cls._EXP_MODULES = set()
+        cls._SYS_PATH_ENTRIES = []
         cls._LOADED_MODULES = set()
         cls._MODULE_MAPPING = {}
         cls._EXP_NAMESPACES = []
@@ -1045,6 +1052,7 @@ class Registry:
         "REGISTRATION_METHODS",
         "REGISTRATION_CONTEXT",
         "_EXP_MODULES",
+        "_SYS_PATH_ENTRIES",
         "_LOADED_MODULES",
         "_MODULE_MAPPING",
         "_EXP_NAMESPACES",
@@ -1063,9 +1071,7 @@ class Registry:
         the build.
         """
         state = {name: getattr(cls, name, None) for name in cls._RESETTABLE}
-        state["__sys_path__"] = [
-            directory.as_posix() for directory in getattr(cls, "_EXP_MODULES", ())
-        ]
+        state["__sys_path__"] = list(getattr(cls, "_SYS_PATH_ENTRIES", ()))
         return state
 
     @classmethod
@@ -1155,7 +1161,9 @@ class Registry:
                 setattr(cls, name, value)
         # Unconditionally: ``initialize`` took these off on the way into the
         # build that then failed, so none of them is there to duplicate.
-        sys.path[:0] = state["__sys_path__"]
+        prepended = [entry for entry, appended in state["__sys_path__"] if not appended]
+        sys.path[:0] = prepended
+        sys.path.extend(entry for entry, appended in state["__sys_path__"] if appended)
 
     @classmethod
     def forget_loaded_modules(cls) -> None:
@@ -1195,6 +1203,9 @@ class Registry:
 
         # ``initialize`` is also how the class sets itself up the first time,
         # before there is anything to forget.
+        added = {entry for entry, _ in getattr(cls, "_SYS_PATH_ENTRIES", ())}
+        sys.path[:] = [entry for entry in sys.path if entry not in added]
+
         roots = {directory.as_posix() for directory in getattr(cls, "_EXP_MODULES", ())}
         if not roots:
             return
@@ -1235,7 +1246,6 @@ class Registry:
             and any(configuration(where) for where in where_from(module))
         ]
 
-        sys.path[:] = [entry for entry in sys.path if entry not in roots]
         for name in doomed:
             sys.modules.pop(name, None)
 
@@ -1453,10 +1463,24 @@ class Registry:
         return resolved_directories
 
     @classmethod
+    def add_to_sys_path(cls, entry: str, append: bool) -> None:
+        """Put ``entry`` on ``sys.path`` and remember it for the next reset.
+
+        A prepended entry goes first even when ``sys.path`` already holds it,
+        because it must win name lookups.
+        """
+        if append:
+            sys.path.append(entry)
+        else:
+            sys.path.insert(0, entry)
+        cls._SYS_PATH_ENTRIES.append((entry, append))
+
+    @classmethod
     @time_it
     def load_registrations(
         cls,
         directory: Union[str, Path],
+        external: bool = False,
     ):
         """
         Imports a Python's module for registration.
@@ -1464,8 +1488,17 @@ class Registry:
         These functions are the entry points for registrations: that is, where the
         ``Registry`` APIs are invoked to issue registrations.
 
+        The main directory goes first on ``sys.path``, because its component
+        paths are written relative to it. An external directory that is a
+        package is not put on ``sys.path`` at all: its scripts run under their
+        fully qualified names, such as ``library.configurations.models``, so a
+        package inside it never shadows a top-level package of the project.
+        An external directory that is not a package has no such name and still
+        goes first on ``sys.path``.
+
         Args:
             directory: path of the module
+            external: whether ``directory`` is an external directory
 
         Raises:
             ``InvalidDirectoryException``: if the provided directory is not a directory
@@ -1479,8 +1512,16 @@ class Registry:
         if directory in cls._EXP_MODULES:
             return
 
-        # Add directory to PYTHONPATH
-        sys.path.insert(0, directory.as_posix())
+        package = qualified_package(directory) if external else None
+        if package is None:
+            cls.add_to_sys_path(directory.as_posix(), append=False)
+        else:
+            name, parent = package
+            # The package must be importable for its scripts' relative and
+            # qualified imports to resolve. Appended, so that a checkout that is
+            # not installed still cannot shadow anything of the project.
+            if locate_module(name.split(".")[0])[1] is not None:
+                cls.add_to_sys_path(parent.as_posix(), append=True)
 
         cls._EXP_MODULES.add(directory)
 
@@ -1518,6 +1559,8 @@ class Registry:
                 module_name = ".".join(
                     python_script.relative_to(directory).with_suffix("").parts
                 )
+                if package is not None:
+                    module_name = f"{package[0]}.{module_name}"
                 spec = importlib.util.spec_from_file_location(
                     name=module_name, location=python_script
                 )
@@ -2131,7 +2174,9 @@ class Registry:
                             namespaces=cls._EXP_NAMESPACES,
                             missing_namespace=dep.namespace,
                         )
-                    cls.load_registrations(directory=cls._MODULE_MAPPING[dep.namespace])
+                    cls.load_registrations(
+                        directory=cls._MODULE_MAPPING[dep.namespace], external=True
+                    )
 
         return registration_key
 
