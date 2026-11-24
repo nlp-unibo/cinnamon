@@ -15,6 +15,11 @@ For an external directory, `Registry.load_registrations` calls `qualified_packag
 `Registry.snapshot`, `Registry.restore`, and `Registry.forget_loaded_modules` read `_SYS_PATH_ENTRIES` to put entries back or take them off.
 `Registry.register_configuration_from_key` loads a dependency's external directory with `Registry.load_registrations(external=True)`.
 `Registry.register_configuration` passes the key it builds or copies to `Registry.register_configuration_from_key`, which stores a key as given.
+`Registry.expand_configuration` records the value of every variant parameter of a key in `_VARIANT_VALUES`, defaults included, and the tags it generated in `_GENERATED_TAGS`.
+`Registry.retrieve_keys` calls `match_tags`, `_match_variants`, and, for `untagged`, `Registry.retrieve_user_tags`, which reads `_GENERATED_TAGS`.
+`Registry.retrieve_variant_values` reads `_VARIANT_VALUES` for one key.
+`Registry.freeze_runtime` and `Registry.install_runtime` carry `_VARIANT_VALUES` and `_GENERATED_TAGS` with each key.
+`select_tags` in `cinnamon/utility/inquirer.py` calls `Registry.retrieve_keys(untagged=True)` for its untagged choice.
 
 ## cinnamon/utility/registration.py
 

@@ -249,7 +249,8 @@ the components to run:
    Choose *Cancel* to restart.
 3. **Tags** — iteratively add tags to narrow the selection. Choose *Proceed* once
    the desired subset is reached, *Go back* to remove the last tag, or *Cancel*
-   to restart.
+   to restart. Before any tag is picked, *No user tags (variant tags ignored)*
+   keeps the keys registered without tags, together with their variants.
 4. **Final selection** — a checkbox list of all matching keys. At least one must
    be selected.
 

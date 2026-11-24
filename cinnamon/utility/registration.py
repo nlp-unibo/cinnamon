@@ -329,19 +329,22 @@ def match_namespace(namespace: str, namespaces: Optional[Union[List[str], str]] 
 
 
 def match_tags(a_tags: AbstractSet[str], b_tags: Tags) -> bool:
+    """Whether ``a_tags`` holds every tag of ``b_tags``; ``None`` filters nothing.
+
+    ``None`` inside the set used to act as a wildcard that also admitted
+    tagged keys. It is refused instead: an untagged search is
+    ``Registry.retrieve_keys(untagged=True)`` (issue #59).
+    """
     if b_tags is None:
         return True
 
-    if not len(a_tags) and None in b_tags:
-        return True
+    if None in b_tags:
+        raise ValueError(
+            "None is not a tag. To select keys registered without tags, use "
+            "Registry.retrieve_keys(untagged=True)."
+        )
 
-    if len(a_tags) and None in b_tags:
-        b_tags = b_tags - {None}
-
-    if not len(b_tags - a_tags):
-        return True
-
-    return False
+    return not len(b_tags - a_tags)
 
 
 def import_class_from_string(path: str) -> type:

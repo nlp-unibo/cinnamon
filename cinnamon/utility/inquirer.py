@@ -15,6 +15,7 @@ import cinnamon.registry
 CANCEL = "__cancel__"
 GO_BACK = "__go_back__"
 PROCEED = "__proceed__"
+UNTAGGED = "__untagged__"
 
 __all__ = [
     "filter_keys",
@@ -109,12 +110,6 @@ def select_tags(keys: List["cinnamon.registry.RegistrationKey"]):
             tags = tags.union(key.tags)
         tags = tags.difference(set(selected_tags))
 
-        # NOTE: a "No Tags" choice used to be offered here, gated on
-        # ``None in selected_tags`` -- a condition that could only become true
-        # after the choice had already been picked, so it was never reachable.
-        # It is left out rather than revived: match_tags() treats a ``None``
-        # entry as a wildcard that also admits *tagged* keys, so an untagged
-        # filter needs its semantics settled before it means anything.
         add_go_back = len(selected_tags) > 0
 
         choices: List[Any] = [Choice(value=CANCEL, name="Cancel")]
@@ -125,6 +120,12 @@ def select_tags(keys: List["cinnamon.registry.RegistrationKey"]):
         # Gating it on a non-empty selection stranded anyone who backed out of
         # their last tag -- their only remaining option was to cancel.
         choices.insert(0, Choice(value=PROCEED, name="Proceed"))
+        # Only before a tag is picked: a key carrying a picked tag has a user
+        # tag by definition, so the filter could only ever empty the list.
+        if not selected_tags:
+            choices.insert(
+                1, Choice(value=UNTAGGED, name="No user tags (variant tags ignored)")
+            )
 
         choices.append(Separator())
 
@@ -147,6 +148,11 @@ def select_tags(keys: List["cinnamon.registry.RegistrationKey"]):
 
         if current_tag == PROCEED:
             break
+
+        if current_tag == UNTAGGED:
+            return selected_tags, cinnamon.registry.Registry.retrieve_keys(
+                untagged=True, keys=keys
+            )
 
         selected_tags.append(current_tag)
         current_keys = cinnamon.registry.Registry.retrieve_keys(

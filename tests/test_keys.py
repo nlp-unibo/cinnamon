@@ -253,16 +253,11 @@ def test_match_tags_none_filter_is_true():
     assert match_tags(a_tags={"t1"}, b_tags=None) is True
 
 
-def test_match_tags_empty_a_and_none_b():
-    # empty a_tags + b containing None => match
-    assert match_tags(a_tags=set(), b_tags={None}) is True
-
-
-def test_match_tags_removes_none_from_b():
-    # non-empty a_tags + None in b_tags => None is removed, then subset check
-    a = {"t1", "t2"}
-    b = {"t1", "t2", None}
-    assert match_tags(a_tags=a, b_tags=set(b)) is True
+@pytest.mark.parametrize("a_tags", [set(), {"t1"}])
+def test_match_tags_refuses_none_inside_the_filter(a_tags):
+    """``{None}`` used to match every key, tagged or not (issue #59)."""
+    with pytest.raises(ValueError, match="untagged=True"):
+        match_tags(a_tags=a_tags, b_tags={None})
 
 
 def test_match_tags_subset_match():

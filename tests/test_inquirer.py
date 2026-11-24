@@ -241,8 +241,17 @@ def test_select_tags_go_back(reset_registry, monkeypatch):
     assert tags == []
 
 
-def test_select_tags_offers_no_untagged_option(reset_registry, monkeypatch):
-    """The unreachable "No Tags" choice is gone; only real controls are offered."""
+UNTAGGED_LABEL = "No user tags (variant tags ignored)"
+
+
+def offered(call):
+    return [getattr(choice, "name", choice) for choice in call["choices"]]
+
+
+def test_select_tags_offers_the_untagged_filter_before_any_tag(
+    reset_registry, monkeypatch
+):
+    """The label says what it matches, and it goes once a tag is picked."""
     _register("a", "ns1", tags={"t1"})
     keys = list(Registry.retrieve_keys())
 
@@ -251,10 +260,24 @@ def test_select_tags_offers_no_untagged_option(reset_registry, monkeypatch):
 
     inquirer_mod.select_tags(keys=keys)
 
-    offered = [
-        getattr(choice, "name", choice) for choice in fake.select_calls[0]["choices"]
-    ]
-    assert "No Tags" not in offered
+    assert UNTAGGED_LABEL in offered(fake.select_calls[0])
+    assert UNTAGGED_LABEL not in offered(fake.select_calls[1])
+
+
+def test_select_tags_untagged_keeps_keys_registered_without_tags(
+    reset_registry, monkeypatch
+):
+    plain = _register("a", "ns1")
+    _register("a", "ns1", tags={"t1"})
+    keys = list(Registry.retrieve_keys())
+
+    fake = FakeInquirer(UNTAGGED_LABEL)
+    monkeypatch.setattr(inquirer_mod, "inquirer", fake)
+
+    tags, selected = inquirer_mod.select_tags(keys=keys)
+
+    assert tags == []
+    assert selected == [plain]
 
 
 # -- regressions --
