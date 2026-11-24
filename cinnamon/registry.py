@@ -1003,6 +1003,13 @@ class Registry:
         )
 
     _REGISTRY: Dict[RegistrationKey[Any], ConfigurationInfo]
+    #: The value of every variant parameter of a key, its default included.
+    #: Kept beside the key rather than in its tags, so a key's string form and
+    #: identity stay what they were (issue #76).
+    _VARIANT_VALUES: Dict[RegistrationKey[Any], Dict[str, Any]]
+    #: The tags variant expansion added to a derived key, as opposed to the
+    #: tags its registration was given (issue #59).
+    _GENERATED_TAGS: Dict[RegistrationKey[Any], frozenset[str]]
 
     _ROOT_KEY = RegistrationKey[Any](name="root", namespace="root")
     _DEPENDENCY_DAG: nx.DiGraph
@@ -1030,6 +1037,8 @@ class Registry:
         """Reset registry to empty state."""
         cls.forget_loaded_modules()
         cls._REGISTRY = {}
+        cls._VARIANT_VALUES = {}
+        cls._GENERATED_TAGS = {}
 
         cls.REGISTRATION_METHODS = {}
         cls.REGISTRATION_CONTEXT = RegistrationContext()
@@ -1049,6 +1058,8 @@ class Registry:
     #: one.
     _RESETTABLE = (
         "_REGISTRY",
+        "_VARIANT_VALUES",
+        "_GENERATED_TAGS",
         "REGISTRATION_METHODS",
         "REGISTRATION_CONTEXT",
         "_EXP_MODULES",
@@ -1118,6 +1129,8 @@ class Registry:
                 "component": info.component,
                 "run_method": info.run_method,
                 "values": values,
+                "variants": dict(cls._VARIANT_VALUES.get(key, {})),
+                "generated_tags": cls._GENERATED_TAGS.get(key, frozenset()),
             }
         return runtime
 
@@ -1149,6 +1162,13 @@ class Registry:
                 component=entry["component"],
                 run_method=entry["run_method"],
             )
+            for key, entry in runtime.items()
+        }
+        cls._VARIANT_VALUES = {
+            key: dict(entry.get("variants", {})) for key, entry in runtime.items()
+        }
+        cls._GENERATED_TAGS = {
+            key: frozenset(entry.get("generated_tags", ()))
             for key, entry in runtime.items()
         }
         cls.expanded = True
@@ -1350,6 +1370,16 @@ class Registry:
 
         cls._REGISTRY = {
             key: value for key, value in cls._REGISTRY.items() if key in valid_keys
+        }
+        cls._VARIANT_VALUES = {
+            key: value
+            for key, value in cls._VARIANT_VALUES.items()
+            if key in valid_keys
+        }
+        cls._GENERATED_TAGS = {
+            key: value
+            for key, value in cls._GENERATED_TAGS.items()
+            if key in valid_keys
         }
 
         return valid_keys, invalid_keys
@@ -1812,6 +1842,13 @@ class Registry:
         # tell. When the derived key equals the parent's own it is also a
         # self-loop, which ``check_registration_graph`` cannot see because it
         # runs before expansion.
+        # The parameters that vary, after dependency variants were added above.
+        # The base key holds their defaults and each derived key its own values,
+        # so a search can select a default value as well as any other.
+        varied = [name for name in config.fields if config.meta[name].variants]
+        if varied:
+            cls._VARIANT_VALUES[key] = {name: getattr(config, name) for name in varied}
+
         derived: Dict[RegistrationKey[Any], Dict[str, Any]] = {}
         for variant_info in config.variants:
             variant_key = key.from_variant(
@@ -1827,6 +1864,10 @@ class Registry:
                     previous=derived.get(variant_key),
                 )
             derived[variant_key] = variant_info["values"]
+            cls._VARIANT_VALUES[variant_key] = {
+                name: variant_info["values"][name] for name in varied
+            }
+            cls._GENERATED_TAGS[variant_key] = variant_key.tags - key.tags
 
             if not cls.in_graph(variant_key):
                 cls._DEPENDENCY_DAG.add_node(variant_key)
@@ -2333,6 +2374,8 @@ class Registry:
         tags: Tags = None,
         special_tags: Tags = None,
         keys: List[RegistrationKey[T]] | None = None,
+        variants: Mapping[str, Any] | None = None,
+        untagged: bool = False,
     ) -> List[RegistrationKey[Any]]:
         """
         Retrieves ``RegistrationKey`` via given name, tags, namespaces filters.
@@ -2344,6 +2387,13 @@ class Registry:
             tags: a tag set to filter registration keys.
             special_tags: a special tag set to filter registration keys.
             keys: an optional list of ``RegistrationKey`` on which to apply the search.
+            variants: values of variant parameters a key must have, default
+                values included. A dotted name such as ``loader.category``
+                reads the variant parameter of the key held by ``loader``.
+                Only available after expansion.
+            untagged: keep only keys whose registration was given no tags. Tags
+                that variant expansion generated do not count, so the variants
+                of an untagged registration match as well.
 
         Returns:
             Matching RegistrationKey instances.
@@ -2358,7 +2408,41 @@ class Registry:
             and match_namespace(namespace=key.namespace, namespaces=namespaces)
             and match_tags(a_tags=key.tags, b_tags=tags)
             and match_tags(a_tags=key.special_tags, b_tags=special_tags)
+            and cls._match_variants(key=key, variants=variants)
+            and (not untagged or not cls.retrieve_user_tags(key))
         ]
+
+    @classmethod
+    def retrieve_user_tags(cls, key: RegistrationKey[Any]) -> frozenset[str]:
+        """The tags ``key`` was registered with, without those variants generated."""
+        return key.tags - cls._GENERATED_TAGS.get(key, frozenset())
+
+    @classmethod
+    def retrieve_variant_values(cls, key: RegistrationKey[Any]) -> Dict[str, Any]:
+        """The value of every variant parameter of ``key``, defaults included.
+
+        Empty for a key whose configuration has no variant parameter.
+        """
+        return dict(cls._VARIANT_VALUES.get(key, {}))
+
+    @classmethod
+    def _match_variants(
+        cls, key: RegistrationKey[Any], variants: Mapping[str, Any] | None
+    ) -> bool:
+        if not variants:
+            return True
+        missing = object()
+        for path, expected in variants.items():
+            value: Any = key
+            for name in path.split(RegistrationKey.HIERARCHY_SEPARATOR):
+                if not isinstance(value, RegistrationKey):
+                    return False
+                value = cls._VARIANT_VALUES.get(value, {}).get(name, missing)
+                if value is missing:
+                    return False
+            if value != expected:
+                return False
+        return True
 
     @classmethod
     def retrieve_runnable_keys(cls) -> List[RegistrationKey[Any]]:

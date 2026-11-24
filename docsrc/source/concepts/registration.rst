@@ -461,6 +461,40 @@ namespace, tags, or any combination:
     # All runnable keys
     keys = Registry.retrieve_runnable_keys()
 
+**Search by variant values** with the ``variants`` argument. A variant
+parameter tags a key only for its non-default values, so a tag search cannot
+select a default. The registry records the value of every variant parameter of
+a key, its default included, without changing the key itself. The search is
+available after expansion.
+
+.. code-block:: python
+
+    class ModelConfig(Configuration):
+        optimizer: str = Param('adam', variants=['sgd'])
+        layers: int = Param(2, variants=[4])
+
+    # The two keys with the default optimizer, one of them untagged
+    keys = Registry.retrieve_keys(names='model', variants={'optimizer': 'adam'})
+
+    # A dotted name reads a variant parameter of the key a field holds
+    keys = Registry.retrieve_keys(names='task', variants={'model.optimizer': 'adam'})
+
+    # The values of one key
+    Registry.retrieve_variant_values(key)   # >>> {'optimizer': 'adam', 'layers': 2}
+
+**Search for keys registered without tags** with ``untagged=True``. Tags that
+variant expansion generated, such as ``optimizer=sgd``, do not count, so the
+variants of an untagged registration match as well. ``None`` is not a tag:
+``tags={None}`` raises.
+
+.. code-block:: python
+
+    # The untagged registration and all its variants
+    keys = Registry.retrieve_keys(names='model', untagged=True)
+
+    # The tags a key was registered with
+    Registry.retrieve_user_tags(key)   # >>> frozenset()
+
 ``Configuration`` also provides a ``retrieve()`` classmethod as syntactic sugar that
 additionally type-checks the result:
 
