@@ -1,6 +1,6 @@
 # Copyright (c) 2023-2026 Federico Ruggeri
 # SPDX-License-Identifier: MIT
-__version__ = "2.3.0"
+__version__ = "3.0.0"
 
 # Re-exported so ``from cinnamon import Configuration, Registry`` works. Each
 # module's ``__all__`` decides what is public, so this list cannot drift.
