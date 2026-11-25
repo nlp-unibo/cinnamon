@@ -2,7 +2,7 @@
 Measure how ``Registry.dag_resolution`` scales.
 
     python benchmarks/dag_scaling.py
-    python benchmarks/dag_scaling.py --quick     # small shapes, for a smoke test
+    python benchmarks/dag_scaling.py --quick     # small shapes, for a sanity check run
 
 The documentation quotes a cost model. Absolute milliseconds are a property of
 the machine that produced them, so rather than asking anyone to trust the
