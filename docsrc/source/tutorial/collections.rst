@@ -30,7 +30,9 @@ What to notice
   says so. Nesting would mean inventing a path language to address a key inside a
   container, and the graph would stop being a graph over keys.
 - ``Optional[list[RegistrationKey]]`` and the parameterized
-  ``RegistrationKey[Tokenizer]`` are both dependencies too.
+  ``RegistrationKey["mypackage.text.Tokenizer"]`` are both dependencies too. The
+  parameter is the dotted path of the type, so naming it imports nothing:
+  :doc:`../concepts/component` shows how.
 - A container varies through variants declared on the **whole field** — 
   ``Param([a, b], variants=[[a], [a, b, c]])`` — not by its members varying
   individually. :doc:`../concepts/dependencies` explains why, and what the derived tag looks

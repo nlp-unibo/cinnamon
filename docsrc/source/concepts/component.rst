@@ -134,6 +134,39 @@ library typically costs more than building an entire registry.
 ``cmn-check`` resolves these paths on the filesystem without importing anything;
 ``cmn-check --deep`` imports them to check signatures too.
 
+---------------------------------------------
+Naming the type a key builds
+---------------------------------------------
+
+A key field can name the component type it expects, for readers and type
+checkers. Write the type as its dotted import path, the same form as a binding,
+so that the configuration module does not import the component module:
+
+.. code-block:: python
+
+    from typing import TYPE_CHECKING
+
+    from cinnamon.configuration import Configuration, Param
+    from cinnamon.registry import RegistrationKey
+
+    if TYPE_CHECKING:
+        import mypackage.heads
+
+    class ModelConfig(Configuration):
+        head: RegistrationKey["mypackage.heads.Head"] = Param(HEAD)
+
+cinnamon keeps the string as text and never resolves it: validation and
+dependency detection read only ``RegistrationKey``. The import under
+``TYPE_CHECKING`` never runs, and lets mypy and pyright read the path as the type
+``Head``. The check at run time stays with the component, through
+``Registry.from_key(key, expected_type=Head)``.
+
+A bare name imported under ``TYPE_CHECKING``, such as ``RegistrationKey[Head]``
+with ``from __future__ import annotations``, is not defined at run time. Building
+the configuration then raises
+:class:`~cinnamon.utility.exceptions.UnresolvedKeyTypeException`, which shows the
+dotted form.
+
 =============================================
 Building a component
 =============================================

@@ -1,6 +1,6 @@
 # Codebase schema
 
-This schema covers the registration path only.
+This schema covers the registration path and the type parameter of a key.
 
 ## cinnamon/registry.py
 
@@ -27,3 +27,10 @@ For an external directory, `Registry.load_registrations` calls `qualified_packag
 `visit_FunctionDef`, `visit_ClassDef`, and `visit_Call` call `_registered_namespace` on each registration they recognise.
 `_registered_namespace` reads `namespace=` through `_namespace`, or a key argument through `_key_namespace`.
 `_namespace` and `_key_namespace` call `_lookup`, which follows imports through `_import_source` and `_bindings`.
+
+## Key type parameters
+
+`RegistrationKey.__class_getitem__` in `cinnamon/registry.py` returns a `typing._GenericAlias` for a string parameter, so typing never wraps it in a `ForwardRef`.
+`_unparameterise` in `cinnamon/utility/dependencies.py` reads only the origin of that alias, and `RegistrationKey.__get_pydantic_core_schema__` ignores the parameter.
+`Configuration.__init__` in `cinnamon/configuration.py` catches pydantic's `class-not-fully-defined` error and calls `_unresolved_key_field`.
+`_unresolved_key_field` rebuilds the model to read the undefined name, and `Configuration.__init__` raises `UnresolvedKeyTypeException` when a key annotation contains it.

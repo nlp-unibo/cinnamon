@@ -10,6 +10,7 @@ import logging
 import pickle
 import re
 import sys
+import typing
 from collections.abc import ItemsView, Mapping
 from dataclasses import dataclass
 from logging import getLogger
@@ -228,6 +229,23 @@ class RegistrationKey(Generic[T]):
             f"Cannot build a {cls.__name__} from {type(value).__name__}; "
             f"expected a {cls.__name__} or its string form."
         )
+
+    def __class_getitem__(cls, item: Any) -> Any:
+        """Keep a string type parameter as text.
+
+        ``RegistrationKey["pkg.heads.Head"]`` names the expected component by
+        its dotted import path, the same form as a component binding, so a
+        configuration module does not import the component module to annotate
+        a key. Typing would wrap the string in a ``ForwardRef``, which pydantic
+        tries to resolve and cannot. Nothing reads the parameter at run time:
+        validation ignores it and dependency detection reads only the origin.
+
+        ``typing._GenericAlias`` is private. The public ``types.GenericAlias``
+        converts a string argument to a ``ForwardRef`` on Python 3.11 and later.
+        """
+        if isinstance(item, str):
+            return typing._GenericAlias(cls, (item,))  # type: ignore[attr-defined]
+        return super().__class_getitem__(item)  # type: ignore[misc]
 
     @classmethod
     def __get_pydantic_core_schema__(

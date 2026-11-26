@@ -12,7 +12,8 @@ are supported:
     metrics: dict[str, RegistrationKey]         -> DICT
 
 each optionally wrapped in ``Optional[...]``, and each optionally parameterised
-(``RegistrationKey[Loss]``) for the benefit of readers and type checkers.
+(``RegistrationKey[Loss]`` or ``RegistrationKey["pkg.losses.Loss"]``) for the
+benefit of readers and type checkers.
 
 **Nesting is deliberately unsupported.** ``list[list[RegistrationKey]]`` and
 ``dict[str, list[RegistrationKey]]`` raise ``TypeError`` at detection time
