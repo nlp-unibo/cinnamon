@@ -23,6 +23,8 @@ from pydantic import (
     Field,
     PrivateAttr,
     PydanticSchemaGenerationError,
+    PydanticUndefinedAnnotation,
+    PydanticUserError,
     model_validator,
 )
 from pydantic.fields import FieldInfo
@@ -36,6 +38,7 @@ from cinnamon.utility.dependencies import (
     dependency_shape,
 )
 from cinnamon.utility.exceptions import (
+    UnresolvedKeyTypeException,
     UnsupportedFieldTypeException,
     ValidationFailureException,
     ValidationResult,
@@ -186,6 +189,28 @@ def _offending_field(namespace: dict[str, Any], field_type: str | None) -> str |
     return None
 
 
+def _unresolved_key_field(cls: type[BaseModel]) -> tuple[str, str] | None:
+    """Name the key field whose type parameter left ``cls`` incomplete.
+
+    Returns the field and the undefined name, or ``None`` when the undefined
+    name sits outside every ``RegistrationKey[...]`` annotation.
+    """
+    try:
+        cls.model_rebuild(raise_errors=True)
+    except PydanticUndefinedAnnotation as error:
+        undefined = str(error.name)  # NameError types it Optional; pydantic sets it
+    else:  # pragma: no cover - defined between the failed build and this one
+        return None
+
+    pattern = re.compile(rf"RegistrationKey\[.*\b{re.escape(undefined)}\b")
+    for field_name, field in cls.model_fields.items():
+        annotation = field.annotation
+        text = getattr(annotation, "__forward_arg__", None) or repr(annotation)
+        if pattern.search(text):
+            return field_name, undefined
+    return None
+
+
 class ConfigurationMeta(_ModelMetaclass):
     """Turns pydantic's "unknown type" error into cinnamon's explanation.
 
@@ -231,6 +256,19 @@ class Configuration(BaseModel, metaclass=ConfigurationMeta):
     model_config = ConfigDict(
         validate_default=True, validate_assignment=True, extra="forbid"
     )
+
+    def __init__(self, /, **data: Any) -> None:
+        try:
+            super().__init__(**data)
+        except PydanticUserError as error:
+            if error.code != "class-not-fully-defined":
+                raise
+            unresolved = _unresolved_key_field(type(self))
+            if unresolved is None:
+                raise
+            raise UnresolvedKeyTypeException(
+                type(self).__name__, *unresolved
+            ) from error
 
     def model_post_init(self, __context: Any) -> None:
         """Runs automatically right after Pydantic instantiates an object."""

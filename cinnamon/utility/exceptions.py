@@ -38,6 +38,7 @@ __all__ = [
     "ValidationResult",
     "ValidationFailureException",
     "UnsupportedFieldTypeException",
+    "UnresolvedKeyTypeException",
     "UnserializableRuntimeException",
     "VariantKeyCollisionException",
 ]
@@ -288,4 +289,28 @@ class UnsupportedFieldTypeException(Exception):
             f"-- does lift the restriction, at the cost of deep-copying that "
             f"object once per configuration and twice per variant during "
             f"expansion."
+        )
+
+
+class UnresolvedKeyTypeException(Exception):
+    """The type parameter of a key field names a type not defined at run time.
+
+    Raised in place of pydantic's "not fully defined" error when the name it
+    cannot resolve sits inside ``RegistrationKey[...]``. Pydantic advises to
+    define the name and rebuild the model, which means importing the component
+    module that a string binding exists to avoid.
+    """
+
+    def __init__(self, configuration_name: str, field_name: str, type_name: str):
+        super().__init__(
+            f"Field '{field_name}' on configuration '{configuration_name}' names "
+            f"'{type_name}' as the type parameter of a RegistrationKey, and "
+            f"'{type_name}' is not defined at run time.{os.linesep}{os.linesep}"
+            f"Write the parameter as the dotted import path of the type, and "
+            f"import its module under TYPE_CHECKING for type checkers:"
+            f"{os.linesep}"
+            f"    if TYPE_CHECKING:{os.linesep}"
+            f"        import mypackage.components{os.linesep}"
+            f"    {field_name}: RegistrationKey['mypackage.components."
+            f"{type_name}'] = Param(...)"
         )

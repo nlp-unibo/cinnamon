@@ -7,14 +7,18 @@ names, and a configuration that tries to *hold* a component is told why not.
 """
 
 import sys
+import typing
 
 import pytest
-from pydantic import ConfigDict
+from pydantic import ConfigDict, PydanticUserError, ValidationError, model_validator
 
 from cinnamon.configuration import Configuration
-from cinnamon.registry import Registry
+from cinnamon.registry import RegistrationKey, Registry
 from cinnamon.utility import static_analyzer
-from cinnamon.utility.exceptions import UnsupportedFieldTypeException
+from cinnamon.utility.exceptions import (
+    UnresolvedKeyTypeException,
+    UnsupportedFieldTypeException,
+)
 from cinnamon.utility.registration import import_class_from_string, locate_module
 from cinnamon.utility.static_analyzer import _check_component_path, analyze_registry
 
@@ -385,3 +389,133 @@ def test_shallow_check_does_not_judge_a_module_without_source(monkeypatch):
     )
 
     assert _check_component_path("ext.NoSuchThing") == ([], [])
+
+
+# -- the type parameter of a key --------------------------------------------
+
+KEY_SHAPES = """
+from typing import TYPE_CHECKING, Dict, List, Optional
+
+from cinnamon.configuration import Configuration, Param
+from cinnamon.registry import RegistrationKey
+
+if TYPE_CHECKING:
+    import pkg_heavy.heads
+
+KEY = RegistrationKey("head", namespace="paths")
+TYPE = "pkg_heavy.heads.Head"
+
+
+class ModelConfig(Configuration):
+    head: RegistrationKey["pkg_heavy.heads.Head"] = Param(KEY)
+    heads: List[RegistrationKey["pkg_heavy.heads.Head"]] = Param([KEY])
+    named: Dict[str, RegistrationKey["pkg_heavy.heads.Head"]] = Param({"a": KEY})
+    maybe: Optional[RegistrationKey["pkg_heavy.heads.Head"]] = Param(None)
+    empty: List[RegistrationKey["pkg_heavy.heads.Head"]] = Param([])
+"""
+
+FUTURE = "from __future__ import annotations\n"
+
+
+def _configuration_module(tmp_path, monkeypatch, name, source):
+    """Write ``name`` next to a component package that refuses to be imported."""
+    package = tmp_path / "pkg_heavy"
+    package.mkdir(exist_ok=True)
+    (package / "__init__.py").write_text("")
+    (package / "heads.py").write_text("raise RuntimeError('imported')\n")
+    (tmp_path / f"{name}.py").write_text(source)
+    monkeypatch.syspath_prepend(tmp_path)
+    monkeypatch.delitem(sys.modules, name, raising=False)
+    return __import__(name)
+
+
+@pytest.mark.parametrize("future", [False, True], ids=["eager", "postponed"])
+def test_a_dotted_key_parameter_never_imports_its_module(future, tmp_path, monkeypatch):
+    """The parameter documents the expected type and costs no import.
+
+    Typing wraps a string parameter in a ``ForwardRef``, which pydantic must
+    resolve before the configuration can be built. Kept as text, it is never
+    resolved, so the component module is not imported to annotate a key.
+    """
+    module = _configuration_module(
+        tmp_path,
+        monkeypatch,
+        f"keys_{'postponed' if future else 'eager'}",
+        (FUTURE if future else "") + KEY_SHAPES,
+    )
+
+    config = module.ModelConfig()
+
+    assert {
+        name: config.dependency_shape(name, field).value
+        for name, field in config.fields.items()
+    } == {
+        "head": "scalar",
+        "heads": "list",
+        "named": "dict",
+        "maybe": "scalar",
+        "empty": "list",
+    }
+    with pytest.raises(ValidationError):
+        module.ModelConfig(head="not a key")
+    assert "pkg_heavy.heads" not in sys.modules
+
+
+def test_a_dotted_key_parameter_reads_back_as_text():
+    """Readers see the path; the private alias stays a generic over the key.
+
+    ``typing._GenericAlias`` is private, so this test is what notices when a
+    Python release changes it.
+    """
+    alias = RegistrationKey["pkg_heavy.heads.Head"]
+
+    assert typing.get_origin(alias) is RegistrationKey
+    assert typing.get_args(alias) == ("pkg_heavy.heads.Head",)
+    assert typing.get_args(RegistrationKey[Simple]) == (Simple,)
+
+
+@pytest.mark.parametrize(
+    "annotation", ["RegistrationKey[Head]", "List[RegistrationKey[Head]]"]
+)
+def test_an_undefined_key_parameter_is_explained(annotation, tmp_path, monkeypatch):
+    """A name imported only for type checkers fails with the dotted form."""
+    source = (
+        FUTURE
+        + "from typing import TYPE_CHECKING, List\n"
+        + "from cinnamon.configuration import Configuration, Param\n"
+        + "from cinnamon.registry import RegistrationKey\n"
+        + "if TYPE_CHECKING:\n    from pkg_heavy.heads import Head\n"
+        + "class ModelConfig(Configuration):\n"
+        + f"    head: {annotation} = Param(None)\n"
+    )
+    module = _configuration_module(tmp_path, monkeypatch, "keys_undefined", source)
+
+    with pytest.raises(UnresolvedKeyTypeException) as raised:
+        module.ModelConfig()
+
+    message = str(raised.value)
+    assert "Field 'head' on configuration 'ModelConfig' names 'Head'" in message
+    assert "RegistrationKey['mypackage.components.Head']" in message
+
+
+def test_an_undefined_name_outside_a_key_keeps_pydantic_s_error(tmp_path, monkeypatch):
+    source = (
+        FUTURE
+        + "from cinnamon.configuration import Configuration, Param\n"
+        + "class ModelConfig(Configuration):\n"
+        + "    size: Missing = Param(None)\n"
+    )
+    module = _configuration_module(tmp_path, monkeypatch, "keys_missing", source)
+
+    with pytest.raises(PydanticUserError, match="`ModelConfig` is not fully defined"):
+        module.ModelConfig()
+
+
+def test_another_pydantic_user_error_passes_through():
+    class Strict(Configuration):
+        @model_validator(mode="after")
+        def refuse(self):
+            raise PydanticUserError("refused", code="validator-signature")
+
+    with pytest.raises(PydanticUserError, match="refused"):
+        Strict()
