@@ -285,7 +285,7 @@ def test_analysis_summary_all_clean(reset_registry, capsys):
     assert "All bindings are valid!" in out
 
 
-def test_print_analysis_summary_smoke(reset_registry, capsys):
+def test_print_analysis_summary_sanity_check(reset_registry, capsys):
     _build_default_registry()
     print_analysis_summary(analyze_registry())
     out = capsys.readouterr().out
